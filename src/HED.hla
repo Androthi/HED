@@ -1,0 +1,3776 @@
+
+	// Quick jumps, double click word below and F3
+	// menu_tbl
+	// WndProc
+	
+program HED_MAIN;
+	
+	
+	// system and local includes
+	#includeonce	("HED.hhf")
+	#includeonce	("args.hhf")
+	#includeonce	("fileio.hhf")
+	#includeonce	("filesys.hhf")
+	#includeonce	("memory.hhf")
+	#includeonce	("stdin.hhf")
+
+	#includeonce	("w32/shlwapi.hhf")
+	#includeonce	("w32/shell32.hhf")
+	#includeonce	("w32/comctl32.hhf")
+
+	#includeonce	("macros/maclib.hhf")
+
+	// global compile-time settings
+	?@nodisplay:=true;
+	?@align:=4;
+	?@noalignstack := true;
+	
+
+	//===============================================================
+	// locals
+
+	const
+	
+		// status bar positionals
+		POS_LINES	:=160;
+		POS_INS		:=POS_LINES+31;
+		POS_PROJ	:=POS_INS+63;
+		POS_DBG		:=POS_PROJ+60;
+
+		// increase this when a new Panel window is added, "Fold" is Window #0
+		nPanelWindows	:= 2;
+
+		IDM_HIDE_COLLAPSEALL	:= $0fffC;
+		IDM_HIDE_EXPANDALL		:= $0FFFD;
+
+		HED_DEFAULTINI		:="Data" + dirsep_c + "hed_default.ini";
+		HIDE_INI			:="Data" + dirsep_c + "HIDE.ini";
+		raseledi	:text:= "(type RASELCHANGE [edi])";
+		rabecx		:text:= "(type RABLOCKDEF [ecx])";
+
+	static	// local
+		align(4);
+			// parts : Ln : lines| ins | (Non)Project | Debug | -
+	 	parts		:int32[STATUS_PARTS]:=[POS_LINES,POS_INS, POS_PROJ,POS_DBG,-1];
+	
+		RadDLL	:str.constant("Data\RAEdit.dll");
+		RadHex	:str.constant("Data\RAHexed.dll");
+		linefont		:w.LOGFONT:=w.LOGFONT:[-12,0,0,0,400,0,0,0,0,3,2,1,49,strToBA("Lucida Console",w.LF_FACESIZE)];
+		current_menu	:uns16 := RECENT_MENU_START;		// track auto-added menus current number
+		align (4);
+
+
+
+	storage	// local variables
+		align(4);
+		argc		:uns32;		// command line arguments
+		prvline		:dword;
+		haccel		:dword;		// handle for accelerator table
+		hradll		:dword;		// dll handle
+		hexeddll	:dword;		// hex ed dll handle
+		nlastline	:dword;		// check for last line in edit control
+		dummy		:dword;		// dummy var for some windows APIs and temp storage
+		xm_dll		:dword;
+		openfile_s	:string;
+		
+		index		:dword;
+		
+		wc			:w.WNDCLASSEX;
+		msg			:w.MSG;
+		pt			:hide.point_t;
+
+		cf			:w.CHOOSEFONT;
+		markpos		:w.CHARRANGE;
+		chrg		:w.CHARRANGE;	
+		wordbuf		:byte[300];
+		
+		updateIns	:boolean;
+
+		align(4);
+
+	
+	readonly
+		align(4);
+		sourcemark_find	:zstring := "//bm=";
+
+
+		ClassName	:mzstr ("HIDEClass");
+		szCmntStart	:mzstr ("/*");	//*/
+		szCmntEnd	:mzstr ("*/");
+	
+		szINS		:mzstr ( "INS");
+		szOVR		:mzstr ( "OVR");
+		
+	// auto inserts
+		ins_begin			:mzstr ( "begin ");
+		ins_end			 	:mzstr ( "end ");
+		ins_nl				:byte := 13; byte 10,0,0;	// new line sequence, aligned 4
+		ins_tab				:byte := 09; byte 0, 0, 0;	// tab sequence, aligned 4
+		ins_endif			:mzstr ( "endif;");
+		ins_endclass		:mzstr ( "endclass;");
+		ins_endwhile		:mzstr ( "endwhile;");
+		ins_endfor			:mzstr ( "endfor;");
+		ins_until			:mzstr ( "until ( );");
+		ins_endrecord		:mzstr ( "endrecord;");
+		ins_endunion		:mzstr ( "endunion;");
+		ins_endtry			:mzstr ( "endtry;");
+		ins_endParen		:mzstr ( ")" );
+		ins_endBrace		:mzstr ( "}" );
+		ins_endBracket		:mzstr ( "]" );
+		ins_startParen		:mzstr ( "(" );
+		ins_startBrace		:mzstr ( "{" );
+		ins_startBracket	:mzstr ( "[" );
+		ctl_endmacro		:mzstr ( "#endmacro");
+		ctl_endfor			:mzstr ( "#endfor");
+		ctl_endif			:mzstr ( "#endif");
+		ctl_endwhile		:mzstr ( "#endwhile");
+		
+	proc
+	
+		
+	UpdateMenu	:procedure;
+	
+		// adds dynamic menus > recent files, etc.
+		var
+			menustring	:string;
+			count		:uns32;
+
+		static
+			_hmenu		:dword :=0;
+			_openrecent	:mzstr ("Open Recent");
+		
+	begin UpdateMenu;
+		pushad();
+	
+		if (_hmenu <> 0 ) then
+			w.DestroyMenu (_hmenu);
+			mov (0, _hmenu);
+		endif;
+	
+		w.CreatePopupMenu();
+		mov (eax, _hmenu);
+	
+		hed_ini.getItemCount ("Recent Files");
+		mov (eax, count);
+	
+		mov (RECENT_MENU_START, ebx);
+	
+		xor (ecx, ecx);
+		while (ecx < count ) do
+			
+			if (hed_ini.readItem ("Recent Files", ecx, stringbuffer)) then
+		
+				USE (ecx, ebx);
+					w.AppendMenu ( _hmenu, w.MF_BYPOSITION | w.MF_ENABLED | w.MF_STRING,
+									ebx, stringbuffer);
+				ENDUSE;
+				
+			else
+				error.warning ("'Recent Files' list in Data\Hide.ini is corrupt");
+				break;
+			endif;
+			
+			inc (ebx);
+			inc (ecx);
+		endwhile;
+		
+		w.GetSubMenu (core.hmenu,0);
+		w.ModifyMenu (eax, 4, w.MF_BYPOSITION | w.MF_POPUP| w.MF_ENABLED ,
+						_hmenu, &_openrecent );
+		w.DrawMenuBar(core.hwnd);
+		//dbg.put ("done update menu");
+		
+		popad();
+	end UpdateMenu;
+	
+	
+	setupUserMenu	:procedure;
+		var
+			nmenus		:uns32;
+		
+		storage
+			usermenu	:dword;
+		
+		readonly
+			szUser	:zstring := "User";
+			
+	begin setupUserMenu;
+		USE (EBX, ESI, EDI);
+		
+		//dbg.put ("setupUserMenu");
+		hed_ini.getItemCount ("User Menu");
+		test (eax, eax);
+		jz done;
+		mov (eax, nmenus);
+		
+		scan.setDelimiters( commaDelimcst );
+		
+		w.CreatePopupMenu();
+		mov (eax, usermenu);
+	
+		sub (ebx, ebx);
+		while (ebx < nmenus) do
+			hed_ini.readItem ("User Menu", ebx, stringbuffer);
+			mov (stringbuffer, esi);
+			scan.getToken( stringbuffer );
+			str.trim( stringbuffer );
+			
+			mov (ebx, eax);
+			add (USER_MENU_START, eax);
+			USE (EBX);
+				w.AppendMenu ( usermenu, w.MF_ENABLED | w.MF_STRING,
+									eax, stringbuffer);
+			ENDUSE;
+			inc (ebx);
+		endwhile;
+	
+		w.InsertMenu (core.hmenu, 7, w.MF_BYPOSITION | w.MF_POPUP | w.MF_STRING, usermenu, szUser);
+		w.DrawMenuBar(core.hwnd);
+		
+		done:
+		ENDUSE;
+		//dbg.put ("/setupUserMenu");
+	end setupUserMenu;
+
+	findExecutable :procedure( source:string; dest:string )
+		 { @returns("EAX") };
+		 
+		var
+			src		:string;
+			pth		:string;
+			iso		:string;
+			ext		:string;
+			
+	begin findExecutable;
+		dbg.enters("findExecutable");
+		mov( str.talloc(300), src );
+		mov( str.talloc(300), pth );
+		mov( str.talloc( 300), ext );
+		mov (0, iso);
+		
+		if( filesys.hasExtension( source ) ) then
+			filesys.extractExt( source, ext );
+			//str.cpyz( eax, ext );
+			dbg.put("ext = ", ext );
+			if( str.ieq( ext, "exe" ) ) then
+				
+				filesys.extractFilename( source, src );
+				filesys.extractPath( source, pth );
+				w.FindExecutable( src, pth, &buffer );
+				if( eax > 32 ) then
+					str.cpyz( &buffer, dest );
+					or( 1, eax );
+				else
+					xor( eax, eax );
+				endif; 
+			
+			else
+				xor( eax, eax );
+				
+			endif;
+			dbg.put("eax = ", eax );
+		else
+			xor( eax, eax );
+			
+		endif;
+		dbg.exits("findExecutable");
+	end findExecutable;
+	
+	expandPathMacs :procedure(source:string; dest:string);
+		var
+			buf		:tBuffer;
+			
+	begin expandPathMacs;
+//		dbg.enters("expandPathMacs");
+		pushabi;
+		
+		buf.create();
+		buf.puts( source );
+		buf.bof();
+		forever
+			breakif(! buf.searchf ("%"));
+			mov( buf.cursor,eax );
+			mov( (type byte[eax+1]), bl );
+			if (bl = 'p') then
+				buf.puts( core.projectpath );
+			elseif (bl = 'c') then
+				if (project.isOpen) then
+					buf.puts( project.folder );
+				endif;
+			elseif (bl = 'h') then
+				buf.puts( core.homepath );
+			elseif (bl = 't') then
+				env2.get ("hlatmp", dest);
+				buf.puts( dest );
+			elseif (bl = 'i') then
+				env2.get ("hlainc", dest);
+				buf.puts( dest );
+			elseif (bl = 'l') then
+				env2.get ("lib", dest);
+				buf.puts( dest );
+			elseif (bl = 's') then
+				mov (curnode, eax);
+				if (eax) then
+					buf.puts( listeax.fullname );
+				else
+					toOutput (nl "WARNING: no current file; using %s macro" nl);
+				endif;
+			elseif( bl = 'b' ) then
+				mov( curnode, eax );
+				if( eax ) then
+					filesys.extractBase( listeax.id, dest );
+					buf.puts( dest );
+				endif;
+			elseif (bl = 'x') then
+				buf.puts( core.tplpath );
+			elseif( bl = '$') then
+				
+				filesys.gwd( dest );
+				buf.puts( dest );
+			else
+				// unknown, just skip it.
+//				dbg.put("other");
+				buf.right( 1 );
+				continue;
+			endif;
+			buf.delete( 2 );
+		endfor;
+		buf.writeString( dest );
+		buf.destroy();
+//		dbg.put( "expanded :", dest );
+		popabi;
+//		dbg.exits("expandPathMacs");
+	end expandPathMacs;
+	
+	procedure Proc_SubclassedEdit(lparam:dword; wparam:dword; umsg:uns32; hwin:dword);
+	@alignstack;
+	
+		var
+			temp_s		:string;
+			isctl		:dword;
+			inProc		:boolean;
+	
+		static
+			mclicked		:boolean := false;
+			shiftdn			:boolean := false;
+			chrg			:w.CHARRANGE;
+	
+		// local procedures
+		procedure _countspaces; @noframe;
+		begin _countspaces;
+			mov (&wordbuf, edi);
+			xor(ecx,ecx);
+			mov(eax,esi);
+			
+		_count:
+			lodsb();
+			cmp(al,0);
+			je _endcount;
+			cmp(al,' ');
+			je _addcount;
+			cmp(al,$09);
+			je _addcount;
+			
+			jmp _endcount;
+			
+		_addcount:
+			stosb();
+			jmp _count;
+			
+		_endcount:
+			mov(0, (type byte[edi]) );
+			ret();
+		end _countspaces;
+		
+		procedure _insertit;	@noframe;
+		begin _insertit;
+			w.SendMessage(listebx.hwnd,w.EM_REPLACESEL,true,eax);
+			ret();	
+		end _insertit;
+		
+		procedure _setit;	@noframe;
+		begin _setit;
+	
+			mov(&ins_tab,eax);	call _insertit;
+			w.SendMessage(listebx.hwnd,w.EM_EXGETSEL,0,&chrg);
+			mov(&ins_nl,eax);		call _insertit;
+			mov(&wordbuf,eax);		call _insertit;
+			mov(esi,eax);	call _insertit;
+			w.SendMessage(listebx.hwnd,w.EM_EXSETSEL,0,&chrg);
+			w.SendMessage(listebx.hwnd,w.EM_SCROLLCARET,0,0);
+			ret();
+			
+		end _setit;
+			
+		procedure _getname;	@noframe;
+		begin _getname;
+			
+			mov(workpath,esi);
+			mov(esi,eax);
+			_find:
+				cmp( (type byte[eax]), 0);
+				je _get;
+				cmp( (type byte[eax]), ';');
+				je _get;
+				cmp( (type byte[eax]), '(');
+				je _get;
+				cmp( (type byte[eax]), ' ');
+				je _get;
+				cmp( (type byte[eax]), $09);
+				je _get;
+				inc(eax);
+				jmp _find;
+				
+			_get:
+				if( (type byte[eax]) <> 0  ) then
+					mov(';', (type byte[eax]));
+					inc(eax);
+					mov(0, (type byte[eax]));
+				endif;
+				str.a_cpyz(esi);
+			ret();
+		end _getname;
+	
+		procedure _doproc;
+		
+			var
+				temp_s	:string;
+				
+		
+		begin _doproc;
+			mov(&ins_begin,eax);	call _insertit;
+			
+			str.trim(workpath);
+			call _getname;
+			mov(eax,temp_s);
+			call _insertit;
+			
+			mov(&ins_nl,eax);		call _insertit;
+			mov(&wordbuf,eax);		call _insertit;
+			mov(&ins_tab,eax);		call _insertit;
+			w.SendMessage(listebx.hwnd,w.EM_EXGETSEL,0,&chrg);
+			mov(&ins_nl,eax);		call _insertit;
+			mov(&wordbuf,eax);		call _insertit;
+			mov(&ins_end,eax);		call _insertit;
+			mov(temp_s,eax);		call _insertit;
+			mov(&ins_nl,eax);		call _insertit;
+			
+			w.SendMessage(listebx.hwnd,w.EM_EXSETSEL,0,&chrg);
+			w.SendMessage(listebx.hwnd,w.EM_SCROLLCARET,0,0);
+			
+			str.free(temp_s);
+		end _doproc;
+
+	
+		procedure findDot; @noframe;
+		begin findDot;
+			// scan for a '.', if found, use only characters after it.
+			USE (ESI, ECX);
+				mov (workpath, esi);
+				mov (esi, ecx);
+				dec (esi);
+				forever
+					inc (esi);
+					mov ([esi],al);
+					breakif (al = 0);
+					if (al = '.') then
+						inc (esi);
+						sub (ecx, esi);
+						str.delete (workpath, 0, esi);
+						break;
+					endif;
+				endfor;
+			ENDUSE;
+			ret();
+		end findDot;
+		
+		procedure wordLeft ( toInsert:dword );
+			var
+				_chrg	:w.CHARRANGE;
+				
+		begin wordLeft;
+			pushabi;
+			hed_ini.readInt( "HED Settings", "Auto Parenthesis" );
+			if( eax ) then
+				
+				w.SendMessage (listebx.hwnd, w.EM_EXGETSEL, 0, &chrg);
+				mov (chrg.cpMin, eax);
+				dec (eax);
+				w.SendMessage (listebx.hwnd, w.EM_FINDWORDBREAK, w.WB_MOVEWORDLEFT, eax);
+				mov (eax, _chrg.cpMin);
+				mov (eax, _chrg.cpMax);
+				lea (eax, _chrg);
+				w.SendMessage (listebx.hwnd, w.EM_EXSETSEL, 0, eax);
+				mov (toInsert, eax);	call _insertit;
+				inc (chrg.cpMin);
+				inc (chrg.cpMax);
+				w.SendMessage (listebx.hwnd, w.EM_EXSETSEL, 0, &chrg);
+				w.SendMessage(listebx.hwnd,w.EM_SCROLLCARET,0,0);
+			endif;
+			popabi;
+		end wordLeft;
+		
+		procedure wordRight ( toInsert:dword );
+		begin wordRight;
+			pushabi;
+			hed_ini.readInt( "HED Settings", "Auto Parenthesis" );
+			if( eax ) then
+				
+				mov (ebp::wparam, eax);
+				w.SendMessage(listebx.hwnd,w.EM_EXGETSEL,0,&chrg);
+				mov (toInsert, eax);	call _insertit;
+				w.SendMessage(listebx.hwnd,w.EM_EXSETSEL,0,&chrg);
+				w.SendMessage(listebx.hwnd,w.EM_SCROLLCARET,0,0);
+			endif;
+			popabi;
+		end wordRight;
+		
+		procedure ScancodeToAscii(scancode:dword);
+		
+			// 	covert scan code to ascii
+			// 	result of ascii code in register BL
+			//	added by: Bernd Kastenholz
+		
+		var 
+			KeyState:byte[256];
+			CharBuf:byte;
+			
+		begin	ScancodeToAscii;
+				
+		USE(eax);
+			w.GetKeyboardState(KeyState);	
+			lea(eax, KeyState);
+			lea(edx, CharBuf);
+			w.ToAscii(scancode, scancode, [eax], [edx], 0);
+			mov(CharBuf, dl);
+		ENDUSE;
+		end ScancodeToAscii;
+		
+	begin Proc_SubclassedEdit;
+	USE(ESI, EDI, EBX, EDX);
+		mov (umsg,eax);
+		mov( false, inProc );
+		mov (curnode, ebx);
+		if (! ebx) then
+			jmp _exitnocall;
+		endif;
+		if (listebx.ftype = type_bin) then
+			jmp _exitnocall;
+		endif;
+		if(eax=w.WM_KEYUP) then
+			
+			mov(wparam,eax);
+			ScancodeToAscii(eax); // char is in register BL
+		
+			if (eax = w.VK_SHIFT) then
+				mov (false, shiftdn);
+			
+			// code added by Bernd Kastenholz  -----------------------
+			elseif (dl = '(') then
+				
+				wordRight (&ins_endParen);
+				
+			elseif (dl = '{') then
+				
+				wordRight (&ins_endBrace);
+				
+			elseif (dl = ')' ) THEN
+		
+				wordLeft (&ins_startParen);
+						
+			elseif (dl = '}') then
+		
+				wordLeft (&ins_startBrace);
+			
+			elseif (dl = '[') then
+
+				wordRight (&ins_endBracket);
+				
+			elseif (dl = ']') then
+			
+				wordLeft (&ins_startBracket);
+
+			// -------------------------------------------------------
+			
+			elseif(eax=w.VK_INSERT)	then
+				mov (true, updateIns);
+				
+			elseif( eax = w.VK_PAUSE ) then
+				
+				//bm=debug
+				dbg.enters("*****DEBUG*****");
+				//w.DialogBoxParam( hinst, val ID_MANAGER, hwnd, &Proc_HIDEManager, manager_jobs );
+				dbg.exits("*****DEBUG*****");
+			
+			endif;
+		
+		elseif (eax = w.WM_KEYDOWN) then
+			dbg.put("keydown : wparam = ", wparam);
+			
+			if (wparam = w.VK_SHIFT) then
+				mov (true, shiftdn);
+				
+			elseif( wparam = w.VK_ESCAPE ) then
+				w.SendMessage(core.hwnd,w.WM_CLOSE,0,0);				
+			endif;
+		endif;
+		_noautostruct:
+			w.CallWindowProc ( listebx.oldhwnd, hwin, umsg, wparam, lparam);
+			if (updateIns) then
+				mov (false, updateIns);
+				w.SendMessage(core.hwnd,HIDE_SETINSERTMODE,0,0);
+			endif;
+		_exitnocall:
+	ENDUSE;
+	end Proc_SubclassedEdit;
+
+	procedure updateDisplay (toupdate:dword);
+
+		procedure Toggle; @noframe;
+		begin Toggle;
+			USE (EAX, EDX);
+				if (EAX) then
+					mov(w.MF_BYCOMMAND | w.MF_ENABLED, eax);
+				else
+					mov(w.MF_BYCOMMAND | w.MF_GRAYED, eax);
+				endif;
+				w.EnableMenuItem (core.hmenu, edx, eax);
+			ENDUSE;
+			USE (EAX, EDX);
+				w.SendMessage(core.htbr, w.TB_ENABLEBUTTON,edx,eax);
+			ENDUSE;
+			ret();
+		end Toggle;
+
+		procedure doEdit; @noframe;
+		begin doEdit;
+			w.SendMessage(listebx.hwnd, w.EM_CANUNDO, 0, 0);
+			mov	(IDM_EDIT_UNDO, edx);
+			Toggle();
+			w.SendMessage(listebx.hwnd, w.EM_CANREDO,0,0);
+			mov	(IDM_EDIT_REDO, edx);
+			Toggle();
+			w.SendMessage (listebx.hwnd, w.EM_EXGETSEL, 0, &chrg);
+			mov	(chrg.cpMax, eax);
+			sub	(chrg.cpMin, eax);
+			mov	(IDM_EDIT_CUT, edx);
+			Toggle();
+			mov	(IDM_EDIT_COPY, edx);
+			Toggle();
+			mov	(IDM_EDIT_DELETE, edx);
+			Toggle();
+			w.SendMessage(listebx.hwnd, w.EM_CANPASTE, w.CF_TEXT,0);
+			mov	(IDM_EDIT_PASTE, edx);
+			Toggle();
+			
+			if (w.SendMessage (listebx.hwnd, w.EM_GETMODIFY, 0, 0)) then
+				or( 1, eax );
+			else
+				xor( eax, eax );
+			endif;
+			mov(IDM_FILE_SAVE,edx);
+			Toggle();
+			
+			ret();
+		end doEdit;
+
+
+		procedure doSelect; @noframe;
+		begin doSelect;
+			if (listebx.ftype != type_bin) then
+				w.SendMessage(listebx.hwnd, w.EM_EXLINEFROMCHAR,0, chrg.cpMin);
+				mov	(eax, edi);
+				w.SendMessage(listebx.hwnd, REM_NXTBOOKMARK, edi,3);
+				inc	(eax);
+				mov	(IDM_EDIT_NEXTBOOK, edx);
+				Toggle();
+				w.SendMessage(listebx.hwnd, REM_PRVBOOKMARK, edi,3);
+				inc	(eax);
+				mov	(IDM_EDIT_PREVBOOK, edx);
+				Toggle();
+				w.SendMessage(listebx.hwnd, REM_NXTBOOKMARK,-1,3);
+				inc	(eax);
+				mov	(IDM_EDIT_CLEARBOOK,edx);
+				Toggle();
+			endif;
+			ret();
+		end doSelect;
+
+	begin updateDisplay;
+		//dbg.put ("updateDisplay");
+	USE (ESI, EDI, EBX);
+		mov (toupdate, eax);
+		switch (eax);
+		case (update_general)
+			// check to see if a node is open and update accordingly
+			mov (curnode, ebx);
+			if (ebx) then
+				//dbg.put ("doselect");
+				doEdit();
+				doSelect();
+				mov (true, eax);
+				mov (IDM_EDIT_FIND, edx);
+				Toggle();
+				mov (IDM_EDIT_NEXT, EDX);
+				Toggle();
+				mov (IDM_EDIT_PREV, EDX);
+				Toggle();
+				mov (IDM_EDIT_REPLACE, edx);
+				Toggle();
+				mov (IDM_EDIT_GOTO, EDX);
+				Toggle();
+				MOV (IDM_EDIT_INDENT, EDX);
+				Toggle();
+				MOV (IDM_EDIT_OUTDENT, EDX);
+				Toggle();
+				MOV (IDM_EDIT_COMMENT, EDX);
+				Toggle();
+				MOV (IDM_EDIT_UNCOMMENT, EDX);
+				Toggle();
+				mov (IDM_EDIT_FINDRETURN, EDX);
+				Toggle();
+				mov (IDM_EDIT_SELECTALL, edx);
+				Toggle();
+				MOV (IDM_MENU_MARK, EDX);
+				Toggle();
+				mov (IDM_EDIT_SETMARK, EDX);
+				Toggle();
+				mov (IDM_MAKE_BUILDJOB,edx);
+				Toggle();
+				mov (IDM_MAKE_BUILDIT,edx);
+				Toggle();
+				mov (IDM_MAKE_REBUILD,edx);
+				Toggle();
+				mov (IDM_MAKE_REBUILDONE,edx);
+				Toggle();
+				mov (IDM_MAKE_REBUILDJOB,edx);
+				Toggle();
+				mov (IDM_MAKE_RUN,edx);
+				Toggle();
+				mov (IDM_MAKE_BUILDITRUN,edx);
+				Toggle();
+				mov (IDM_MAKE_RUNDBG,edx);
+				Toggle();
+				
+			else
+				if (project.isOpen) then
+					or (1, eax);
+				else
+					xor (eax, eax);
+				endif;
+				mov (IDM_EDIT_FIND, edx);
+				Toggle();
+
+				xor (eax, eax);
+				mov (IDM_EDIT_NEXT, EDX);
+				Toggle();
+				mov (IDM_EDIT_PREV, EDX);
+				Toggle();
+				mov (IDM_EDIT_REPLACE, edx);
+				Toggle();
+				mov (IDM_EDIT_GOTO, EDX);
+				Toggle();
+				MOV (IDM_EDIT_INDENT, EDX);
+				Toggle();
+				MOV (IDM_EDIT_OUTDENT, EDX);
+				Toggle();
+				MOV (IDM_EDIT_COMMENT, EDX);
+				Toggle();
+				MOV (IDM_EDIT_UNCOMMENT, EDX);
+				Toggle();
+				mov (IDM_EDIT_FINDRETURN, EDX);
+				Toggle();
+				mov	(IDM_EDIT_CUT, edx);
+				Toggle();
+				mov	(IDM_EDIT_COPY, edx);
+				Toggle();
+				mov	(IDM_EDIT_DELETE, edx);
+				Toggle();
+				mov (IDM_EDIT_SELECTALL, edx);
+				Toggle();
+				mov	(IDM_EDIT_UNDO, edx);
+				Toggle();
+				mov	(IDM_EDIT_REDO, edx);
+				Toggle();
+				mov	(IDM_EDIT_PASTE, edx);
+				Toggle();
+				mov (IDM_MENU_MARK, EDX);
+				Toggle();
+				mov	(IDM_EDIT_NEXTBOOK, edx);
+				Toggle();
+				mov	(IDM_EDIT_PREVBOOK, edx);
+				Toggle();
+				mov	(IDM_EDIT_CLEARBOOK,edx);
+				Toggle();
+				mov	(IDM_EDIT_NEXTBOOK, edx);
+				Toggle();
+				mov	(IDM_EDIT_PREVBOOK, edx);
+				Toggle();
+				mov	(IDM_EDIT_CLEARBOOK,edx);
+				Toggle();
+				mov (IDM_EDIT_SETMARK, EDX);
+				Toggle();
+				
+				mov (IDM_MAKE_BUILDJOB,edx);
+				Toggle();
+				mov (IDM_MAKE_BUILDIT,edx);
+				Toggle();
+				mov (IDM_MAKE_REBUILD,edx);
+				Toggle();
+				mov (IDM_MAKE_REBUILDONE,edx);
+				Toggle();
+				mov (IDM_MAKE_REBUILDJOB,edx);
+				Toggle();
+				mov (IDM_MAKE_RUN,edx);
+				Toggle();
+				mov (IDM_MAKE_BUILDITRUN,edx);
+				Toggle();
+				mov (IDM_MAKE_RUNDBG,edx);
+				Toggle();
+				
+			endif;
+			if (project.isOpen) then
+				or (1, eax);
+			else				
+				xor(eax,eax);
+			endif;
+			mov(IDM_MAKE_REBUILDONE,edx);
+			Toggle();
+			mov(IDM_MAKE_REBUILD,edx);
+			Toggle();
+			mov(IDM_PROJECT_CLOSE,edx);
+			Toggle();
+			mov(IDM_PROJECT_MANAGER, edx);
+			Toggle();
+			mov(IDM_PROJECT_JOBS, edx );
+			Toggle();
+			
+		case (update_selection)
+			mov (curnode, ebx);
+			doEdit();
+			doSelect();
+			
+		case (update_hexed)
+			mov (curnode, ebx);
+			doEdit();
+			w.SendMessage (listebx.hwnd, HEM_ANYBOOKMARKS, 0, 0);
+			mov	(IDM_EDIT_NEXTBOOK, edx);
+			Toggle();
+			mov	(IDM_EDIT_PREVBOOK, edx);
+			Toggle();
+		default
+		endswitch;
+		
+		fileList.getHead();
+		mov (eax, ebx);
+		while (ebx) do
+			if( listebx.hwnd ) then
+				if (w.SendMessage (listebx.hwnd, w.EM_GETMODIFY, 0, 0)) then
+					break;
+				endif;
+			endif;
+			mov( listebx.next, ebx );
+		endwhile;
+
+		mov( ebx, eax );
+		mov(IDM_FILE_SAVEALL,edx);
+		Toggle();
+
+		if( ! project.isOpen ) then
+			mov( 0, eax );
+			mov(IDM_MAKE_REBUILD,edx);
+			Toggle();
+		endif;
+
+
+	ENDUSE;
+	//dbg.put ("/updateDisplay");
+	end updateDisplay;
+
+	procedure hed_openFile (fname:string);
+	begin hed_openFile;
+		dbg.put ("hed_openFile");		
+		if (RAEdit_open (fname)) then
+			push (eax);
+			mov( eax, ecx );
+			tabtool_add ([ecx]);
+			dbg.put ( listecx.fullname );
+			Recent_Insert( listecx.fullname );
+			UpdateMenu();
+			TreeToolSetup();
+			updateDisplay (update_general);
+			pop (eax);
+		else
+			xor (eax, eax);
+		endif;
+		dbg.put ("/hed_openFile");
+	end hed_openFile;
+
+	procedure hide_openHex (fname:string);
+	begin hide_openHex;
+		if (RAHexed_open (fname)) then
+			//dbg.put ("opened");
+			push (eax);
+			mov( eax, ecx );
+			tabtool_add ([ecx]);
+			//dbg.put ("update");
+			Recent_Insert( listecx.fullname );
+			UpdateMenu();
+			//dbg.put("tree");
+			TreeToolSetup();
+			pop (eax);
+		else
+			xor (eax, eax);
+		endif;
+		updateDisplay (update_general);
+	end hide_openHex;
+
+	procedure hide_openNode ( var node:fList.fnode );
+	begin hide_openNode;
+	
+	USE( EBX );
+		mov( node, ebx );
+		cmp( listebx.hwnd, 0 );	jne already_open;
+		
+		//dbg.put("hide_openNode :", listebx.fullname);
+		
+		mov( listebx.ftype, eax );
+		switch( eax );
+		
+		case( type_misc, type_hla, type_unit, type_rc,
+				type_hhf, type_def, type_khelp, type_kmake )
+				
+			RAEdit_new( [ebx] );
+			if( filesys.exists( listebx.fullname) ) then
+				
+				RAEdit_loadFile( [ebx], listebx.fullname );
+				dbg.put("post loadfile");
+			else
+				toOutput("File not found: ", listebx.fullname, nl );
+			endif;
+			
+			tabtool_add( [ebx] );
+				
+		case( type_bin )
+		
+			RAHexed_new ([ebx]);
+			if( filesys.exists( listebx.fullname) ) then
+				
+				RAEdit_loadFile ([ebx], listebx.fullname);
+				
+			else
+				toOutput("File not found: ", listebx.fullname, nl);
+				
+			endif;
+				
+			tabtool_add( [ebx] );
+			
+		endswitch;
+		
+		already_open:
+	ENDUSE;
+	//dbg.put("/hide_openNode");
+	end hide_openNode;
+ 
+ 	procedure hide_selectNode( var node:fList.fnode );
+ 	begin hide_selectNode;
+ 		
+ 		// node already created and hwnd opened but invisible
+ 		// make if visible and update properties, create and attach
+ 		// a tabtool
+ 		
+ 		USE( EBX );
+		 		
+		mov( node, ebx );
+		GetFileTime (listebx.relative, listebx.writetime);
+		RAEdit_setFormat ([ebx]);
+		tabtool_add( [ebx] );
+ 		ENDUSE;
+ 		
+ 	end hide_selectNode;
+
+ 
+ 	procedure hide_closeNode ( var node:fList.fnode );
+ 	begin hide_closeNode;
+		USE( EBX );
+		mov( node, ebx );
+		cmp( listebx.hwnd, 0 );	je already_closed;
+		tabtool_close( [ebx] );
+		w.DestroyWindow( listebx.hwnd );
+		mov( 0, listebx.hwnd );
+		already_closed:
+		ENDUSE;
+ 	end hide_closeNode;
+
+	procedure Menu_NewFile; @noframe;
+	begin Menu_NewFile;
+		//dbg.put ("Menu_NewFile");
+		RAEdit_openNew (NULL);
+		mov (type_misc, listeax.ftype);	
+		tabtool_add ([eax]);
+		TreeToolSetup();
+		//dbg.put ("/Menu_NewFile");
+		updateDisplay (update_general);
+		w.SetFocus( core.hwnd );
+		ret();
+	end Menu_NewFile;
+
+	procedure Menu_OpenFile;	@noframe;
+	begin Menu_OpenFile;
+		dbg.put(">open");
+		InitOF("Open File",NULL, type_all);
+		if ( GetOpenName() ) then
+			mov(eax,openfile_s);
+			hed_openFile (openfile_s);
+			str.free (openfile_s);
+		endif;
+		updateDisplay (update_general);
+		ret();
+	end Menu_OpenFile;
+	
+	procedure Menu_OpenAsHex; @noframe;
+	begin Menu_OpenAsHex;
+		dbg.put ("open as hex");
+		InitOF ("Open As Hex", NULL, type_all);
+		if (GetOpenName() ) then
+			mov (eax, openfile_s);
+			hide_openHex (openfile_s);
+			str.free (openfile_s);
+		endif;
+		ret();
+	end Menu_OpenAsHex;
+
+	
+	procedure Menu_InsertFile;
+	
+		var
+			buf		:tBuffer;
+				
+
+	begin Menu_InsertFile;
+		dbg.put(">insert");
+		pushabi;
+		mov (curnode, ebx);
+		if (ebx) then
+			InitOF("Open File To Insert",NULL, type_all);
+			if ( GetOpenName() ) then
+				mov(eax,openfile_s);
+				buf.create( openfile_s );
+				mov( buf.data, eax );
+				add( buf.length, eax );
+				mov( 0, (type byte[eax]));
+				w.SendMessage(listebx.hwnd,w.EM_REPLACESEL,true, buf.data);
+				buf.destroy();
+				str.free(openfile_s);
+			endif;
+			updateDisplay (update_general);
+		endif;
+		popabi;
+	end Menu_InsertFile;
+	
+	procedure Menu_SaveFile;	@noframe;
+	begin Menu_SaveFile;
+		dbg.put("<save>");
+		pushabi;
+		mov (curnode, ebx);
+		if (ebx) then
+			if (listebx.hwnd > 0) then
+				RAEdit_SaveFile ([ebx]);
+			endif;
+		endif;
+		popabi;
+		ret();
+	end Menu_SaveFile;
+
+	procedure Menu_SaveAs;
+		var
+			s	:string;
+			
+	begin Menu_SaveAs;
+		
+		mov (str.talloc (pathsize_c), s);
+		pushabi;
+		dbg.put("<saveas>");
+		InitOF(	"Save File   : Default extension '.hla'   : End with '.' for no extension",
+				NULL, type_all);
+		if ( GetSaveName() ) then
+			mov (eax, openfile_s);
+			str.cpy (openfile_s, s);
+			str.free (openfile_s);
+			str.length (s);
+			mov (s, esi);
+			mov ([esi+eax-1], al);
+			if (al = '.') then
+				// remove the '.' and treat file as having no extension
+				str.truncate (s, 1);
+			
+			else
+		
+				// see if filename has an extension
+				// if not, add .hla
+				if( ! filesys.hasExtension( s ) ) then
+					str.put2( s, ".hla" );	
+				endif;
+				
+				
+			endif;
+			
+			// save it as new name
+			mov (curnode, ebx);
+			//RAEdit_SaveFile ([ebx]);
+			WriteToFile (listebx.hwnd, s);
+
+			// if this is project file, open it as a new RAEdit window
+			if (listebx.job) then
+				if (selectOpen (s)) then
+
+					mov (eax, ebx);
+					w.SendMessage (listebx.hwnd, w.EM_SETSEL, 0, -1);
+					w.SendMessage(listebx.hwnd, w.WM_CLEAR,0,0);
+					RAEdit_loadFile ([ebx], s);
+
+				else
+					hed_openFile (s);
+					Recent_Insert( s );
+					UpdateMenu();
+				endif;
+				
+			else
+				// just update curnode without creating a new node
+				str.free (listebx.fullname);
+				str.free (listebx.id);
+				str.a_cpy (s);
+				mov (eax, listebx.fullname);
+				
+				filesys.a_extractFilename( s );
+				mov( eax, listebx.id );
+				
+				Recent_Insert( listebx.fullname );
+				UpdateMenu();
+				updateAction ([ebx]);
+				tabtool_update ([ebx]);
+			endif;
+			setupFind();
+			GetFileTime (listebx.relative, listebx.writetime);
+			tabtool_activate();
+		endif;
+		popabi;
+	end Menu_SaveAs;
+		
+	procedure Menu_SaveAll;	@noframe;
+	begin Menu_SaveAll;
+		dbg.put("<saveall>");
+		saveAll();
+		ret();
+	end Menu_SaveAll;
+	
+
+	procedure Menu_CloseFile;	@noframe;
+	begin Menu_CloseFile;
+	USE (EBX);
+		mov (curnode, ebx);
+		if (ebx) then
+			if (! querySave ([ebx])) then
+				hide_closeNode( [ebx] );
+				
+				if (! listebx.job) then
+				
+					// orphaned file...
+					// also remove from list and update treeview.
+					fileList.remove ([ebx]);
+					TreeToolSetup();
+				endif;
+			endif;
+		endif;
+		updateDisplay (update_general);
+	ENDUSE;
+	ret();	
+	end Menu_CloseFile;
+	
+	procedure Menu_UserMenu;
+	
+		var
+			taskstr	:string;
+			optstr	:string;
+			useoutput	:boolean;
+			align( 4 );
+			
+	
+	begin Menu_UserMenu;
+
+		mov( str.talloc( 300 ), taskstr );
+		mov( str.talloc( 100 ), optstr );
+		mov( false, useoutput );
+		
+		USE (ESI, EBX);
+		sub (USER_MENU_START, ecx);
+		if (hed_ini.readItem ("User Menu", ecx, stringbuffer)) then
+			
+			scan.setDelimiters( commaDelimcst );
+			mov( stringbuffer, esi );
+			scan.getToken( taskstr );	// ignore the 1st one
+			
+			dbg.put("item: ", taskstr );
+			
+			jnc showerror;
+			scan.getToken( taskstr );	// this is the task
+			
+			dbg.put("task: ", taskstr );
+			
+			jnc showerror;
+			str.trim( taskstr );
+			expandPathMacs ( taskstr, taskstr );
+			dbg.put("expanded :", taskstr );
+			
+			scan.getToken( optstr );	// optional options
+			dbg.put("options :", optstr );
+			
+			str.trim( optstr );
+			if( str.ieq( optstr, "output" ) ) then
+				mov( true, useoutput );
+			endif;
+			
+			mov( taskstr, ebx );
+			
+			
+			mov ([ebx], al);
+			if (al = '<') then
+				
+				str.delete (taskstr, 0, 1);
+				str.trim (taskstr);
+				hed_openFile (taskstr);
+				
+			elseif (al = '>') then
+				
+				str.delete (taskstr, 0, 1);
+				str.trim (taskstr);
+				hide_openHex (taskstr);
+				
+				
+			else
+				
+				if (findExecutable (taskstr, stringbuffer)) then
+					str.put2 (stringbuffer, " """, taskstr, '"');
+					str.cpy (stringbuffer,taskstr);
+				endif;
+				
+
+				dbg.put ("running user :", taskstr);
+				
+				if( useoutput) then
+					dbg.put("piping output");
+					launchProgram( taskstr, true, true );
+				else
+					launchProgram( taskstr, false, false );
+				endif;
+					
+
+			endif;
+			
+			jmp done;
+			
+			showerror:
+				error.warning ("Unable to perform task, please doublecheck [User Menu] section in data/HIDE.ini" );
+			done:
+		endif;
+		ENDUSE;
+	end Menu_UserMenu;
+	
+	procedure Menu_RecentMenu; @noframe;
+		// user selected item from 'Recent Files' under File menu.
+	begin Menu_RecentMenu;
+		dbg.put ("Recent Menu");
+		
+		sub (RECENT_MENU_START, ecx);
+		if (hed_ini.readItem ("Recent Files", ecx, workpath)) then
+			
+			if( ecx > 0 ) then
+				hed_ini.deleteItem( "Recent Files", ecx );
+				hed_ini.insertItem( "Recent Files", 0, workpath );
+				UpdateMenu(); // rebuild recent menu
+			endif;
+			
+			filesys.extractExt( workpath, stringbuffer );
+			if( str.ieq( stringbuffer, "hpr" )) then
+
+				project.open (workpath);
+
+			else
+				if (filesys.exists (workpath)) then
+					if (! selectOpen (workpath)) then
+						hed_openFile (workpath);
+					endif;
+				else
+					str.put (stringbuffer, "File not found :", workpath);
+					error.warning (stringbuffer);
+				endif;
+			endif;
+		endif;
+		updateDisplay (update_general);
+		dbg.put("/Menu_recentMenu");
+		ret();
+	end Menu_RecentMenu;
+	
+	
+	procedure Menu_CloseAll;	@noframe;
+	begin Menu_CloseAll;
+		closeAll();
+		call SetWindowCaption;
+		updateDisplay (update_general);
+		ret();	
+	end Menu_CloseAll;
+	
+	procedure Menu_PageSetup;	@noframe;
+	begin Menu_PageSetup;
+
+		// page setup
+		call PageSetup;
+		ret();
+	end Menu_PageSetup;
+	
+	procedure Menu_Print;	@noframe;
+	begin Menu_Print;
+		// print
+		call PrintDoc;
+		ret();	
+	end Menu_Print;
+
+	procedure Menu_MakeClean;
+	
+		var
+			filestruc	:w.WIN32_FIND_DATA;
+			nextfile	:dword;
+			thisbuf		:string;
+			workdir		:string;
+
+		val
+			thisfile	:text := "(type w.WIN32_FIND_DATA [edx])";
+			
+	begin Menu_MakeClean;
+		
+		str.talloc( 1024 ); mov( eax, thisbuf );
+		str.talloc( 400 ); mov( eax, workdir );
+		filesys.gwd( workdir );
+		toOutput( nl "Clean..." nl );
+		if( project.isOpen ) then
+			// we are currently in the project folder
+			mov( &project.hpr, eax );
+			if ( inieax.readBool ("HPR Settings", "useunits")) then
+				try
+					filesys.cd( "units" );
+				anyexception
+				endtry;
+			endif;
+		endif;
+		
+		try
+			str.put( workpath, "*.obj" );
+			w.FindFirstFile( workpath, filestruc );
+			if (eax <> w.INVALID_HANDLE_VALUE) then
+				mov( eax, nextfile );
+				toOutput ("Deleting Object files" nl );
+				forever
+					// delete the file
+					lea( eax, filestruc.cFileName );
+					str.cpyz( eax, thisbuf );
+					filesys.delete( thisbuf );
+					toOutput( "deleted ", thisbuf, nl );
+					
+					// get the next one
+					w.FindNextFile( nextfile, filestruc );
+					breakif( ! eax );
+
+				endfor;
+				w.FindClose (nextfile);
+			endif; 
+			
+		anyexception
+			
+			error.fatal( "Exception occured during clean");
+			
+		endtry;
+		
+		try
+			str.put( workpath, "*.res" );
+			w.FindFirstFile( workpath, filestruc );
+			if (eax <> w.INVALID_HANDLE_VALUE) then
+				mov( eax, nextfile );
+				toOutput ("Deleting compiled resource files" nl );
+				forever
+					// delete the file
+					lea( eax, filestruc.cFileName );
+					str.cpyz( eax, thisbuf );
+					filesys.delete( thisbuf );
+					toOutput( "deleted ", thisbuf, nl );
+					
+					// get the next one
+					w.FindNextFile( nextfile, filestruc );
+					breakif( ! eax );
+
+				endfor;
+				w.FindClose (nextfile);
+			endif; 
+			
+		anyexception
+			
+			error.fatal( "Exception occured during clean");
+			
+		endtry;
+
+		filesys.cd( workdir );
+		toOutput(nl "Clean done" nl );
+	end Menu_MakeClean;
+	
+	procedure Menu_MakeBuild;	@noframe;
+	begin Menu_MakeBuild;
+		MakeProc ( mbuild_c, NULL, mclear_c);
+		ret();
+	end Menu_MakeBuild;
+	
+	procedure Menu_MakeRebuild;	@noframe;
+	begin Menu_MakeRebuild;
+			MakeProc( mbuildall_c, NULL, mclear_c);
+			ret();
+	end Menu_MakeRebuild;
+	
+	procedure Menu_MakeBuildOne;	@noframe;
+	begin Menu_MakeBuildOne;
+		MakeProc( mbuildone_c, curnode, mclear_c);
+		ret();
+	end Menu_MakeBuildOne;
+	
+	procedure Menu_MakeReBuildJob; @noframe;
+	begin Menu_MakeReBuildJob;
+		mov (curnode, eax);
+		mov (listeax.job, eax);
+		MakeProc (mrebuildonejob_c, eax, mclear_c);
+		ret();
+	end Menu_MakeReBuildJob;
+	
+	procedure Menu_MakeBuildObjects; @noframe;
+	begin Menu_MakeBuildObjects;
+		mov( curnode, eax );
+		MakeProc( mbuild_c, mobject_c, mclear_c );
+		ret();
+	end Menu_MakeBuildObjects;
+		
+	proc
+		Menu_MakeHla :procedure {@noframe} ;
+		begin Menu_MakeHla;
+			mov( curnode, eax );
+			MakeProc( mhla_c, eax, mclear_c );
+			ret();
+		end Menu_MakeHla;
+		
+		Menu_BuildScript	:procedure;
+			var s	:string;
+	
+				
+		begin Menu_BuildScript;
+			mov (str.talloc (pathsize_c), s);
+			
+			if (filesys.exists ("Build.kmk")) then
+					str.put (s, "kmake Build.kmk" );
+					launchProgram( s, true, true );
+			endif;
+			
+		end Menu_BuildScript;
+
+	
+	procedure Menu_MakeBuildJob; @noframe;
+	begin Menu_MakeBuildJob;
+		mov (curnode, eax);
+		mov (listeax.job, eax);
+		MakeProc (mbuildonejob_c, eax, mclear_c);
+		ret();
+	end Menu_MakeBuildJob;
+
+	
+	procedure Menu_Pview_RebuildJob; @noframe;
+	begin Menu_Pview_RebuildJob;
+		//dbg.put ("pview_rebuild job");
+		MakeProc (mrebuildonejob_c, pview_curSel, mclear_c);
+		ret();
+	end Menu_Pview_RebuildJob;
+
+	procedure Menu_Pview_Run; @noframe;
+	begin Menu_Pview_Run;
+
+		dbg.put ("pview_run");		
+		runNode( val pview_curSel, true );
+		
+		ret();
+	end Menu_Pview_Run;
+
+	procedure Menu_Pview_RunWithdebug; @noframe;
+	begin Menu_Pview_RunWithdebug;
+
+		dbg.put ("pview_run with debug");
+		runDebugNode( val pview_curSel );
+		
+		ret();
+	end Menu_Pview_RunWithdebug;
+
+	procedure Menu_MakeRun;	@noframe;
+	begin Menu_MakeRun;
+		
+		runNode( val curnode, true );
+		
+		ret();
+	end Menu_MakeRun;
+	
+	procedure Menu_MakeRunWithDebug;	@noframe;
+	begin Menu_MakeRunWithDebug;
+		
+		runDebugNode( val curnode );
+		
+		ret();
+	end Menu_MakeRunWithDebug;
+	
+	procedure Menu_MakeTestBuild;	@noframe;
+	begin Menu_MakeTestBuild;
+		
+		MakeProc( mtestbuild_c, NULL, mclear_c );
+		ret();
+	end Menu_MakeTestBuild;
+
+	procedure Menu_Pview_RebuildFile; @noframe;
+	begin Menu_Pview_RebuildFile;
+		MakeProc (mbuildone_c, pview_curSel, mclear_c);
+		ret();
+	end Menu_Pview_RebuildFile;
+
+	procedure Menu_Pview_kMakeTarget; @noframe;
+	begin Menu_Pview_kMakeTarget;
+		mov (pview_curSel, eax);
+		mov (listeax.job, eax);
+		MakeProc (mbuildonejob_c, eax, mclear_c);
+		ret();
+	end Menu_Pview_kMakeTarget;
+
+	procedure Menu_Pview_runExecutable; @noframe;
+	begin Menu_Pview_runExecutable;
+		mov( pview_curSel, eax );
+		mov( listeax.job, eax );
+		MakeProc( mbuildonejob_c, eax, mclear_c );
+		ret();
+	end Menu_Pview_runExecutable;
+
+	procedure Menu_Pview_OpenWithResed;
+		var
+			s	:string;
+			
+	begin Menu_Pview_OpenWithResed;
+		mov (str.talloc (pathsize_c), s);
+		pushabi;
+		mov (pview_curSel, ebx);
+		RAEdit_SaveFile ([ebx]);
+		w.GetFullPathName(listebx.relative, @size(buffer), &buffer, dummy);
+		str.put (s, "ResEd """);
+		str.catz (&buffer, s);
+		str.put2 (s, '"');
+		launchProgram( s, false, false );
+		
+		popabi;
+	end Menu_Pview_OpenWithResed;
+
+	procedure Menu_Pview_OpenWithKhelp;
+		var
+			s	:string;
+			
+	begin Menu_Pview_OpenWithKhelp;
+		mov ( str.talloc ( pathsize_c), s);
+		pushabi;
+
+		mov (pview_curSel, eax);
+		str.put (s, "kHelp """, listeax.relative, '"');
+		launchProgram( s, false, false );
+
+		popabi;
+	end Menu_Pview_OpenWithKhelp;
+
+	procedure Menu_Pview_OpenAsHex; @noframe;
+	begin Menu_Pview_OpenAsHex;
+		
+		hide_openHex ( pview_curSel );
+		ret();
+	end Menu_Pview_OpenAsHex;
+
+	procedure Menu_Pview_SetToOpen; @noframe;
+	begin Menu_Pview_SetToOpen;
+	USE (ESI, EDI);
+		mov (pview_curSel, eax);
+		mov (&project.hpr, esi);
+		iniesi.writeString ("HPR Settings", "mainfile", listeax.relative);
+		mov (pview_curSel, eax);
+		toOutput (listeax.relative, " set to automatically open next time Project is loaded" nl);
+	ENDUSE;
+	ret();
+	end Menu_Pview_SetToOpen;
+
+	procedure Menu_Pview_ReopenFile; @noframe;
+	begin Menu_Pview_ReopenFile;
+	USE (EBX);
+		mov (pview_curSel, ebx);
+		w.SendMessage (listebx.hwnd, w.EM_SETSEL, 0, -1);
+		w.SendMessage(listebx.hwnd, w.WM_CLEAR,0,0);
+		RAEdit_loadFile ([ebx], listebx.relative);
+		projectview_checkUpdate([ebx]);
+	ENDUSE;
+	ret();
+	end Menu_Pview_ReopenFile;
+
+
+	procedure Menu_MakeBuildRun; @noframe;
+	begin Menu_MakeBuildRun;
+		Menu_MakeBuild();
+		if (! eax) then
+			
+			runNode( val curnode, false );
+			
+		endif;
+		
+		ret();
+	end Menu_MakeBuildRun;
+	
+	procedure Menu_ToolsDebug;	@noframe;
+	begin Menu_ToolsDebug;
+		
+		launchProgram( "DebugWin", false, false );
+		
+		ret();
+	end Menu_ToolsDebug;
+	
+	procedure Menu_ToolscCalc;	@noframe;
+	begin Menu_ToolscCalc;
+		
+		launchProgram( "cCalc.exe", false, false );
+		
+		ret();
+	end Menu_ToolscCalc;
+	
+	procedure Menu_ToolsCalc; @noframe;
+	begin Menu_ToolsCalc;
+		
+		launchProgram( "calc.exe", false, false );
+		
+		ret();
+	end Menu_ToolsCalc;
+
+	
+	procedure Menu_ToolsAscii; @noframe;
+	begin Menu_ToolsAscii;
+		
+		launchProgram( "asciitbl.exe", true, true );
+		
+		ret();
+	end Menu_ToolsAscii;
+	
+	procedure Menu_ToolsResed;
+		var
+			s	:string;
+			
+	begin Menu_ToolsResed;
+		mov (str.talloc (pathsize_c), s);
+		// launch resource editor
+		pushabi;
+		mov (curnode, eax);
+		if (eax && listeax.isproject) then
+			if (listeax.ftype = type_rc) then
+			
+				// use this resource
+				mov (eax, ebx);
+				RAEdit_SaveFile ([ebx]);
+				w.GetFullPathName(listebx.relative, @size(buffer), &buffer, dummy);
+				str.put (s, "ResEd """);
+				str.catz (&buffer, s);
+				str.put2 (s, '"');
+			
+			else
+				mov (listeax.job, ecx);
+				fileList.getHead();
+				mov (eax, ebx);
+				while (ebx) do
+					if (listebx.job = ecx && listebx.ftype = type_rc) then
+						RAEdit_SaveFile ([ebx]);
+						w.GetFullPathName(listebx.relative, @size(buffer), &buffer, dummy);
+						str.put (s, "ResEd """);
+						str.catz (&buffer, s);
+						str.put2 (s, '"');
+						break;
+					endif;
+					mov (listebx.next, ebx);
+				welse
+					// no resource found in project
+					jmp _noproj;
+				endwhile;
+				// find 1st resource in this job
+			endif;
+			
+			launchProgram( s, false, true );
+
+		else
+			// just load resed
+			_noproj:
+			toOutput ("Resed launching without selected rc file." nl
+					"Any resource created should be imported if desired" nl);
+			
+			launchProgram( "Resed", false, false );
+
+		endif;
+		popabi;
+	end Menu_ToolsResed;
+		
+	procedure Menu_ToolsConsole;	@noframe;
+	begin Menu_ToolsConsole;
+		
+		env2.get( "COMSPEC", workpath );
+		launchProgram( workpath, false, true );
+		
+		ret();
+	end Menu_ToolsConsole;
+	
+	procedure Menu_ToolsRun; @noframe;
+	begin Menu_ToolsRun;
+		pushabi;
+		
+		if (! hed_ini._readString ("HED Settings", "command", stringbuffer)) then
+			str.cpy ("", stringbuffer);
+		endif;
+		
+		if ( getStringInput( "Enter Command", stringbuffer, workpath )) then
+
+			hed_ini.writeString ("HED Settings", "command", workpath);
+			expandPathMacs (workpath, workpath);
+			toOutput (nl ">", workpath, nl);
+			launchProgram( workpath, true, true );
+
+		endif;
+		
+		popabi;
+		ret();
+	end Menu_ToolsRun;
+
+	
+	procedure Menu_ToolsColor;
+		var
+			cc		:w.CHOOSECOLOR;
+			_str	:string;
+		
+	begin Menu_ToolsColor;
+		lea (eax, cc);
+		mem2.fillMem ([eax], @size(cc), 0);
+		mov (@size (cc), eax);
+		mov (eax, cc.lStructSize);
+		push (core.hwnd);
+		pop (cc.hwndOwner);
+		//push (hinst);
+		//pop (cc.hInstance);
+		mov (&CustColors, eax);
+		mov (eax, cc.lpCustColors);
+		mov(w.CC_FULLOPEN | w.CC_RGBINIT,cc.Flags);
+		w._ChooseColor (cc);
+		if (eax) then
+			str.put (workpath, "$", cc.rgbResult);
+			mov (curnode, eax);
+			if (listeax.hwnd <> 0) then
+				w.SendMessage (listeax.hwnd, w.EM_REPLACESEL, true, workpath);
+			else
+				str.insert (nl, 0, workpath);
+				w.SendMessage(core.houtedt,w.EM_REPLACESEL, true,workpath);
+			endif;
+			w.SetFocus(core.hwnd);
+		endif;
+		
+	end Menu_ToolsColor;
+	
+	procedure Menu_ProjectClose;	@noframe;
+	begin Menu_ProjectClose;
+		project.close();
+		ret();
+	end Menu_ProjectClose;
+
+	procedure Menu_ProjectMan; @noframe;
+	begin Menu_ProjectMan;
+		dbg.put("menu project manager");
+		if( project.isOpen ) then
+			w.DialogBoxParam (core.hinst, val ID_MANAGER, core.hwnd, &Proc_HIDEManager, manager_project );
+		endif;
+		dbg.put("/menu project manager");
+		ret();
+	end Menu_ProjectMan;
+	
+proc
+	Menu_ProjectJob :procedure {@noframe};
+	begin Menu_ProjectJob;
+		
+		if( project.isOpen ) then
+			w.DialogBoxParam (core.hinst, val ID_MANAGER, core.hwnd, &Proc_HIDEManager, manager_jobs );
+		endif;
+		ret();
+	end Menu_ProjectJob;
+
+
+	procedure Menu_ProjectCustomNew;
+		var
+			s	:string;
+	begin Menu_ProjectCustomNew;
+		mov (str.talloc (pathsize_c), s);
+		pushabi;
+		if ( getStringInput( "New Empty Project", s )) then
+			project.new_custom( s );
+		endif;	
+		updateDisplay (update_general);
+		popabi;		
+	end Menu_ProjectCustomNew;
+	procedure Menu_ProjectOpen;	@noframe;
+	begin Menu_ProjectOpen;
+		pushabi;
+		InitOF ("Open Project", "hpr", type_proj);
+		if ( GetOpenProjectName() ) then
+			mov(eax,openfile_s);
+			project.open (openfile_s);
+			UpdateMenu();
+			str.free (openfile_s);
+		endif;
+		dbg.put ("/Menu_projectOpen");
+		popabi;
+		updateDisplay (update_general);
+		ret();
+	end Menu_ProjectOpen;
+
+proc
+	Menu_OptionGeneral :procedure {@noframe};
+	begin Menu_OptionGeneral;
+		
+		w.DialogBoxParam( core.hinst, val ID_MANAGER, core.hwnd, &Proc_HIDEManager, manager_general );
+		ret();
+		
+	end Menu_OptionGeneral;
+
+	Menu_OptionToggleDbg :procedure {@noframe};
+	begin Menu_OptionToggleDbg;
+		pushabi;
+		
+		if( project.isOpen ) then
+			
+			mov( curnode, eax );
+			if( eax ) then
+				
+				mov( listeax.job, ebx );
+				mov( &project.hpr, esi );
+				if( iniesi.readBool( jobebx.id, "debug" )) then
+					
+					iniesi.writeBool( jobebx.id, "debug", false );
+					and( ! opt_usedebuglib, project.options );
+					
+				else
+					
+					iniesi.writeBool( jobebx.id, "debug", true );
+					or( opt_usedebuglib, project.options );
+					
+				endif;
+			
+			else
+				
+				if( bitSet( opt_usedebuglib, settings.options ) )then
+				
+					and( ! opt_usedebuglib, settings.options );
+				
+				else
+				
+					or( opt_usedebuglib, settings.options );
+					
+				endif;
+				
+			endif;
+			
+		endif;
+		
+		w.SendMessage( core.hwnd, HIDE_TOGGLEDEBUG, 0, 0 );
+		
+		popabi;
+		ret();
+	end Menu_OptionToggleDbg;
+
+	
+	procedure Menu_Help_ShowEnv;
+		var
+			s	:string;
+	
+	begin Menu_Help_ShowEnv;
+		
+		mov (str.talloc (1024), s);
+		
+		toOutput (	"HIDE Environment and Related Macros" nl
+					"===================================" nl
+					"%h home    : ", core.homepath,nl
+					"%p projects: ", core.projectpath,nl
+					"%x templts : ", core.tplpath,nl);
+		if (project.isOpen) then
+			toOutput ( "%c project : ", project.folder, nl); 
+		endif;
+		filesys.gwd (workpath);
+		toOutput (  "%$ current : ", workpath, nl);
+					
+		env2.get ("hlatmp", s);
+		toOutput (nl "%t hlatmp   :", s,nl);
+		env2.get ("hlalib", s);
+		toOutput ("   hlalib   :", s, nl);
+		env2.get ("lib", s);
+		toOutput ("%l lib      :", s, nl);
+		env2.get ("hlainc", s);
+		toOutput ("%i hlainc   :", s,nl);
+		toOutput ("%s filename :");
+		mov (curnode, eax);
+		if (eax) then
+			toOutput (listeax.id, nl);
+		endif;
+		toOutput( "%b basename :" );
+		mov( curnode, eax );
+		if( eax ) then
+			filesys.extractBase( listeax.id, s );
+			toOutput( s, nl );
+		endif;
+		
+		env2.get ("PATH", s);
+		toOutput (nl "   PATH     :", s, nl, nl); 
+	
+	end Menu_Help_ShowEnv;
+	
+	procedure Menu_Help_ShowFiles; @noframe;
+	begin Menu_Help_ShowFiles;
+	USE( ESI, EDI );
+		fileList.dumpList();
+	ENDUSE;	
+	ret();
+	end Menu_Help_ShowFiles;
+
+	
+	procedure startHelp (src:string);
+		var
+			s	:string;
+			
+	begin startHelp;
+		move (str.talloc (1024), s);
+		if (filesys.exists (src)) then
+			str.put (s, "kHelp """, src, '"');
+			launchProgram( s, false, true );
+			
+		else
+			toOutput (nl nl "File not found: ", src, nl nl
+				"Some help files need to be downloaded and installed" nl
+				"in the HIDE\Documents folder manually." nl nl);
+		endif;
+	end startHelp;
+
+	
+	procedure Menu_Help_Tutes; @noframe;
+	begin Menu_Help_Tutes;
+		str.put (workpath, core.homepath, dirsep_c, "Documents", dirsep_c, "Tutorials",
+				dirsep_c, "Tutorial.khelp");
+		startHelp (workpath);
+		ret();
+	end Menu_Help_Tutes;
+
+	procedure Menu_Help_Hidelib; @noframe;
+	begin Menu_Help_Hidelib;
+		str.put (workpath, core.homepath, dirsep_c, "Documents", dirsep_c, "hidelib.khelp");
+		startHelp (workpath);
+		ret();
+	end Menu_Help_Hidelib;
+
+	procedure Menu_Help_Hlalib; @noframe;
+	begin Menu_Help_Hlalib;
+		str.put (workpath, core.homepath, dirsep_c, "Documents", dirsep_c, "hlalib.khelp");
+		startHelp (workpath);
+		ret();
+	end Menu_Help_Hlalib;
+
+
+	procedure Menu_Help_Hide; @noframe;
+	begin Menu_Help_Hide;
+		str.put (workpath, core.homepath, dirsep_c, "Documents", dirsep_c, "hide.khelp");
+		startHelp (workpath);
+		ret();
+	end Menu_Help_Hide;
+
+
+	procedure Menu_Help_Tools; @noframe;
+	begin Menu_Help_Tools;
+		str.put (workpath, core.homepath, dirsep_c, "Documents", dirsep_c, "Tools.khelp");
+		startHelp (workpath);
+		ret();
+	end Menu_Help_Tools;
+
+	procedure Menu_Edit_SetSource; @noframe;
+	begin Menu_Edit_SetSource;
+		mov( curnode, eax );
+		test( eax, eax );
+		jz done;
+		str.put (stringbuffer, "Enter a label for bookmark");
+			if (getStringInput (stringbuffer, workpath)) then
+				str.put( stringbuffer, "//bm=", workpath, nl);
+				mov( curnode, ecx );
+				w.SendMessage(listecx.hwnd,w.EM_REPLACESEL,true, stringbuffer);
+				RAEdit_SaveFile (curnode);
+			endif;
+		done:
+		ret();
+	end Menu_Edit_SetSource;
+
+	procedure Menu_Edit_NextSource; @noframe;
+	begin Menu_Edit_NextSource;
+		
+		zstr.cpy( sourcemark_find, &findbuff );
+		find_next();
+		ret();
+	end Menu_Edit_NextSource;
+
+	procedure Menu_Edit_PrevSource; @noframe;
+	begin Menu_Edit_PrevSource;
+		
+		zstr.cpy( sourcemark_find, &findbuff );
+		find_prev();
+		ret();
+		
+	end Menu_Edit_PrevSource;
+
+
+	procedure Menu_ViewStatusbar;	@noframe;
+	begin Menu_ViewStatusbar;
+		xor(STATUS,settings.winview);
+		test(STATUS,settings.winview);
+		if (@nz) then
+			w.ShowWindow(core.hsbr,w.SW_SHOWNA);
+			w.CheckMenuItem(core.hmenu,IDM_VIEW_STATUS,(w.MF_BYCOMMAND | w.MF_CHECKED));
+		else
+			w.ShowWindow(core.hsbr,w.SW_HIDE);
+			w.CheckMenuItem(core.hmenu,IDM_VIEW_STATUS,(w.MF_BYCOMMAND));
+	    endif;
+		w.SendMessage(core.hwnd,w.WM_SIZE,w.SIZENORMAL,1);
+		ret();
+	end Menu_ViewStatusbar;
+	
+	procedure Menu_ViewOutput;	@noframe;
+	begin Menu_ViewOutput;
+		// change output window view
+		xor(OUTPUT,settings.winview);
+		test(OUTPUT,settings.winview);
+		if (@z) then
+			Output_View(w.SW_HIDE);
+		else
+			Output_View(w.SW_SHOW);
+	    endif;
+		ret();
+	end Menu_ViewOutput;
+	
+	procedure Menu_ViewPanel; @noframe;
+	begin Menu_ViewPanel;
+		PanelViewActive();
+		ret();
+	end Menu_ViewPanel;
+	
+	procedure Menu_ViewCycle; @noframe;
+	begin Menu_ViewCycle;
+		dbg.put ("cycle");
+		mov (settings.panelwin, eax);
+		inc (eax);
+		if (eax > nPanelWindows) then
+			mov (0, eax);
+		endif;
+		mov (eax, settings.panelwin);
+		PanelViewWin();
+		ret();	
+	end Menu_ViewCycle;
+	
+	
+	procedure Menu_ViewToggleWindows; @noframe;
+	begin Menu_ViewToggleWindows;
+		// same as user select View Panel and View Output
+		Menu_ViewPanel();
+		Menu_ViewOutput();
+		ret();
+	end Menu_ViewToggleWindows;
+	
+	procedure Menu_ViewHideAll; @noframe;
+	begin Menu_ViewHideAll;
+		PanelFold();	
+		Output_View ( w.SW_HIDE);
+		ret();
+	end Menu_ViewHideAll;
+	
+	procedure CommandProcessor;	@noframe;
+	
+	
+	// many menu items processing appear
+	// here since they are not important enough
+	// to clutter up the properties view with
+	// individual procedures.
+	
+	val
+		// for procedures called from WndProc, using HLA calling convention
+		hwin	:text	:="[ebp+8]";
+		umsg	:text	:="[ebp+12]";
+		wparam	:text	:="[ebp+16]";
+		lparam	:text	:="[ebp+20]";
+	endval;
+	
+	begin CommandProcessor;
+	
+	_mfq::	
+			w.SendMessage(hwin,w.WM_CLOSE,0,0);
+			ret();
+	
+	_mvsod::
+			// dock output
+			xor(OUTPUT_D,settings.winview);
+
+
+
+			test(OUTPUT_D,settings.winview);
+			if(@nz) then
+				Output_View(DOCK_YES);
+			else
+				Output_View(DOCK_NO);
+			endif;
+			ret();
+			        
+			
+	_meud::	
+			mov (curnode, eax);
+			w.SendMessage(listeax.hwnd, w.EM_UNDO,0,0);
+			ret();
+			
+	_merd::	
+			mov (curnode, eax);
+			w.SendMessage(listeax.hwnd, w.EM_REDO,0,0);
+			ret();
+			
+	_mecut::
+		mov (curnode, eax);
+			w.SendMessage(listeax.hwnd, w.WM_CUT,0,0);
+			ret();
+	
+	_mecpy::
+		mov (curnode, eax);
+		w.SendMessage(listeax.hwnd, w.WM_COPY,0,0);
+		ret();
+	
+	_mepst::
+		mov (curnode, eax);
+		w.SendMessage(listeax.hwnd, w.WM_PASTE,0,0);
+		ret();
+	
+	_medel::
+		mov (curnode, eax);
+		w.SendMessage(listeax.hwnd, w.WM_CLEAR,0,0);
+			ret();
+			
+	_mesa::
+			lea(chrg,eax);
+			mov(0, (type w.CHARRANGE [eax]).cpMin);
+			mov(-1,(type w.CHARRANGE [eax]).cpMax);
+			mov (curnode, ecx);
+			w.SendMessage(listecx.hwnd,w.EM_EXSETSEL,0,eax);
+			ret();
+			
+
+	_mems::
+		mov (curnode, eax);
+		w.SendMessage(listeax.hwnd,w.EM_EXGETSEL,0,&chrg);
+		mov(chrg.cpMin,eax);
+		mov(eax,markpos.cpMin);
+		ret();
+	
+	_meme::
+		mov (curnode, eax);
+		push (eax);
+		w.SendMessage(listeax.hwnd,w.EM_EXGETSEL,0,&chrg);
+		mov(chrg.cpMin,eax);
+		mov(eax,markpos.cpMax);
+		pop (eax);
+		w.SendMessage(listeax.hwnd, w.EM_EXSETSEL,0,&markpos);
+		ret();
+			
+	_mefnd::
+			mov (curnode, eax);
+			if (!eax) then
+				ret();
+			endif;
+			cmp(core.hfind,0);
+			jne _findopen;
+			
+			_find:	//dbg.put("creating find dialog");
+					GetSelText(&findbuff);
+					w.CreateDialogParam(core.hinst,val ID_FINDDLG,hwin,&Proc_FindDlg,false);
+					ret();
+			
+			_findopen:w.SetFocus(core.hfind);
+					ret();
+			
+	_mefnxt::
+			mov (curnode, eax);
+			if (!eax) then
+				ret();
+			endif;
+
+			
+			cmp(core.hfind,0);
+			jne _cknbuf;
+			
+			_getnbuf:	GetSelText(&findbuff);
+			
+			_cknbuf:
+					mov(findbuff[0],al);
+					test(al,al);
+					jz _xfnxt;
+					find_next();
+//					FindNext();
+					// float	
+			
+			_xfnxt:	ret();
+			
+	_mefprv::
+			mov (curnode, eax);
+			if (!eax) then
+				ret();
+			endif;
+			cmp(core.hfind,0);
+			jne _ckpbuf;
+			
+			_getpbuf:	GetSelText(&findbuff);
+			
+			_ckpbuf:
+					mov(findbuff[0],al);
+					test(al,al);
+					jz _xfprev;
+//					FindPrev();
+					find_prev();
+					
+			_xfprev:	ret();
+			
+	_mefrpl::
+			mov (curnode, eax);
+			if (listeax.hwnd = 0) then
+				ret();
+			endif;
+			cmp(core.hfind,0);
+			jne _findfoc;
+			
+			_setrep:
+					GetSelText(&findbuff);
+					w.CreateDialogParam(core.hinst,val ID_FINDDLG,hwin,&Proc_FindDlg,true);
+					ret();
+			
+			_findfoc:	w.SetFocus(core.hfind);
+					ret();
+			
+	_megoto::
+			w.DialogBoxParam(core.hinst,val ID_GOTO,hwin,&Proc_Goto,false);
+			ret();
+		
+	_meind::	
+			IndentComment(w.VK_TAB,true);
+			ret();
+			
+	_meoutd::	
+			IndentComment(w.VK_TAB,false);
+			ret();
+			
+	_mecomnt::	
+		mov (curnode, eax);
+		if (eax) then
+			
+			if ( listeax.ftype = type_kmake ) then
+				IndentComment ( $3b, true);
+			else
+				IndentComment(DOUBLESLASH,true);
+			endif;
+				
+		endif;
+		ret();
+			
+	_meuncmnt::
+		mov (curnode, eax);
+		if (eax) then
+			
+			if ( listeax.ftype = type_kmake ) then
+				IndentComment ( $3b, false);
+			else
+				IndentComment(DOUBLESLASH,false);
+			endif;
+
+		endif;
+		ret();
+			
+	_mesbook::	
+		USE (EBX);
+			mov (curnode, ebx);
+			w.SendMessage(listebx.hwnd, w.EM_EXGETSEL,0,&chrg);
+			w.SendMessage(listebx.hwnd, w.EM_EXLINEFROMCHAR,0,chrg.cpMin);
+			mov(eax, edi);
+			w.SendMessage(listebx.hwnd,REM_GETBOOKMARK,edi,0);
+			if(!eax) then
+				w.SendMessage(listebx.hwnd, REM_SETBOOKMARK, edi,3);
+			elseif (eax = 3) then
+				w.SendMessage(listebx.hwnd, REM_SETBOOKMARK, edi,0);
+			endif;
+			updateDisplay (update_general);
+		ENDUSE
+		ret();
+	
+	_menbook::
+		USE (EBX);
+			mov (curnode, ebx);
+			w.SendMessage(listebx.hwnd, w.EM_EXGETSEL, 0,&chrg);
+			w.SendMessage(listebx.hwnd, w.EM_EXLINEFROMCHAR,0,chrg.cpMin);
+			w.SendMessage(listebx.hwnd, REM_NXTBOOKMARK, eax, 3);
+			if (eax != -1) then
+				w.SendMessage(listebx.hwnd, w.EM_LINEINDEX, eax,0);
+				mov	(eax, chrg.cpMin);
+				mov	(eax, chrg.cpMax);
+				w.SendMessage(listebx.hwnd, w.EM_EXSETSEL,0,&chrg);
+				w.SendMessage(listebx.hwnd, REM_VCENTER,0,0);
+				w.SendMessage(listebx.hwnd, w.EM_SCROLLCARET,0,0);
+			endif;
+		ENDUSE;
+		ret();
+			
+	_mepbook::
+		USE (EBX);
+			mov (curnode, ebx);
+			w.SendMessage(listebx.hwnd, w.EM_EXGETSEL,0,&chrg);
+			w.SendMessage(listebx.hwnd, w.EM_EXLINEFROMCHAR, 0, chrg.cpMin);
+			w.SendMessage(listebx.hwnd, REM_PRVBOOKMARK, eax,3);
+			if (eax != -1) then
+				w.SendMessage(listebx.hwnd, w.EM_LINEINDEX, eax,0);
+				mov(eax,chrg.cpMin);
+				mov(eax,chrg.cpMax);
+				w.SendMessage(listebx.hwnd, w.EM_EXSETSEL,0,&chrg);
+				w.SendMessage(listebx.hwnd, REM_VCENTER,0,0);
+				w.SendMessage(listebx.hwnd, w.EM_SCROLLCARET,0,0);
+			endif;
+		ENDUSE;
+		ret();
+			
+	_mecbook::	
+		mov (curnode, eax);
+		w.SendMessage (listeax.hwnd, REM_CLRBOOKMARKS,0,3);
+		updateDisplay (update_general);
+		ret();
+			
+	_expandall::	
+		dbg.put ("expandall");
+		USE (EBX);
+			mov (curnode, ebx);	
+			if (ebx) then
+				w.SendMessage(listebx.hwnd, REM_EXPANDALL,0,0);
+				w.SendMessage(listebx.hwnd, w.EM_SCROLLCARET,0,0);
+				w.SendMessage (listebx.hwnd, REM_REPAINT,0,0);
+			endif;
+		ENDUSE;
+		ret();
+			
+	_collapseall::
+		dbg.put ("collapseall");
+		USE (EBX);
+			mov (curnode, ebx);
+			if (ebx) then
+				w.SendMessage (listebx.hwnd, REM_COLLAPSEALL, 0, 0); 
+				w.SendMessage(listebx.hwnd, w.EM_SCROLLCARET,0,0);
+				w.SendMessage (listebx.hwnd, REM_REPAINT,0,0);
+			endif;
+		ENDUSE;
+		ret();
+	
+	_mocfnt::	
+		mem2.fillMem(&cf,@size(cf),0);
+		mov(@size(cf), cf.lStructSize);
+		mov(hwin, cf.hWndOwner);
+		mov(&mainfont, cf.lpLogFont);
+		mov(w.CF_SCREENFONTS | w.CF_EFFECTS | w.CF_INITTOLOGFONTSTRUCT, cf.Flags);
+		mov(core.col.txtcol, cf.rgbColors);
+		//mov(curnode, ebx);
+		w._ChooseFont(&cf);
+		if (eax) then
+			w.DeleteObject(core.hmainfont);
+			mov	(mainfont.lfItalic, al);
+			push (eax);
+			w.CreateFontIndirect(&mainfont);
+			mov	(eax, core.hmainfont);
+			w.DeleteObject(core.hitalic);
+			mov	(true, mainfont.lfItalic);
+			w.CreateFontIndirect(&mainfont);
+			mov	(eax, core.hitalic);
+			pop	(eax);
+			mov	(al, mainfont.lfItalic);
+			mov	(cf.rgbColors, core.col.txtcol);
+			//w.SendMessage(listebx.hwnd,REM_SETCOLOR,0,&core.col);
+			setFormatAll();
+			
+			hed_ini.writeBin ("Fonts","code",&mainfont,@size(mainfont));
+			hed_ini.writeBin ("Colors","col",&core.col,@size(core.col));
+			
+		endif;
+		w.SetFocus( core.hwnd );
+		ret();
+			
+	_molfnt::	
+	//	USE (EBX);
+		mem2.fillMem(&cf,@size(cf),0);
+		mov(@size(cf), cf.lStructSize);
+		mov(hwin, cf.hWndOwner);
+		mov(&linefont, cf.lpLogFont);
+		mov(w.CF_SCREENFONTS | w.CF_EFFECTS | w.CF_INITTOLOGFONTSTRUCT, cf.Flags);
+		mov(core.col.lnrcol, cf.rgbColors);
+		//mov (curnode, ebx);
+		w._ChooseFont(&cf);
+		if (eax) then
+			w.DeleteObject(core.hlinefont);
+			w.CreateFontIndirect(&linefont);
+			mov(eax, core.hlinefont);
+			mov(cf.rgbColors,core.col.lnrcol);
+			//w.SendMessage(listebx.hwnd,REM_SETCOLOR,0,&core.col);
+			setFormatAll();
+
+			hed_ini.writeBin("Fonts", "line", &linefont, @size(linefont));
+			hed_ini.writeBin ("Colors","col",&core.col,@size(core.col));
+			
+		endif;
+		w.SetFocus( core.hwnd );
+	//	ENDUSE;
+		ret();
+	
+	_mokwrds::
+		w.DialogBoxParam( core.hinst, val ID_MANAGER, core.hwnd, &Proc_HIDEManager, manager_themes );
+		ret();
+	
+	_mohide::	// hide/editor options
+		w.DialogBoxParam( core.hinst, val ID_MANAGER, core.hwnd, &Proc_HIDEManager, manager_settings );
+		ret();
+	
+	_mosetp::	// HIDE paths
+		
+		w.DialogBoxParam( core.hinst, val ID_MANAGER, core.hwnd, &Proc_HIDEManager, manager_env );
+		ret();
+	
+	_mhabt::	
+		showAboutWin();
+		ret();
+		
+	_mhapi::
+		mov(0,buffer[0]);
+		if (hed_ini._readString ("Help", "1", stringbuffer)) then
+			expandPathMacs (stringbuffer, stringbuffer);		
+			if (str.length (stringbuffer) > 0) then
+				mov (curnode, eax);
+				w.SendMessage(listeax.hwnd,REM_GETWORD,@size(buffer),&buffer);
+				if(buffer[0] <> 0) then
+					w.WinHelp(hwin,stringbuffer, w.HELP_KEY,&buffer);
+				else
+					w.WinHelp(hwin,stringbuffer, w.HELP_INDEX,NULL);
+				endif;				
+			endif;
+
+		endif;			
+		ret();
+			
+	_ctrltab::
+		if ( tabtool_getindex (curnode) != -1) then
+			push (eax);
+			w.SendMessage(core.htab, w.TCM_GETITEMCOUNT, 0, 0);
+			pop (ecx);
+			inc (ecx);
+			cmp (ecx, eax);
+			jl _ctrltab01;
+			xor (ecx, ecx);
+		_ctrltab01:
+			w.SendMessage(core.htab,w.TCM_SETCURSEL, ecx,0);
+			setupFind();
+			call tabtool_activate;
+		endif;
+		ret();
+	
+	end CommandProcessor;
+	
+proc
+	ShowPos :procedure( Line:uns32; nLines:uns32 );
+	begin ShowPos;
+		
+		inc( Line );
+		inc( nLines );
+		str.put( stringbuffer, "Line: ", Line, "        Lines: ", nLines );
+		w.SendMessage( core.hwnd, HIDE_SETSTATUS, STATUS_POSITION, stringbuffer );
+	
+	end ShowPos;
+	
+	
+	procedure	WndProc (lparam:dword; wparam:dword; umsg:uns32; hwin:dword);
+	
+	var
+		mainrect		:hide.rect_t;
+		toolrect		:hide.rect_t;
+		_clientright	:dword;
+		_clienttop		:dword;
+		_clientbottom	:dword;
+
+	// message tables
+	static		
+		// main_tbl is a jump table
+		main_tbl	:dword;	@nostorage;
+			dword	w.WM_COMMAND,		&_command;
+			dword	w.WM_NOTIFY,		&_notify;
+			dword	w.WM_SIZE,			&size_window;
+			dword	w.WM_SETFOCUS,		&_focus;
+			dword	w.WM_CONTEXTMENU,	&_context;
+			dword	w.WM_DROPFILES,		&_drop;
+			dword	w.WM_CLOSE,			&_close;
+			dword	w.WM_DESTROY,		&_destroy;
+			dword	w.WM_INITDIALOG,	&init_window;
+			dword	HIDE_TOGGLEOUTPUT,	&_toggleout;
+			dword	HIDE_TOGGLEDEBUG,	&_toggledebug;
+			dword	HIDE_SETSTATUS,		&_setstatus;
+			dword	HIDE_SETINSERTMODE,	&_setinsert;
+			
+			// add more messages above here
+			dword	0,					NULL;
+			
+		// menu_tbl is a call table
+		menu_tbl	:dword;	@nostorage;
+			dword	IDM_FILE_NEW,		&Menu_NewFile;
+			dword	IDM_FILE_OPEN,		&Menu_OpenFile;
+			dword	IDM_FILE_OPENHEX,	&Menu_OpenAsHex;
+			dword	IDM_FILE_INSERT,	&Menu_InsertFile;
+			dword	IDM_FILE_SAVE,		&Menu_SaveFile;
+			dword	IDM_FILE_SAVEAS,	&Menu_SaveAs;
+			dword	IDM_FILE_SAVEALL,	&Menu_SaveAll;
+			dword	IDM_FILE_CLOSE,		&Menu_CloseFile;
+			dword	IDM_FILE_CLOSEALL,	&Menu_CloseAll;
+			dword	IDM_FILE_PAGESETUP,	&Menu_PageSetup;
+			dword	IDM_FILE_PRINT,		&Menu_Print;
+			dword	IDM_FILE_EXIT,		&_mfq;
+			
+			dword	IDM_VIEW_STATUS,	&Menu_ViewStatusbar;
+			dword	IDM_VIEW_OUTPUT,	&Menu_ViewOutput;
+			dword	IDM_VIEW_OUT_DOCK,	&_mvsod;
+			dword	IDM_VIEW_PANEL,		&Menu_ViewPanel;
+			dword	IDM_VIEW_HIDEALL,	&Menu_ViewHideAll;
+			dword	IDM_VIEW_TOGGLE,	&Menu_ViewToggleWindows;
+			dword	IDM_VIEW_CYCLE,		&Menu_ViewCycle;
+			
+			dword	IDM_EDIT_UNDO,		&_meud;
+			dword	IDM_EDIT_REDO,		&_merd;
+			dword	IDM_EDIT_CUT,		&_mecut;
+			dword	IDM_EDIT_COPY,		&_mecpy;
+			dword	IDM_EDIT_PASTE,		&_mepst;
+			dword	IDM_EDIT_DELETE,	&_medel;
+			dword	IDM_EDIT_SELECTALL,	&_mesa;
+			dword	IDM_MARK_SET,		&_mems;
+			dword	IDM_MARK_END,		&_meme;
+			dword	IDM_EDIT_FIND,		&_mefnd;
+			dword	IDM_EDIT_NEXT,		&_mefnxt;
+			dword	IDM_EDIT_PREV,		&_mefprv;
+			dword	IDM_EDIT_REPLACE,	&_mefrpl;
+			dword	IDM_EDIT_GOTO,		&_megoto;
+			dword	IDM_EDIT_INDENT,	&_meind;
+			dword	IDM_EDIT_OUTDENT,	&_meoutd;
+			dword	IDM_EDIT_COMMENT,	&_mecomnt;
+			dword	IDM_EDIT_UNCOMMENT,	&_meuncmnt;
+			dword	IDM_EDIT_SETMARK,	&_mesbook;
+			dword	IDM_EDIT_NEXTBOOK,	&_menbook;
+			dword	IDM_EDIT_PREVBOOK,	&_mepbook;
+			dword	IDM_EDIT_CLEARBOOK,	&_mecbook;
+			dword	IDM_EDIT_SETSOURCE, &Menu_Edit_SetSource;
+			dword	IDM_EDIT_NEXTSOURCE,&Menu_Edit_NextSource;
+			dword	IDM_EDIT_PREVSOURCE,&Menu_Edit_PrevSource;
+			
+			dword	IDM_HIDE_EXPANDALL,		&_expandall;	// expand/collapse buttons
+			dword	IDM_HIDE_COLLAPSEALL,	&_collapseall;
+			
+			dword	IDM_PROJECT_MANAGER,	&Menu_ProjectMan;
+			dword	IDM_PROJECT_JOBS,		&Menu_ProjectJob;
+			dword	IDM_PROJECT_NEWV2,		&Menu_ProjectCustomNew;
+			dword	IDM_PROJECT_OPEN,		&Menu_ProjectOpen;
+			dword	IDM_PROJECT_CLOSE,		&Menu_ProjectClose;
+			dword	IDM_MAKE_BUILDJOB,		&Menu_MakeBuildJob;
+			dword	IDM_MAKE_BUILDIT,		&Menu_MakeBuild;
+			dword	IDM_MAKE_REBUILD,		&Menu_MakeRebuild;
+			dword	IDM_MAKE_REBUILDONE,	&Menu_MakeBuildOne;
+			dword	IDM_MAKE_REBUILDJOB,	&Menu_MakeReBuildJob;
+			dword	IDM_MAKE_BUILDOBJECTS,	&Menu_MakeBuildObjects;
+			dword	IDM_BUILD_SCRIPT,		&Menu_BuildScript;
+			dword	IDM_MAKE_HLA,			&Menu_MakeHla;
+			dword	IDM_MAKE_RUN,			&Menu_MakeRun;
+			dword	IDM_MAKE_BUILDITRUN,	&Menu_MakeBuildRun;
+			dword	IDM_MAKE_RUNDBG,		&Menu_MakeRunWithDebug;
+			dword	IDM_MAKE_TESTBUILD,		&Menu_MakeTestBuild;
+			dword	IDM_MAKE_CLEAN,			&Menu_MakeClean;
+			
+			dword	PVIEW_REBUILDJOB,		&Menu_Pview_RebuildJob;
+			dword	PVIEW_RUN,				&Menu_Pview_Run;
+			dword	PVIEW_RUNWITHDBG,		&Menu_Pview_RunWithdebug;
+			dword	PVIEW_REBUILDFILE,		&Menu_Pview_RebuildFile;
+			dword	PVIEW_KMAKETARGET,		&Menu_Pview_kMakeTarget;
+			dword	PVIEW_RUNEXECUTABLE,	&Menu_Pview_runExecutable;
+			dword	PVIEW_OPENWITHRESED,	&Menu_Pview_OpenWithResed;
+			dword	PVIEW_OPENWITHKHELP,	&Menu_Pview_OpenWithKhelp;
+			dword	PVIEW_OPENASHEX,		&Menu_Pview_OpenAsHex;
+			dword	PVIEW_SETTOOPEN,		&Menu_Pview_SetToOpen;
+			dword	IDM_OPTION_GENERAL,		&Menu_OptionGeneral;
+			dword	IDM_OPTION_HIDE,		&_mohide;
+			dword	IDM_OPTION_SETPATHS,	&_mosetp;
+			dword	IDM_OPTION_CODEFONT,	&_mocfnt;
+			dword	IDM_OPTION_LINEFONT,	&_molfnt;
+			dword	IDM_OPTION_KEYWORDS,	&_mokwrds;
+			dword	IDM_OPTION_TOGGLEDBG,	&Menu_OptionToggleDbg;
+
+			
+			dword	IDM_TOOLS_DEBUG,		&Menu_ToolsDebug;
+			dword	IDM_TOOLS_RESED,		&Menu_ToolsResed;
+			dword	IDM_TOOLS_CCALC,		&Menu_ToolscCalc;
+			dword	IDM_TOOL_CALC,			&Menu_ToolsCalc;
+			dword	IDM_TOOL_ASCII,		&Menu_ToolsAscii;
+			dword	IDM_TOOL_COLOR,			&Menu_ToolsColor;
+			dword	IDM_TOOL_CONSOLE,		&Menu_ToolsConsole;
+			dword	IDM_TOOL_RUN,			&Menu_ToolsRun;
+			
+			dword	IDM_HELP_ABOUT,			&_mhabt;
+			dword	IDM_HELP_SHOWENV,		&Menu_Help_ShowEnv;
+			dword	IDM_HELP_SHOWFILES,		&Menu_Help_ShowFiles;
+			dword	IDM_HELP_TOOLS, 		&Menu_Help_Tools;
+			
+			dword	KEYBOARD_CTRLTAB,		&_ctrltab;
+			
+			// add more commands above here
+			dword	0,						NULL;
+			
+	endstatic;
+	
+	begin	WndProc;
+			push(ebx); push(esi); push(edi);
+			mov(umsg,ecx);
+			mov(&main_tbl,edx);
+			sub(8,edx);
+	_nxtmsg:
+			add(8,edx);
+			mov([edx],eax);
+			cmp(eax,0);
+			je _defproc;
+			cmp(ecx,eax);
+			jne _nxtmsg;
+			jmp([edx+4]);
+				
+	_defproc:
+			pop(edi); pop(esi); pop(ebx);
+			w.DefWindowProc(hwin,umsg,wparam,lparam);
+			exit WndProc;
+		
+	_toggleout:
+			mov(IDM_VIEW_OUTPUT,eax);
+			or(w.BN_CLICKED,eax);
+			w.SendMessage(hwin,w.WM_COMMAND,eax,0);
+			mov (lparam, eax);
+			if (eax) then
+				CloseOutputDelay(eax);
+			endif;
+			w.SetFocus(core.hwnd);
+			jmp xWndProc;
+	
+	_toggledebug:
+		
+		if( project.isOpen ) then
+			
+			mov( curnode, eax );
+			if( eax ) then
+				
+				mov( listeax.job, eax );
+				if( eax ) then
+
+					mov( &project.hpr, esi );
+					iniesi.readBool( jobeax.id, "debug" );
+					if( eax ) then
+						
+						mov( zDebug, eax );
+						
+					else
+						
+						mov( zRelease, eax );
+	
+					endif;
+					
+				else
+					
+					mov( zRelease, eax );
+					
+				endif;
+				
+			elseif( bitSet( opt_usedebuglib, project.options )) then
+				
+				mov( zDebug, eax );
+				
+			else
+				
+				mov( zRelease, eax );
+				
+			endif;
+			
+		elseif( bitSet( opt_usedebuglib, settings.options ) )then
+			
+			mov( zDebug, eax );
+			
+		else
+			
+			mov( zRelease, eax );
+			
+		endif;
+		
+		w.SendMessage( core.hwnd, HIDE_SETSTATUS, STATUS_DBG, eax );
+		jmp xWndProc;
+	
+	_setinsert:
+		
+		// also updated project status
+		//bm=todo combine this and toggle debug in one
+		// 'UPDATESTATUS' message
+		mov( curnode, ebx );
+		if( ebx ) then
+			
+			if( listebx.hwnd <> 0 ) then
+
+				w.GetWindowLong( listebx.hwnd, 0 );
+				cmp( (type EDIT_CLASS[eax]).fOvr, 0 );
+				if( @e ) then
+					w.SendMessage( core.hwnd, HIDE_SETSTATUS, STATUS_INS, &szINS );
+				else
+					w.SendMessage( core.hwnd, HIDE_SETSTATUS, STATUS_INS, &szOVR );
+				endif;
+			
+				if( listebx.isproject ) then
+					
+					mov( zProject, eax );
+					
+				else
+					
+					mov( zStandard, eax );
+					
+				endif;
+			
+				w.SendMessage( core.hwnd, HIDE_SETSTATUS, STATUS_PROJ, eax );
+				
+			endif;
+
+		endif;
+		jmp xWndProc;
+		
+	
+	_setstatus:
+			w.SendMessage(core.hsbr,w.SB_SETTEXT,wparam,lparam);
+			jmp xWndProc;	
+			
+	_focus:
+		mov (curnode, ebx);
+		if (ebx) then
+			w.SetFocus (listebx.hwnd);
+		endif;
+		
+		jmp xWndProc;
+			
+
+	_context:
+			mov	(lparam, eax);
+			if (eax = -1) then
+
+				w.GetCaretPos(&pt);
+				w.GetFocus();
+				mov	(eax, edx);
+				w.ClientToScreen(edx, &pt);
+			else
+				and	($ffff, eax);
+				mov	(eax, pt.x);
+				mov	(lparam, eax);
+				shr	(16, eax);
+				mov	(eax, pt.y);
+			endif;
+	
+			mov(wparam,eax);
+			mov (curnode, ecx);
+			if(eax = listecx.hwnd) then
+				w.GetMenu(hwin);
+				w.GetSubMenu(eax,1);
+				w.TrackPopupMenu(eax, w.TPM_LEFTALIGN | w.TPM_RIGHTBUTTON, pt.x,pt.y,0,hwin,NULL); 
+			
+			elseif (eax = core.htab) then
+				w.GetMenu(hwin);
+				w.GetSubMenu(eax,0);
+				w.TrackPopupMenu(eax, w.TPM_LEFTALIGN | w.TPM_RIGHTBUTTON, pt.x,pt.y,0,hwin,NULL); 
+			endif;
+			jmp xWndProc;
+	
+	_drop:
+			dbg.put ("drop");
+			w.DragQueryFile(wparam,0,&buffer,@size(buffer));
+			str.a_cpyz(&buffer);
+			mov(eax,openfile_s);
+			//dbg.put ("buffer:", openfile_s);
+			filesys.extractExt( openfile_s, stringbuffer );
+			if( str.ieq( stringbuffer, "hpr" ) ) then
+			
+				dbg.put ("open proj");
+				project.open (openfile_s);
+				
+			else
+				
+				hed_openFile (openfile_s);
+				
+			endif;
+			Recent_Insert( openfile_s );
+			UpdateMenu();
+			str.free(openfile_s);
+			updateDisplay (update_general);
+			jmp xWndProc;
+	
+	
+	_command:
+			mov(wparam,ecx);
+			mov(ecx,edx);
+			movzx(cx,ecx);			// clear high-order word
+			shr(16,edx);
+			cmp(edx,w.BN_CLICKED);
+			je _mf0;
+			cmp(edx,1);	// for accelerator messages
+			je _mf0;
+			jmp xWndProc;
+			
+		_mf0:
+			
+			// determine if it is recent menu
+			cmp (ecx, RECENT_MENU_START);
+			jb _normalmenu;
+			cmp (ecx, RECENT_MENU_END);
+			jb _recentmenu;
+			cmp (ecx, USER_MENU_END);
+			jb _usermenu;
+			jmp _normalmenu;
+		
+		_recentmenu:
+			call Menu_RecentMenu;
+			jmp xWndProc;
+		
+		_usermenu:
+			call Menu_UserMenu;
+			jmp xWndProc;
+		
+		_normalmenu:
+			mov(&menu_tbl,edx);
+			sub(8,edx);
+		_nxtmnu:
+			add(8,edx);
+			mov([edx],eax);
+			cmp(eax,0);
+			je xWndProc;
+			cmp(ecx,eax);
+			jne _nxtmnu;
+	
+			call([edx+4]);
+			jmp xWndProc;		
+		
+	_notify:
+		mov(lparam,edx);
+		mov((type w.NMHDR [edx]).code, eax);
+		
+		if (eax = w.EN_SELCHANGE) then
+			mov (curnode, ebx);
+			if (! ebx) then
+				jmp xWndProc;
+			endif;
+			if (listebx.ftype = type_bin) then
+				updateDisplay (update_hexed);
+				jmp xWndProc;
+			endif;
+
+			// edit window has changed
+			// update position display on status-bar
+			mov(edx,edi);
+			
+			ShowPos( raseledi.line, raseledi.nlines );
+				
+			if (raseledi.seltyp = w.SEL_OBJECT) then
+				w.SendMessage(listebx.hwnd, REM_GETBOOKMARK,raseledi.line,0);
+				if (eax = RA_COLLAPSE) then
+					w.SendMessage (listebx.hwnd, REM_COLLAPSE, raseledi.line, 0);
+				elseif (eax = RA_EXPAND || eax = RA_EXPANDHIDDEN) then
+					w.SendMessage(listebx.hwnd, REM_EXPAND, raseledi.line,0);
+				else
+					// clear bookmarks
+					w.SendMessage(listebx.hwnd, REM_SETBOOKMARK, raseledi.line,0);
+				endif;
+	
+			else
+	
+				w.SendMessage(listebx.hwnd,REM_SETHILITELINE,prvline,0);
+				mov(raseledi.line,eax);
+				mov(eax,prvline);
+		
+				push( edi );
+				hed_ini.readInt( "HED Settings", "Highlight Line" );
+				pop( edi );
+				if( eax ) then
+
+					w.SendMessage(listebx.hwnd,REM_SETHILITELINE,prvline,2);
+
+				endif;
+				
+				if (raseledi.fchanged) then
+					
+				 	if (! raseledi.nWordGroup) then
+						w.SendMessage(listebx.hwnd, REM_SETCOMMENTBLOCKS, &szCmntStart,&szCmntEnd);
+					endif;
+		
+					OnceMore:
+					w.SendMessage(listebx.hwnd, REM_GETBOOKMARK, nlastline,0);
+					push (eax);
+					pop (edx);
+					mov	(raseledi.line, eax);
+					if (eax > nlastline) then
+						inc	(nlastline);
+						jmp	OnceMore;
+					elseif (eax < nlastline) then
+						dec (nlastline);
+						jmp	OnceMore;
+					endif;
+				endif;
+				
+				mov	(raseledi.line, eax);
+				mov (eax, nlastline);
+				
+			endif;
+			w.SendMessage( listebx.hwnd, REM_GETWORD, @size(buffer), &buffer );
+			w.SendMessage( core.hsbr, w.SB_SETTEXT, STATUS_INFO, 0 );
+			updateDisplay (update_selection);
+			
+		elseif (eax = w.TTN_NEEDTEXT) then
+	
+			mov((type w.NMHDR [edx]).idFrom, edx);
+			w.LoadStringA(core.hinst,edx,&buffer, @size(buffer));
+			lea(eax,buffer);
+			mov(lparam, edx);
+			mov(eax,(type w.TOOLTIPTEXT [edx]).lpszText);
+			
+		elseif (eax = w.TCN_SELCHANGE) then
+		
+			mov((type w.NMHDR [edx]).hwndFrom, eax);
+			if (eax = core.htab) then
+				setupFind();
+				call tabtool_activate;
+			elseif (eax = core.hpaneltab) then
+				call PanelActivate;
+			endif;
+			
+		elseif (eax = w.TCN_SELCHANGING) then
+			mov((type w.NMHDR [edx]).hwndFrom, eax);
+			if (eax = core.hpaneltab) then
+				panel_setfrom();
+			endif;
+		endif;
+		jmp xWndProc;
+		
+	_close:	
+		dbg.separator;
+		dbg.put ("close");
+			
+			//	check for open output/tree windows and close them.
+			//	but maintain their open status for next time program loads
+			if (project.isOpen) then
+				project.close();
+				dbg.put ("closed eax = ", eax);
+				if (eax) then
+					jmp _cancel;
+				endif;
+			else
+				closeAll();
+				cmp (eax, true);
+				je _cancel;
+			endif;
+	
+			if (core.htree) then
+				w.DestroyWindow(core.htree);
+			endif;
+			if (core.hout) then
+	        	w.DestroyWindow(core.hout);
+			endif;
+
+	        //dbg.put ("all windows xed");
+			w.GetWindowLong(hwin,w.GWL_STYLE);
+			test(w.WS_MAXIMIZE,eax);
+			jnz _setmax;	
+		
+		_savepos:	
+				test(w.WS_MINIMIZE,eax);
+				jnz _ckproj;
+				mov(false,settings.edtwin.fmax);
+				w.GetWindowRect(hwin,&rect);
+				mov(rect.left,settings.edtwin.x);
+				mov(rect.top,settings.edtwin.y);
+				mov(rect.right,eax);
+				sub(rect.left,eax);
+				mov(eax,settings.edtwin.wt);
+				mov(rect.bottom,eax);
+				sub(rect.top,eax);
+				mov(eax,settings.edtwin.ht);
+				jmp _ckproj;
+		
+		_setmax:	
+				mov(true,settings.edtwin.fmax);
+				// float
+					
+		_ckproj:
+	
+			if (pathbuf[0] <> 0 ) then
+				
+				str.cpyz (&pathbuf, stringbuffer);
+				if( filesys.hasExtension( stringbuffer ) ) then
+					
+					filesys.extractPath( stringbuffer, stringbuffer );
+
+				endif;
+				hed_ini.writeString( "HED Settings", "LastPath", stringbuffer );
+			endif;
+			
+			
+			hed_ini.writeBin ("HED Settings", "pos", &settings, @size(settings));
+			hed_ini.write (core.configmain);
+			GraphicEx.Deinit();
+			//dbg.put ("quitting");
+			w.PostQuitMessage(0);
+			
+		_cancel:
+			jmp xWndProc;
+
+	size_window:
+		
+		// mainrect = entire client == shrink to accomodate edit window
+		w.GetClientRect (hwin,mainrect);
+		mov (mainrect.right,eax);
+		cmp (eax, 15);
+		jb xWndProc;	// too small
+		cmp (mainrect.bottom, 15);
+		jb xWndProc;
+		mov (eax, _clientright);
+		mov (mainrect.bottom, eax);
+		
+		// check for active tool window
+		if (testz (TOOL,settings.winview)) then
+			// hide
+			w.ShowWindow(core.htbr,w.SW_HIDE);
+		else
+			// show toolbar
+			mov (lparam, eax);  // lparam = client x/y
+			if (eax) then
+				w.MoveWindow(core.htbr,0,0,0,0,true);	
+			endif;
+			
+			w.GetWindowRect (core.htbr, toolrect);
+			mov (toolrect.bottom, eax);
+			sub (toolrect.top, eax);
+			add (eax, mainrect.top);
+			
+		endif;
+		
+		mov (mainrect.top, eax);
+		mov (eax, settings.hsplitbar.y);
+		mov(eax, _clienttop);
+		
+		// check for status window
+		if ( testz (STATUS,settings.winview)) then
+			// hide
+			w.ShowWindow(core.hsbr,w.SW_HIDE);
+		else
+			mov(lparam,eax);
+			if (eax) then
+				w.MoveWindow(core.hsbr,0,0,0,0,true);
+			endif;
+			w.GetWindowRect(core.hsbr,&rect);
+			mov(rect.bottom,eax);
+			sub(rect.top,eax);			// get height of statusbar
+			sub(eax,mainrect.bottom);	// shrink the main client area from bottom
+		endif;
+	
+		// find minimum height of hsplitbar
+		mov ( mainrect.bottom,eax);
+		mov (eax, _clientbottom);
+		sub (_clienttop, eax);
+		mov (eax, settings.hsplitbar.ht);
+		
+		// set vertical tab window
+		mov (TABHT, eax);
+		sub (eax, mainrect.right);
+		w.MoveWindow (core.hpaneltab, mainrect.right, mainrect.top, TABHT, mainrect.bottom, true);
+			
+		// see if panel is active
+		mov (settings.panelwin, eax);
+		if (! eax) then
+			w.ShowWindow (core.hHSplitBar, w.SW_HIDE);
+			
+		else
+	
+				// check for vertical splits
+			mov (settings.hsplitbar.fmax, eax);
+			mov (mainrect.right, ebx);
+			mov (ebx, rect.right);
+			sub (2, rect.right);
+			sub(eax, ebx);
+			jle xWndProc;	// not enough space
+			mov (ebx, settings.hsplitbar.x);
+			mov (mainrect.right, eax);
+			sub (ebx, eax);
+			sub (eax, mainrect.right);
+			add (2, ebx);
+	
+			w.MoveWindow(core.hHSplitBar,settings.hsplitbar.x,settings.hsplitbar.y,3,settings.hsplitbar.ht,true);
+			mov (settings.hsplitbar.x, eax);
+			add (3, eax);
+			mov (eax, rect.left);
+			sub (eax, rect.right);
+			
+	//		dbg.put ("SIZE :: panel active = :", settings.panelactive);
+			w.MoveWindow (settings.panelactive, rect.left, mainrect.top, rect.right, settings.hsplitbar.ht, true);	
+		endif;
+			
+		// minimum vertical split
+		mov (mainrect.right, eax);
+		mov (eax, settings.vsplitbar.wt);
+		
+		// size tab window
+		w.MoveWindow(core.htab,-1,mainrect.top,mainrect.right,TABHT,true);
+		add(TABHT,mainrect.top);
+		
+		// check for output
+		test(OUTPUT,settings.winview);
+		jz _outputok;
+		test(OUTPUT_D,settings.winview);
+		jz _outputok;
+		
+		// output is docked, get position
+		// we have current client space in mainrect to workwith
+		// first, get output height and keep it constant
+		mov (lparam, eax);
+		or (eax, eax);
+		jz _updateoutput;
+		// lparam is not zero, means window is moving, update vsplitbar position
+		mov(settings.outwin.ht,eax);
+		add(3,eax);
+	
+		mov(_clientbottom,ebx);
+		_if(eax <= ebx)
+			sub(eax,ebx);
+			
+			mov(ebx,settings.vsplitbar.y);
+		_else
+			jmp xWndProc;	// not enough client space
+		_endif;
+	
+		_updateoutput:
+			w.MoveWindow(core.hVSplitBar,0,settings.vsplitbar.y,settings.vsplitbar.wt,3,true);
+				
+			mov(0,rect.left);
+			mov(settings.vsplitbar.y,eax);
+			add(3,eax);
+			mov(eax,rect.top);
+			mov(mainrect.bottom,ebx);
+			sub(eax,ebx);
+			mov(ebx,rect.bottom);
+			mov(mainrect.right,eax);
+			mov(eax,rect.right);
+	
+			w.MoveWindow(core.hout,rect.left,rect.top,rect.right,rect.bottom,true);
+			mov(settings.vsplitbar.y,eax);
+			mov(eax,mainrect.bottom);
+		
+		_outputok:	
+			// place editor window
+			mov (curnode, ebx);
+			if (ebx) then
+				mov(mainrect.bottom,eax);
+				sub(mainrect.top,eax);		// eax = height
+				w.MoveWindow (listebx.hwnd, 0, mainrect.top, mainrect.right, eax, true);
+			endif;
+	
+			w.GetClientRect(core.hwnd,&rect);
+			w.InvalidateRect(core.hwnd,&rect,true);
+			jmp xWndProc;
+			
+	init_window:
+		
+		pushabi;
+		dbg.put(">init_window");
+	
+		// create fonts
+		w.CreateFontIndirect(&linefont);
+		mov(eax,core.hlinefont);
+		w.CreateFontIndirect(&mainfont);
+		mov(eax,core.hmainfont);
+		mov(mainfont.lfItalic,al);
+		push(eax);
+		mov(true,mainfont.lfItalic);
+		w.CreateFontIndirect(&mainfont);
+		mov(eax,core.hitalic);
+		pop(eax);
+		mov(al,mainfont.lfItalic);
+	
+		w.CreateFontIndirect (&dialogfont);
+		mov (eax, core.hdialogfont);
+		
+		// get dialog handles
+
+		mov(hwin,eax);
+		mov(eax,core.hwnd);
+	
+		// default position
+		w.MoveWindow(hwin,settings.edtwin.x,settings.edtwin.y,settings.edtwin.wt,settings.edtwin.ht,true);
+		
+		// create status bar
+		w.CreateStatusWindow ( w.WS_CHILD, NULL, hwin, IDC_SBR);
+		mov(eax,core.hsbr);
+		w.SendMessage(core.hsbr,w.SB_SETPARTS,STATUS_PARTS,&parts);
+		w.SendMessage(core.hsbr,w.SB_SETTEXT,STATUS_PROJ, zStandard );
+	
+		w.CreateWindowEx (0, w.WC_TABCONTROL, NULL,
+						w.TCS_TABS | w.TCS_SINGLELINE | w.TCS_RIGHTJUSTIFY | w.TCS_TOOLTIPS |
+						w.TCS_FOCUSNEVER | w.WS_CHILD | w.WS_CLIPCHILDREN | w.WS_CLIPSIBLINGS |
+						w.WS_TABSTOP | w.WS_VISIBLE, 0, 0, 0, TABHT,
+						hwin, NULL, core.hinst, NULL );
+		mov (eax, core.htab);
+		w.SendMessage (eax, w.WM_SETFONT, core.hdialogfont, false);
+	
+		w.CreateWindowEx (0, w.WC_TABCONTROL, NULL,
+						w.TCS_BOTTOM | w.TCS_TABS | w.TCS_SINGLELINE | w.TCS_VERTICAL |
+						w.TCS_FOCUSNEVER | w.WS_CHILD | w.WS_CLIPCHILDREN | w.WS_CLIPSIBLINGS |
+						w.WS_TABSTOP | w.WS_VISIBLE, 0, 0, TABHT, 0,
+						hwin, NULL, core.hinst, NULL );
+		mov (eax, core.hpaneltab);
+		w.SendMessage (eax, w.WM_SETFONT, core.hdialogfont, false);
+		
+		PanelSetup (hwin);
+	
+		w.GetDlgItem(hwin,IDC_VSPLITBAR);
+		mov(eax,core.hVSplitBar);
+		w.SetWindowLong(core.hVSplitBar,w.GWL_WNDPROC,&Proc_VSplit);
+		mov(eax,Proc_OldVSplit);
+		w.GetDlgItem(hwin,IDC_HSPLITBAR);
+		mov(eax,core.hHSplitBar);
+	
+		w.SetWindowLong(core.hHSplitBar,w.GWL_WNDPROC,&Proc_HSplit);
+		mov(eax,Proc_OldHSplit);
+	
+		w.GetMenu(hwin);
+		mov(eax,core.hmenu);
+		
+		test(STATUS,settings.winview);
+		_if(@nz)
+			w.CheckMenuItem(core.hmenu,IDM_VIEW_STATUS,(w.MF_BYCOMMAND | w.MF_CHECKED));
+			w.ShowWindow (core.hsbr, true);
+		_endif;
+		
+		w.CreateDialogParam(core.hinst,val ID_OUTPUT,hwin,&Proc_Output,false);
+		if( bitSet( OUTPUT, settings.winview ) )then
+
+			w.CheckMenuItem( core.hmenu, IDM_VIEW_OUTPUT, (w.MF_BYCOMMAND | w.MF_CHECKED) );
+			w.ShowWindow( core.hout, w.SW_SHOW );
+
+		else
+			w.ShowWindow( core.hout, w.SW_HIDE );
+		endif;
+	
+		test(OUTPUT_D,settings.winview);
+		_if(@nz);
+			w.CheckMenuItem(core.hmenu,IDM_VIEW_OUT_DOCK,(w.MF_BYCOMMAND | w.MF_CHECKED));
+		_endif;
+		w.CreateDialogParam(core.hinst,val ID_TREEWIN, hwin, &Proc_ProjectView,false);
+		w.CreateDialogParam(core.hinst,val ID_EXPLORER, hwin, &Proc_Explorer, false);
+		w.SendMessage(core.hpaneltab, w.TCM_SETCURSEL, settings.panelwin, 0);
+		
+		w.ShowWindow (core.htree, w.SW_HIDE);
+		w.ShowWindow (core.hexplorer, w.SW_HIDE);
+		
+		PanelViewWin();
+				
+		if (testz (TREE_D, settings.winview)) then
+			w.ShowWindow (core.htree, w.SW_SHOW);
+		endif;
+		
+		if (testz (EXPLORER_D, settings.winview)) then
+			w.ShowWindow( core.hexplorer, w.SW_SHOW);
+		endif;
+		
+		// if the previeous session had status bar active, update the vertical split
+		// bar settings by the size of the status bar to avoid loosing size.
+		test(STATUS,settings.winview);
+		_if(@nz);
+			w.GetWindowRect(core.hsbr,&rect);
+			mov(rect.bottom,eax);
+			sub(rect.top,eax);
+
+
+			test(VSPLIT,settings.winview);
+			_if(@nz)
+				sub(eax,settings.vsplitbar.y);
+			_endif;
+		_endif;
+		w.LoadCursor(core.hinst,val IDC_HSPLITTCUR);
+		mov(eax,core.hHsplitcursor);
+		w.LoadCursor(core.hinst,val IDC_VSPLITTCUR);
+		mov(eax,core.hVsplitcursor);
+	
+		w.SendMessage(hwin,HIDE_TOGGLEDEBUG,0,0);
+		w.SendMessage(hwin, w.WM_SIZE, 0, 0);
+	
+		if (hed_ini._readString ("HED Settings","LastPath", stringbuffer)) then
+			mov (stringbuffer, eax);
+			zstr.cpy(eax,&pathbuf);
+		endif;
+		
+		if (hed_ini.readInt ("HED Settings", "TopWindow")) then
+			if( eax ) then
+				w.SetWindowPos(core.hwnd,w.HWND_TOPMOST,0,0,0,0,3);
+			endif;
+		endif;
+		
+		
+		// subclass the tab tool for context menu
+		w.GetWindowLong (core.htab, w.GWL_WNDPROC);
+		mov (eax, core.htaboldproc);
+		w.SetWindowLong (core.htab, w.GWL_WNDPROC, &Proc_TabToolSubclass);
+	
+		// load user menu
+		if (hed_ini.isSectionDefined ("User Menu")) then
+			setupUserMenu();
+		endif;
+		
+		updateDisplay (update_general);
+				
+		// update recent logs
+		hed_ini.getItemCount( "Recent Files" );
+		mov( eax, ecx );
+		xor( edx, edx );
+		while( edx < ecx ) do
+			hed_ini.readItem( "Recent Files", edx, stringbuffer );
+			if( ! filesys.exists( stringbuffer ) ) then
+				hed_ini.deleteItem( "Recent Files", edx );
+				dec( ecx );
+			else
+				inc( edx );
+			endif;
+		endwhile; 
+		call UpdateMenu;
+	
+		dbg.put(">done InitDialog");
+		popabi;
+		jmp xWndProc;
+	
+	_destroy:
+			w.DeleteObject(core.hitalic);
+			w.DeleteObject(core.hmainfont);
+			w.DeleteObject(core.hlinefont);
+			w.DestroyCursor(core.hVsplitcursor);
+			w.DestroyCursor(core.hHsplitcursor);
+			dbg.put ("done all destroy");
+			// float
+	xWndProc:
+			pop(edi); pop(esi); pop(ebx);
+			sub(eax,eax);
+	end		WndProc;
+	
+	procedure initHIDE; @noframe;
+	begin initHIDE;
+	
+		// general settings
+		dbg.put ("Initialize");
+		move( str.alloc (pathsize_c), core.homepath);
+
+		move( str.alloc (pathsize_c), core.configmain);
+		move( str.alloc (worksize_c), workpath);
+		move( str.alloc (pathsize_c), core.projectpath);
+		move( str.alloc (pathsize_c), core.tplpath);
+		move( str.alloc (mastersize_c), stringbuffer);
+	
+		GraphicEx.Init();
+		make_init();
+
+		and(! opt_exptabs, settings.options);
+		or( opt_indent, settings.options);			
+		
+		call arg.c;
+		mov (eax,argc);
+		os2.getmodulepath (core.homepath);
+		
+		filesys.extractPath( core.homepath, core.homepath );
+		dbg.put ("core.homepath = ", core.homepath);
+	
+		str.put (core.configmain, core.homepath, dirsep_c, HIDE_INI);	
+		filesys.cd (core.homepath);		
+		hed_default_ini.create_file ( HED_DEFAULTINI );
+
+		if (hed_default_ini.readInt ("Internal", "iniversion")) then
+			mov (eax, dummy);
+		else
+			error.fatal ("Could not read 'iniversion' from Data\hed_default.ini");
+		endif;
+	
+		if ( filesys.exists (core.configmain)) then
+			
+			hed_ini.create_file(core.configmain);
+			
+			// update HIDE.ini version info
+			hed_ini.readInt ("HED Settings", "iniversion");
+			if (eax < dummy) then
+				if( eax < 9 ) then
+					push( eax );
+					hed_ini.writeString( "HED Settings", "hlaopt", "" );
+					pop( eax );
+				endif;
+				
+				if( eax < 8 ) then
+					push( eax );
+					hed_ini.deleteSection( "KeyWords" );
+					pop( eax );
+				endif;
+				
+				if( eax < 6) then
+					push( eax );
+					hed_ini.deleteKey( "HED Settings", "hlalib" );
+					pop( eax );
+				endif;
+				
+				if (eax < 4) then
+					hed_ini.deleteKey ("HED Settings", "core.homepath");
+				endif;
+				
+				// update the iniversion of HIDE Settings
+				hed_ini.writeInt ("HED Settings", "iniversion", dummy);				
+			endif;	
+		
+		else
+			
+			hed_ini.create();
+			hed_ini.writeInt ("HED Settings", "iniversion", dummy);
+			
+		endif;
+
+		if (hed_ini.isKeyDefined ("HED Settings", "pos")) then
+			hed_ini.readBin ("HED Settings", "pos", &settings, @size(settings));
+		else
+			hed_default_ini.readBin ("HED Settings", "pos", &settings, @size(settings));
+		endif;
+		
+		hed_ini.readBin ("Fonts", "code", &mainfont, @size(mainfont));
+		hed_ini.readBin ("Fonts", "line", &linefont, @size(linefont));
+		
+		if (hed_ini.isKeyDefined ("Colors", "col")) then
+			hed_ini.readBin ("Colors", "col", &core.col, @size(core.col));
+		else
+			hed_default_ini.readBin( "Default.theme", "col", &core.col, @size(core.col) );
+		endif;
+	
+		if (hed_ini.isKeyDefined ("Colors", "usrcol")) then
+			hed_ini.readBin ("Colors", "usrcol", &usrcol, @size(usrcol));
+		else
+			hed_default_ini.readBin( "Default.theme", "usrcol", &usrcol, @size(usrcol) );
+		endif;
+		
+		if (! hed_ini.isSectionDefined ("default libs")) then
+			hed_default_ini.readSection ("default libs", stringbuffer);
+			hed_ini.writeSection ("default libs", stringbuffer);
+			
+			// append the appropriate hlalib to the default libs list
+			// note this is done only if "default libs" is undefined
+			// if the user manually edits "defult libs" section, no changes are made
+			
+			if( testnz( opt_threadsafe, project.options ) ) then
+				hed_ini.insertItem( "default libs", -1, "hlalib_safe.lib" );
+			else
+				hed_ini.insertItem( "default libs", -1, "hlalib.lib" ); 
+			endif;
+		endif;
+		
+		if (! hed_ini.isSectionDefined ("default link")) then
+			hed_default_ini.readSection ("default link", stringbuffer);
+			hed_ini.writeSection ("default link", stringbuffer);
+		endif;
+		
+		hed_ini.readBin ("Colors", "user", &CustColors, @size(CustColors));
+		hed_ini.readInt ("HED Settings", "AutoUntitled");
+		mov (al, autountitled);
+
+		str.cpy ("", stringbuffer);	
+		if (hed_ini._readString ("HED Settings", "UserPath", stringbuffer)) then
+			expandPathMacs (stringbuffer, stringbuffer);
+			str.put2 (stringbuffer, ';');
+		endif;
+
+		str.put2 (stringbuffer, core.homepath, dirsep_c, "bin;");
+		env2.put ("PATH", stringbuffer);
+		if (hed_ini._readString ("HED Settings", "ProjFold", stringbuffer)) then
+			expandPathMacs (stringbuffer, stringbuffer);
+			str.cpy (stringbuffer, core.projectpath);
+		else
+			// default project folder
+			str.put (core.projectpath, core.homepath, dirsep_c, "Projects");
+		endif;
+		
+		if( ! hed_ini._readString( "HED Settings", "hlaopt", stringbuffer)) then
+			hed_default_ini._readString("HED Settings", "hlaopt", stringbuffer);
+			hed_ini.writeString("HED Settings", "hlaopt", stringbuffer );
+		else
+			expandPathMacs( stringbuffer, stringbuffer );
+		endif;
+		
+		env2.put("hlaopt", stringbuffer );
+
+		str.put (workpath, core.homepath, dirsep_c, "hlalib");
+		env2.put ("lib", workpath);
+
+		if (! hed_ini._readString ("HED Settings", "hlalib", stringbuffer)) then
+		
+			// write in default location for hlalib
+			str.put (stringbuffer, "%h", dirsep_c, "hlalib");
+			hed_ini.writeString ("HED Settings", "hlalib", stringbuffer);
+
+		endif;
+		
+		expandPathMacs (stringbuffer, stringbuffer);
+		env2.put ("hlalib", stringbuffer);
+
+		if (! hed_ini._readString ("HED Settings", "hlainc", stringbuffer)) then
+			
+			// write in default location for hlainc
+			str.put (stringbuffer, "%h", dirsep_c, "hlainc");
+			hed_ini.writeString ("HED Settings", "hlainc", stringbuffer);
+		endif;
+		expandPathMacs (stringbuffer, stringbuffer);
+		env2.put ("hlainc", stringbuffer);
+
+		str.put (workpath, core.homepath, dirsep_c, "temp");
+		env2.put ("hlatmp", workpath);
+		
+		// default editor settings		
+		hed_ini.readUns( "HED Settings", "tab" );
+		if( eax ) then
+			mov( al, settings.tab );
+		else
+			mov( 4, settings.tab );
+		endif;
+
+		if( hed_ini.isKeyDefined( "HED Settings", "options" ) ) then
+			hed_ini.readHex( "HED Settings", "options" );
+			mov( eax, settings.options );
+		endif;
+
+		hed_ini.readUns( "HED Settings", "backups" );
+		mov( al, settings.backups );
+		
+		move (settings.options, project.options);
+		mov (settings.tab, al);
+		mov (al, project.tab);
+		mov (settings.backups, al);
+		mov (al, project.backups);
+		move (settings.findflags, project.findflags);
+		move (settings.findscope, project.findscope);
+		project.init();			// initialize default job
+		fileList.create();
+		setupFind();
+		mov (0, settings.panelactive);
+
+		initPrinter();
+
+		dbg.put ("/initHIDE");
+		ret();
+	end initHIDE;
+	
+	procedure processCmdLine; @noframe;
+	begin processCmdLine;
+		//dbg.put ("processCmdLine");
+		mov (0, mode);
+		if (argc = 3) then
+			// check for possible build only switch
+			arg.v (1);
+			mov ([eax], cl);
+			if (cl = '-') then
+				inc (eax);
+				mov ([eax], cl);
+				if (cl = 'b') then
+					mov (mode_build, mode);
+					inc (eax);
+					mov ([eax], cl);
+					if (cl && cl = 'a') then
+						mov (mode_buildall, mode);
+					endif;
+
+					arg.v (2);
+					mov (eax, openfile_s);
+					
+					filesys.extractExt( openfile_s, stringbuffer );
+					if( str.ine( stringbuffer, "hpr" ) ) then
+
+						error.fatal ("Must specify a project for building");
+						mov (mode_gui, mode);	// reset mode for normal operation
+
+					endif;
+				else
+					error.fatal ("unrecognized switch");
+				endif;
+			endif;
+		endif;
+		//dbg.put ("/processCmdLine");
+		ret();
+	end processCmdLine;
+
+	
+	//===============================================================
+	// Main program begins here *************************************
+	
+	begin	HED_MAIN;
+	
+		// general init
+		dbg.cls;
+		dbg.put(">Begin [HED_MAIN]");
+		#if( @thread )
+			#print ("thread")
+		#endif
+		// initialize
+
+		initHIDE();
+		processCmdLine();		
+
+		if (mode = mode_gui) then
+			jmp WinMain;
+		endif;
+
+		w.AllocConsole();
+		if (mode > 0) then
+			project.open (openfile_s);
+			if (mode = mode_build) then
+				Menu_MakeBuild();
+			elseif (mode = mode_buildall) then
+				Menu_MakeRebuild();
+			else
+				error.fatal ("Unknown value for 'cmdreturn'"); 
+			endif;
+		endif;
+		toOutput (nl "press enter to exit");
+		stdin.readLn();
+		os.exitProcess (0);
+			
+	/***************************************************************/
+	//			Main Window Setup									//
+	/***************************************************************/
+	WinMain:
+		dbg.put(">>WinMain");
+		w.GetModuleHandle(NULL);
+		mov(eax,core.hinst);
+		w.InitCommonControls();
+	
+		// install RAEdit.dll
+		w.LoadLibrary(&RadDLL);
+		if (! eax) then
+			error.fatal("Data\RAEdit.dll not found");
+			jmp _errorexit;
+		endif;
+		mov(eax,hradll);
+		
+		w.LoadLibrary (&RadHex);
+		if (! eax) then
+			error.fatal ("Data\RAHexEd.dll not found");
+			jmp _errorexit;
+		endif;
+		mov (eax,hexeddll);
+		
+		// register window classes
+		mov(@size(w.WNDCLASSEX),wc.cbSize);
+		mov(w.CS_HREDRAW | w.CS_VREDRAW,wc.style);
+		mov(&WndProc,wc.lpfnWndProc);
+		mov(NULL,wc.cbClsExtra);
+		mov(w.DLGWINDOWEXTRA,wc.cbWndExtra);
+		mov(core.hinst,wc.hInstance);
+		mov(w.COLOR_BTNFACE+1, wc.hbrBackground);
+		mov(IDR_MENU,wc.lpszMenuName);
+		mov(&ClassName,wc.lpszClassName);
+		w.LoadIcon(core.hinst,val IDB_JACKALICON);
+		mov(eax,wc.hIcon);
+		mov(eax,wc.hIconSm);
+		w.LoadCursor(NULL,val w.IDC_ARROW);
+		mov(eax,wc.hCursor);
+		w.RegisterClassEx(wc);
+		w.CreateDialogParam(core.hinst,val IDD_DLG,NULL,&WndProc,NULL);
+		dbg.put ("dialog created");
+		if(settings.edtwin.fmax) then
+			mov(w.SW_MAXIMIZE,eax);
+		else
+			mov(w.SW_SHOWNORMAL,eax);
+		endif;
+
+		w.ShowWindow(core.hwnd,eax);
+		w.UpdateWindow(core.hwnd);
+		
+		w.LoadAccelerators(core.hinst,val IDR_ACCEL);
+		mov(eax,haccel);
+		dbg.put(">>args");
+		dec (argc);
+		if (argc <> 0) then
+			while (argc > 0 ) do
+				arg.v (argc);
+				mov (eax, openfile_s);
+				
+				filesys.extractExt( openfile_s, stringbuffer );
+				if( str.ieq( stringbuffer, "hpr" ) ) then
+					project.open (openfile_s);
+					Recent_Insert( openfile_s );
+					jmp _nxtarg;
+				endif;
+
+				
+				dbg.put("open :", openfile_s);
+				hed_openFile (openfile_s);
+				Recent_Insert( openfile_s );
+				
+				_nxtarg:
+				dec (argc);
+			endwhile;
+
+		else
+			hed_ini.readInt ("HED Settings", "Restore Project");
+			if ( eax ) then
+				if (hed_ini._readString ("HED Settings", "LastProject", workpath)) then
+					Recent_Insert( workpath );
+					project.open (workpath);
+				endif;
+			endif;
+		endif;
+
+		updateDisplay (update_general);
+		_msgloop:
+			w.GetMessage(msg,NULL,0,0);
+			cmp(eax,0);
+			je xWinMain;
+			w.IsDialogMessage(core.hfind,msg); and(eax,eax); jnz _msgloop;
+			w.IsDialogMessage(core.hout,msg); and(eax,eax); jnz _msgloop;
+
+			w.TranslateAccelerator(core.hwnd,haccel,msg);
+			cmp(eax,true);
+			je _msgloop;
+			w.TranslateMessage(msg);
+			w.DispatchMessage(msg);
+		jmp _msgloop;
+	
+	xWinMain:
+		mov(msg.wParam,eax);		
+		_end:
+		push (eax);
+		w.FreeLibrary(hradll);
+		w.FreeLibrary(hexeddll);
+		pop (eax);
+		_errorexit:
+		os.exitProcess (eax);
+	
+	end		HED_MAIN;
+	

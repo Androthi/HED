@@ -1,0 +1,110 @@
+unit data_unit;
+#includeonce	("HED.hhf")
+
+/*
+	all external symbols declared in  'externals.hhf'
+	are imported here wih the exception of procedures
+	which appear in their respective units.
+*/
+
+storage
+	align(4);
+	core			:tCORE;		// HIDE global state
+
+	hed_ini			:tConfig;	// HIDE.ini configuration file in memory
+	hed_default_ini		:tConfig;	// hed_default.ini configuration file in memory
+	
+	workpath		:string;	// a string buffer for working paths, scratch path buffer  ** use with caution, should be depricated eventually
+	stringbuffer	:string;	// scratch string buffer ** use with caution, do not expect contents to be preserved across funtion calls
+
+	settings		:EDITOPTS;	// main settings for HIDE
+	usrcol			:dword[nUserColors];	// custom user colors
+	rafnt			:RAFONT;	// font info
+
+	rect			:hide.rect_t;
+
+	findbuff		:byte[300];		// buffer for find dialog
+	replacebuf		:byte[300];		// buffer for replace dialog
+	CustColors		:dword[16];		// custom colors
+	pathbuf			:byte[300];		// keeps track of last directory visited
+	buffer			:byte[300];		// scratch buffer  ** use with caution, do not expect contents to be preserved across funtion calls
+
+
+	// handles for split procs and bars
+
+	Proc_OldVSplit	:dword;		// old proc for split bar
+	Proc_OldHSplit	:dword;		// old proc for split bar
+
+	autountitled	:boolean;	// if true, Untitled is saved and built into temp folder (non-project only)
+	mode			:byte;		// keeps track of current mode
+	align(4);
+
+
+static
+		
+	mainfont		:w.LOGFONT:=w.LOGFONT:[-13,0,0,0,400,0,0,0,0,3,2,1,49,strToBA("Courier New",w.LF_FACESIZE)];
+	dialogfont		:w.LOGFONT:=w.LOGFONT:[-11,0,0,0,400,0,0,0,0,3,2,1,47,strToBA("Verdana",w.LF_FACESIZE)];
+		
+	align(4);
+	fileList	:fList;
+	curnode		:pointer to fList.fnode;
+	jobList		:jList;
+	align(4);
+
+readonly
+	
+//========================================
+	zDebug		:zstring := "Debug";
+	zProject	:zstring := "Project";
+	zJobs		:zstring := "Jobs";
+	zFiles		:zstring := "Files";
+	zFolder		:zstring := "Folder";
+	zType		:zstring := "Type";
+	zGeneral	:zstring := "General";
+	zEnvironment:zstring := "Environment";
+	zSettings	:zstring := "Settings";
+	zThemes		:zstring := "Themes";
+	zSeperator	:zstring := "=====================================";
+	zRelease	:zstring := "Release";
+	zStandard	:zstring := "Standard";
+	
+	
+	// as per enum id_types; must match correctly
+	id_strings	:zstring[ 20 ] := 
+	[
+		"main",
+		"type",
+		"static",
+		"readonly",
+		"val",
+		"var",
+		"const",
+		"storage",
+		"method",
+		"procedure",
+		"class",
+		"iterator",
+		"macro",
+		"label",
+		"bookmark",
+		"external",
+		"begin",
+		"end",
+		"record",
+		"endrecord"
+		
+	];
+	
+
+//========================================
+
+	RAEditClassName		:string := "RAEDIT";
+	RAHexedClassName	:string := "RAHEXEDIT";
+	RAHexedChildClassName	:string := "RAHEXEDITCHILD";
+
+//========================================
+
+	commaDelimcst	:cset; @nostorage;
+		cset { ',' };
+	
+end data_unit;

@@ -1,0 +1,491 @@
+unit TabTool;  
+
+#includeonce ("HED.hhf")
+#includeonce ("memory.hhf")
+
+?@nodisplay:=true;
+?@align:=4;
+
+
+	readonly
+		// for panel
+		align (4);
+		strs	:dword; @nostorage;
+			dword &s_panel, &s_project, &s_explorer;
+			dword 0;
+			
+		align (4);
+		s_panel		:string :="Fold";
+		s_project	:string :="Project";
+		s_explorer	:string :="Explorer";
+		
+	
+	storage
+		panel_from		:dword;		// keeps track of previous panel selection
+		
+
+procedure selectOpen (id:string);
+
+	// search through open tabs to find id.  If found, make it the active tab
+	// and return true
+	
+	var
+		count	:uns32;
+		
+begin selectOpen;
+USE (EBX, ESI, EDI);
+	w.SendMessage (core.htab, w.TCM_GETITEMCOUNT, 0, 0);
+	mov (eax, count);
+	if (eax) then
+		mov	(w.TCIF_PARAM, core.tci.imask);
+		while (count >=0) do
+			dec (count);
+			w.SendMessage (core.htab, w.TCM_GETITEM, count, &core.tci);
+			breakif (!eax);
+			mov (core.tci.lParam, ebx);
+			if (str.eq (listebx.fullname, id)) then
+				w.SendMessage (core.htab, w.TCM_SETCURSEL, count, 0);
+				tabtool_activate();
+				mov (curnode, eax);
+				break;
+			endif;
+		welse
+			mov (false, eax);
+		endwhile;
+	endif;
+ENDUSE;	
+end selectOpen;
+
+procedure selectOpenMem (var node:fList.fnode);
+	
+	// search through open tabs to find node.  If found, make it the active tab
+	// and return true
+	
+	var
+			count	:uns32;
+		
+begin selectOpenMem;
+USE (EBX, ESI, EDI, EDX);
+	w.SendMessage (core.htab, w.TCM_GETITEMCOUNT, 0, 0);
+	mov (eax, count);
+	if (eax) then
+		mov	(w.TCIF_PARAM, core.tci.imask);
+		while (count >=0) do
+			dec (count);
+			w.SendMessage (core.htab, w.TCM_GETITEM, count, &core.tci);
+			breakif (!eax);
+			mov (core.tci.lParam, ebx);
+			if (ebx = node) then
+				w.SendMessage (core.htab, w.TCM_SETCURSEL, count, 0);
+				tabtool_activate();
+				mov (true, eax);
+				break;
+			endif;
+		welse
+			mov (false, eax);
+		endwhile;
+	endif;
+ENDUSE;	
+end selectOpenMem;
+
+procedure tabtool_isOpen( var node:fList.fnode );
+
+	// searches through open tabs to find node.
+	// if found, returns true.  Does NOT activate
+
+	var
+		count	:uns32;
+		
+
+begin tabtool_isOpen;
+USE (EBX, ESI, EDI, EDX);
+	w.SendMessage (core.htab, w.TCM_GETITEMCOUNT, 0, 0);
+	mov (eax, count);
+	if (eax) then
+		mov	(w.TCIF_PARAM, core.tci.imask);
+		while (count >=0) do
+			dec (count);
+			w.SendMessage (core.htab, w.TCM_GETITEM, count, &core.tci);
+			breakif (!eax);
+			mov (core.tci.lParam, ebx);
+			if (ebx = node) then
+				mov (true, eax);
+				break;
+			endif;
+		welse
+			mov (false, eax);
+		endwhile;
+	endif;
+ENDUSE;		
+end tabtool_isOpen;
+
+procedure Proc_TabToolSubclass(lparam:dword; wparam:dword; umsg:uns32; hwin:dword);
+begin Proc_TabToolSubclass;
+	mov(umsg,eax);
+	if (eax = w.WM_RBUTTONDOWN) then
+		w.SendMessage (hwin, w.WM_LBUTTONDOWN, wparam, lparam);
+		w.SendMessage (hwin, w.WM_LBUTTONUP, wparam, lparam);
+		xor (eax,eax);
+		jmp _exitnocall;
+	elseif (eax = w.WM_MBUTTONDOWN) then
+		w.SendMessage (hwin, w.WM_LBUTTONDOWN, wparam, lparam);
+		w.SendMessage (hwin, w.WM_LBUTTONUP, wparam, lparam);
+		Menu_CloseFile();
+		xor (eax, eax);
+		jmp _exitnocall;
+	endif;
+	
+	w.CallWindowProc(core.htaboldproc,hwin,umsg,wparam,lparam);
+	
+_exitnocall:
+end Proc_TabToolSubclass;
+
+procedure tabtool_add (var node:fList.fnode);
+	var
+		s	:string;
+		
+begin tabtool_add;
+	dbg.put ("tabtool_add");
+	mov (str.talloc (pathsize_c), s);
+USE (ESI, ECX, EDI, EBX, EDX);
+	mov (curnode, eax);
+	if (eax && eax <> node) then
+		w.ShowWindow (listeax.hwnd, w.SW_HIDE);
+	endif;
+	mov (w.TCIF_TEXT | w.TCIF_PARAM, core.tci.imask);
+	mov (30, core.tci.cchTextMax);
+	mov (node, ebx);
+	mov (listebx.id, eax);
+	mov (eax, core.tci.pszText);
+	mov (ebx, core.tci.lParam);
+	dbg.put("inserting");
+	w.SendMessage(core.htab,w.TCM_INSERTITEM, 999, &core.tci);
+	w.SendMessage(core.htab,w.TCM_SETCURSEL, eax,0);
+	mov (ebx, curnode);
+	call SetWindowCaption;
+	if( listebx.hwnd ) then
+		w.ShowWindow (listebx.hwnd, w.SW_SHOW);		
+	endif;
+	w.SendMessage (core.hwnd, w.WM_SIZE, 0, 0);
+	w.SendMessage( core.hwnd, HIDE_TOGGLEDEBUG, 0, 0 );
+	w.SendMessage(core.hwnd,HIDE_SETINSERTMODE,0,0);
+	updateDisplay (update_general);
+	dbg.put ("/tabtool_add");
+ENDUSE;
+end tabtool_add;
+
+procedure tabtool_update (var node:fList.fnode);
+	// updates text display of node
+	// returns 0 if node not found
+	// returns index of node if node exists in tab list
+	var
+		index	:uns32;
+		
+begin tabtool_update;
+USE (EBX);
+	//dbg.put ("tabtool_update");
+	mov (-1, index);
+	mov(w.TCIF_PARAM, core.tci.imask);
+	mov(true, eax);
+	while(eax) do
+		inc	(index);
+		w.SendMessage (core.htab, w.TCM_GETITEM, index, &core.tci);
+		if (eax) then 
+			mov	(core.tci.lParam, eax);
+			if (eax = node) then
+				mov (w.TCIF_TEXT | w.TCIF_PARAM, core.tci.imask);
+				mov (node, ebx);
+				mov (listebx.id, eax);
+				mov (eax, core.tci.pszText);
+				mov (ebx, core.tci.lParam);
+				w.SendMessage (core.htab, w.TCM_SETITEM, index, &core.tci);
+				break;
+			endif;
+		endif;
+	welse
+		mov (0, index);
+	endwhile;
+	mov (index, eax);
+ENDUSE;
+end tabtool_update;
+
+procedure tabtool_getindex (var node:fList.fnode);
+	var
+		index	:dword;
+		
+begin tabtool_getindex;
+USE (EBX);
+	mov (node, ebx);
+	mov (-1, index);
+	if (ebx) then
+		mov(w.TCIF_PARAM, core.tci.imask);
+		mov(true, eax);
+		while(eax) do
+			inc	(index);
+			if (w.SendMessage (core.htab, w.TCM_GETITEM, index, &core.tci)) then
+				mov	(core.tci.lParam, eax);
+				breakif (eax = node);
+			endif;
+		welse
+			mov (-1, index);
+		endwhile;
+	endif;
+	mov (index, eax);
+ENDUSE;
+end tabtool_getindex;
+
+
+procedure tabtool_activate;	@noframe;
+begin tabtool_activate;
+USE(ebx,edx,esi,edi);	
+	//dbg.put("tabtool_activate");
+	w.SendMessage(core.htab, w.TCM_GETCURSEL, 0,0);
+	if (eax != -1) then
+		mov	(w.TCIF_PARAM, core.tci.imask);
+		w.SendMessage(core.htab,w.TCM_GETITEM, eax, &core.tci);
+		mov (core.tci.lParam, eax);
+		if (eax <> curnode) then
+			mov (curnode, ebx);
+			mov (eax, curnode);
+			if (ebx) then
+				w.ShowWindow ( listebx.hwnd, w.SW_HIDE);
+			endif;
+			mov (curnode, ebx);
+			w.ShowWindow (listebx.hwnd, w.SW_SHOW);
+			
+		endif;
+		SetWindowCaption();
+		w.SetFocus (core.hwnd);
+		w.SendMessage(core.hwnd, w.WM_SIZE,0,0);
+		w.SendMessage( core.hwnd, HIDE_TOGGLEDEBUG, 0, 0 );
+		w.SendMessage(core.hwnd,HIDE_SETINSERTMODE,0,0);
+	else
+		// no tab windows left open
+		mov (NULL, curnode);
+	endif;
+	updateDisplay (update_general);
+ENDUSE;
+//dbg.put("/tabtool_activate");
+ret();
+end tabtool_activate;
+
+
+procedure tabtool_close (var node:fList.fnode);
+	var
+		index	:dword;
+		
+begin tabtool_close;
+USE (EBX);
+	mov (-1, index);
+	mov	(w.TCIF_PARAM, core.tci.imask);
+	mov	(true, eax);
+	while (eax) do
+		inc	(index);
+		w.SendMessage (core.htab, w.TCM_GETITEM, index, &core.tci);
+		if(eax) then
+			mov	(core.tci.lParam, ebx);
+			if (ebx = node) then
+				w.SendMessage (core.htab, w.TCM_DELETEITEM, index, 0);
+				break;
+			endif;
+		endif;
+	endwhile;
+	
+	w.SendMessage (core.htab, w.TCM_GETITEMCOUNT, 0, 0);
+	if (eax) then
+		l0:
+		w.SendMessage (core.htab, w.TCM_SETCURSEL, index, 0);
+		w.SendMessage(core.htab,w.TCM_GETCURSEL,0,0);
+		if (eax = -1) then
+			dec	(index);
+			jmp	l0;
+		endif;
+		w.SendMessage (core.htab, w.TCM_GETITEM, index, &core.tci);
+		mov (ebx, curnode);
+		call tabtool_activate;
+	else
+		mov( 0, curnode );
+	endif;
+	
+	w.SendMessage( core.hwnd, HIDE_TOGGLEDEBUG, 0, 0 );
+	
+ENDUSE;
+end tabtool_close;
+
+procedure Panel_HideDocked; @noframe;
+begin Panel_HideDocked;
+	dbg.put("Panel_HideDocked");	
+	mov (settings.panelactive, eax);
+	if (eax = core.htree) then
+		if (testnz (TREE_D, settings.winview)) then
+			w.ShowWindow (core.htree, w.SW_HIDE);
+		endif;
+	elseif (eax = core.hexplorer) then
+		if (testnz (EXPLORER_D, settings.winview)) then
+			w.ShowWindow (core.hexplorer, w.SW_HIDE);
+		endif;
+		
+	endif;
+	dbg.put("/Panel_HideDocked");
+	ret();
+end Panel_HideDocked;
+
+procedure PanelSetup (hwin:dword);
+begin PanelSetup;
+USE(edi, esi, ebx);
+	//dbg.put ("panelSetup");
+	mov (w.TCIF_TEXT, core.tci.imask);
+	mov (20, core.tci.cchTextMax);
+
+	mov (&strs, edi);
+	forever
+		mov ([edi], eax);
+		breakif (! eax);
+		mov ([eax], eax);
+		mov (eax, core.tci.pszText);
+		w.SendMessage(core.hpaneltab,w.TCM_INSERTITEM, 999, &core.tci);
+		add (4, edi);
+	endfor;
+	w.SendMessage(core.htab,w.TCM_SETCURSEL, 0,0);
+	mov (0, panel_from);
+	
+ENDUSE;
+end PanelSetup;
+
+procedure PanelFold; @noframe;
+begin PanelFold;
+	dbg.put ("PanelFold");	
+	mov (panel_closed, settings.panelwin);
+	Panel_HideDocked();
+	w.ShowWindow (core.hHSplitBar, w.SW_HIDE);
+	w.SendMessage(core.hpaneltab, w.TCM_SETCURSEL, panel_closed, 0);	
+	w.CheckMenuItem (core.hmenu, IDM_VIEW_PANEL, w.MF_BYCOMMAND | w.MF_UNCHECKED);
+	w.SetFocus (core.hwnd);
+	dbg.put ("/PanelFold");
+	ret();
+end PanelFold;
+
+
+procedure PanelActivate;
+	var
+		s	:string;
+
+begin PanelActivate;
+	dbg.put ("panel activate");
+	mov (str.talloc (128), s);
+
+	mov (w.TCIF_TEXT, core.tci.imask);
+	mov (&buffer, core.tci.pszText);
+	mov (@elements(buffer)-1, core.tci.cchTextMax);
+	w.SendMessage(core.hpaneltab, w.TCM_GETCURSEL, 0,0);
+	w.SendMessage(core.hpaneltab ,w.TCM_GETITEM, EAX, &core.tci);
+	mov (core.tci.pszText, eax);
+	str.cpyz (eax, s);
+	if (str.eq (s, s_project)) then
+		PanelProject();
+	elseif (str.eq (s, s_panel)) then
+		PanelFold();
+	elseif (str.eq (s, s_explorer)) then
+		PanelExplorer();
+	endif;
+	w.SendMessage (core.hwnd, w.WM_SIZE, 0, 0);
+	dbg.put ("/panel activate");
+end PanelActivate;
+
+procedure panel_setfrom;
+	var
+		s	:string;
+		
+begin panel_setfrom;
+
+	mov (str.talloc (128), s);
+
+	mov (w.TCIF_TEXT, core.tci.imask);
+	mov (&buffer, core.tci.pszText);
+	mov (@elements(buffer)-1, core.tci.cchTextMax);
+	w.SendMessage(core.hpaneltab, w.TCM_GETCURSEL, 0,0);
+	w.SendMessage(core.hpaneltab ,w.TCM_GETITEM, EAX, &core.tci);
+	mov (core.tci.pszText, eax);
+	str.cpyz (eax, s);
+	if (str.eq (s, s_project)) then
+		mov (panel_project, panel_from);
+	elseif (str.eq (s, s_panel)) then
+		mov (panel_closed, panel_from);
+	elseif (str.eq (s, s_explorer)) then
+		mov( panel_explorer, panel_from);
+	endif;
+	
+//		dbg.put("panel_setfrom :", panel_from);
+	
+end panel_setfrom;
+
+
+procedure PanelProject; @noframe;
+begin PanelProject;
+//	dbg.put ("panelproject");
+	Project_View (DOCK_YES);
+	mov (panel_project, settings.panelwin);
+	Panel_HideDocked();
+	move (core.htree, settings. panelactive);
+	w.ShowWindow (core.htree, w.SW_SHOW);
+	w.ShowWindow (core.hHSplitBar, w.SW_SHOW);
+	w.SendMessage(core.hpaneltab, w.TCM_SETCURSEL, panel_project, 0);	
+	w.CheckMenuItem (core.hmenu,IDM_VIEW_PANEL,w.MF_BYCOMMAND | w.MF_CHECKED);
+//	dbg.put ("/panelproject");
+	ret();	
+end PanelProject;
+
+procedure PanelExplorer; @noframe;
+begin PanelExplorer;
+	Explorer_View ( DOCK_YES);
+	mov (panel_explorer, settings.panelwin);
+	Panel_HideDocked();
+	move (core.hexplorer, settings.panelactive);
+	w.ShowWindow (core.hexplorer, w.SW_SHOW);
+	w.ShowWindow (core.hHSplitBar, w.SW_SHOW);
+	w.SendMessage(core.hpaneltab, w.TCM_SETCURSEL, panel_explorer, 0);	
+	w.CheckMenuItem (core.hmenu,IDM_VIEW_PANEL,w.MF_BYCOMMAND | w.MF_CHECKED);
+	ret();
+end PanelExplorer;
+
+procedure PanelViewWin; @noframe;
+begin PanelViewWin;
+	mov (settings.panelwin, eax);
+	switch (eax);
+	case (panel_closed)
+		PanelFold();
+		
+	case (panel_project)
+		PanelProject();
+		
+	case (panel_explorer)
+		PanelExplorer();
+		
+	default
+		PanelFold();
+	endswitch;
+	w.SendMessage (core.hwnd, w.WM_SIZE, 0, 0);
+	ret();
+end PanelViewWin;
+
+procedure PanelViewActive; @noframe;
+begin PanelViewActive;
+	mov (settings.panelwin, eax);
+	if (! eax) then
+		// panel is closed, open it
+		mov (settings.panelactive, eax);
+		if (eax) then
+			if (eax = core.htree) then
+				PanelProject();
+			elseif (eax = core.hexplorer) then 
+				PanelExplorer();
+			endif;
+		endif;
+	else
+		PanelFold();
+	endif;
+	w.SendMessage (core.hwnd, w.WM_SIZE, 0, 0);
+	ret();
+end PanelViewActive;
+
+end TabTool;
