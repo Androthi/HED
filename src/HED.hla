@@ -1689,11 +1689,7 @@ program HED_MAIN;
 		w.SetFocus( core.hwnd );
 	//	ENDUSE;
 		ret();
-	
-	_mhabt::	
-		showAboutWin();
-		ret();
-		
+
 	_mhapi::
 		mov(0,buffer[0]);
 		if (hed_ini._readString ("Help", "1", stringbuffer)) then
@@ -1833,7 +1829,6 @@ proc
 			dword	IDM_TOOL_CONSOLE,		&Menu_ToolsConsole;
 			dword	IDM_TOOL_RUN,			&Menu_ToolsRun;
 			
-			dword	IDM_HELP_ABOUT,			&_mhabt;
 			dword	IDM_HELP_SHOWENV,		&Menu_Help_ShowEnv;		
 			dword	KEYBOARD_CTRLTAB,		&_ctrltab;
 			

@@ -75,7 +75,6 @@ IDM_TOOL_RUN            := 1052;
 IDM_OPTION_CODEFONT     := 1031;
 IDM_OPTION_LINEFONT     := 1032;
 IDM_HELP_SHOWENV        := 1084;
-IDM_HELP_ABOUT          := 1036;
 IDC_HSPLITTCUR          := 101;
 IDB_BOOKMARK            := 102;
 IDC_SELECTCUR           := 103;
