@@ -11,12 +11,11 @@ unit TabTool;
 		// for panel
 		align (4);
 		strs	:dword; @nostorage;
-			dword &s_panel, &s_project, &s_explorer;
+			dword &s_panel, &s_explorer;
 			dword 0;
 			
 		align (4);
 		s_panel		:string :="Fold";
-		s_project	:string :="Project";
 		s_explorer	:string :="Explorer";
 		
 	
@@ -403,9 +402,7 @@ begin panel_setfrom;
 	w.SendMessage(core.hpaneltab ,w.TCM_GETITEM, EAX, &core.tci);
 	mov (core.tci.pszText, eax);
 	str.cpyz (eax, s);
-	if (str.eq (s, s_project)) then
-		mov (panel_project, panel_from);
-	elseif (str.eq (s, s_panel)) then
+	if (str.eq (s, s_panel)) then
 		mov (panel_closed, panel_from);
 	elseif (str.eq (s, s_explorer)) then
 		mov( panel_explorer, panel_from);

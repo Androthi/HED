@@ -53,7 +53,7 @@ static
 
 readonly
 	
-//========================================
+	AppName		:zstring := "HED";
 	zProject	:zstring := "Project";
 	zJobs		:zstring := "Jobs";
 	zFiles		:zstring := "Files";
@@ -95,8 +95,6 @@ readonly
 //========================================
 
 	RAEditClassName		:string := "RAEDIT";
-	RAHexedClassName	:string := "RAHEXEDIT";
-	RAHexedChildClassName	:string := "RAHEXEDITCHILD";
 
 //========================================
 

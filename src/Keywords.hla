@@ -94,25 +94,24 @@ proc
 		mov( 0, index );
 		mov( &usrcol, ebx );
 		mov( node, edx );
-		if( listedx.ftype = type_hla || listedx.ftype = type_unit  || listedx.ftype = type_hhf ) then
-			while( index < 3 ) do  // items for HLA files
-				mov( index, eax );
-				str.put( stringbuffer, core.homepath, dirsep_c, GroupFiles[eax*4] );
-				if( filesys.exists( stringbuffer )) then
-					buf.create( stringbuffer );
-					mov( index, edi );
-					mov( [ebx+edi*4], edi );
-					mov( buf.cursor, eax );
-					mov( node, edx );
-					w.SendMessage( listedx.hwnd, REM_SETHILITEWORDS, edi, eax );
-					buf.destroy();
-				endif;
-				
-				inc( index );
-				
-			endwhile;
-			
-		endif;
+//		if( listedx.ftype = type_hla || listedx.ftype = type_unit  || listedx.ftype = type_hhf ) then
+//			while( index < 3 ) do  // items for HLA files
+//				mov( index, eax );
+//				str.put( stringbuffer, core.homepath, dirsep_c, GroupFiles[eax*4] );
+//				if( filesys.exists( stringbuffer )) then
+//					buf.create( stringbuffer );
+//					mov( index, edi );
+//					mov( [ebx+edi*4], edi );
+//					mov( buf.cursor, eax );
+//					mov( node, edx );
+//					w.SendMessage( listedx.hwnd, REM_SETHILITEWORDS, edi, eax );
+//					buf.destroy();
+//				endif;
+//				
+//				inc( index );
+//				
+//			endwhile;	
+//		endif;
 		
 
 		dbg.exits( "SetKeyWords" );

@@ -22,7 +22,6 @@ const
 
 static
 	ppos		:PrnPos_t := PrnPos_t:[ w.RECT:[1000,1000,1000,1000], w.POINT:[21000,29700]];
-	AppName			:mzstr ("HIDE");
 
 storage
 	psd				:w.PAGESETUPDLG;

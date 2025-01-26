@@ -40,9 +40,8 @@ procedure StreamInProc (var pBytesRead:dword ; NumBytes:dword ; var pBuffer:dwor
 procedure StreamOutProc (var pBytesRead:dword ; NumBytes:dword ; var pBuffer:dword ; hFile:dword);	@external;
 procedure RAEdit_SaveFile (var node:fList.fnode); @external;
 procedure RAEdit_loadFileLight( var node: fList.fnode ); @external;
-procedure RAHexed_new (var node:fList.fnode); @external;
 procedure IndentComment (nChr:dword; fN:dword);		@external;
-procedure InitOF (title:string; defext:string; filtertype:dword);	@external;
+procedure InitOF (title:string; defext:string);	@external;
 procedure GetOpenName;	@returns ("eax"); @external;
 procedure GetSaveName;	@returns ("eax"); @external;
 procedure GetOpenProjectName;	@returns ("eax");	@external;
@@ -57,10 +56,7 @@ procedure selectOpenMem (var node:fList.fnode); @returns ("EAX"); @external;
 procedure repaintAll; @external;
 procedure RAEdit_open (fname:string); @returns ("EAX"); @external;
 procedure Menu_SaveAs; @external;
-procedure updateAction (var fnode:fList.fnode); @external;
 procedure RAEdit_loadFile (var fnode:fList.fnode; fname:string); @external;
-procedure RAHexed_open (fname:string); @returns ("EAX"); @external;
-procedure RAHexed_openNew (fname:string); @external;
 procedure Recent_Insert(source: string); @external;
 
 // find.hhf
@@ -182,13 +178,12 @@ static	// externals
 	jobList		:jList; @external;
 	pview_curSel	:dword; @external;
 	RAEditClassName		:string; @external;
-	RAHexedClassName	:string; @external;
-	RAHexedChildClassName	:string; @external;
-
 	commaDelimcst	:cset; @external;
 	
 	
 	//========================================
+	AppName		:zstring; @external; 
+
 	zDebug		:zstring; @external;
 	zProject	:zstring; @external;
 	zJobs		:zstring; @external;

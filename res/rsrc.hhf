@@ -82,7 +82,6 @@ ID_EXPLORER_TREE        := 1101;
 IDR_MENU                := 1000;
 IDM_FILE_NEW            := 1050;
 IDM_FILE_OPEN           := 1006;
-IDM_FILE_OPENHEX        := 1049;
 IDM_FILE_INSERT         := 1076;
 IDM_FILE_OPENRECENT     := 1082;
 IDM_FILE_SAVE           := 1007;

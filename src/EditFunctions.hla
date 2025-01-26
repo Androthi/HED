@@ -9,63 +9,10 @@ unit EditFunctions;
 readonly
 
 	align(4);
-		hlatype	:byte; @nostorage;
-				byte "HLA source (*.hla)",0,"*.hla",0;
-				byte "All Files (*.*)",0,"*.*",0,0;
-	align(4);
-		khelptype :byte; @nostorage;
-				byte "kHelp document (*.khelp)",0,"*.khelp",0;
-				byte "All Files (*.*)",0,"*.*",0,0;
-	align(4);
-		odintype  :byte; @nostorage;
-				 byte "odin source (*.odin)",0,"*.odin",0;
-				 byte "All Files (*.*)",0,"*.*",0,0;
-				 
-	align(4);
-		gotype  :byte; @nostorage;
-				 byte "go source (*.go)",0,"*.go",0;
-				 byte "All Files (*.*)",0,"*.*",0,0;
+	allfiles:byte; @nostorage;
+		byte "All Files (*.*)",0,"*.*",0;
+		byte "Text Files (*.txt)",0,"*.txt",0,0;
 		
-	align(4);
-		hlaext	:mzstr ("hla");
-
-	align(4);
-		hhftype	:byte; @nostorage;
-				byte "HHF header (*.hhf)",0,"*.hhf",0;
-				byte "All Files (*.*)",0,"*.*",0,0;
-	align(4);
-		hhfext	:mzstr ("hhf");
-		
-		rctype	:byte; @nostorage;
-				byte "RC resource (*.rc)",0,"*.rc",0;
-				byte "All Files (*.*)",0,"*.*",0,0;
-	align(4);
-		rcext	:mzstr ("rc");
-		
-		libtype	:byte; @nostorage;
-				byte "Library (*.lib)",0,"*.lib",0;
-				byte "Object  (*.obj)",0,"*.obj",0;
-				byte "All Files (*.*)",0,"*.*",0,0;
-	align(4);
-		libext	:mzstr ( "lib" );
-		
-		allfiles:byte; @nostorage;
-				byte "All Files (*.*)",0,"*.*",0;
-				byte "Source Files (*.hla, *.hhf, *.rc)",0,"*.hla;*.hhf;*.rc",0;
-				byte "Text Files (*.txt)",0,"*.txt",0,0;
-		
-	align(4);	
-		projtype	:byte; @nostorage;
-				byte "HLA Project File (*.hpr)",0,"*.hpr",0,0;
-	align(4);
-		projext	:mzstr ("hpr");
-	
-	align(4);
-		tempext	:mzstr ("kmk");
-
-		AppName	:string:=("HIDE");
-		sNewFile	:string:=("Untitled");
-			
 endreadonly;
 
 storage
@@ -116,7 +63,7 @@ begin SetWindowCaption;
 		endif;
 		str.put2 (workpath, listebx.relative, "   HIDE");
 	else
-		str.cpy( AppName, workpath );
+		str.cpy( &AppName, workpath );
 	endif;
 	
 	w.SetWindowText (core.hwnd, workpath);
@@ -242,7 +189,6 @@ begin RAEdit_openNew;
 			fileList.append ([ebx]);
 	
 			RAEdit_new ([ebx]);
-			updateAction([ebx]);
 			RAEdit_loadFile ([ebx], s);
 		else
 			xor (ebx, ebx);
@@ -253,30 +199,6 @@ begin RAEdit_openNew;
 	dbg.put("/RAEdit_openNew");
 end RAEdit_openNew;
 
-proc
-	updateAction :procedure( var fnode:fList.fnode );
-		var
-			sbuffer	:string;
-			
-	begin updateAction;
-		mov(str.talloc(1000), sbuffer);
-		USE( EBX, EAX );
-		mov( fnode, ebx );
-		
-		filesys.extractExt( listebx.id, sbuffer );
-		
-		if( str.ieq( sbuffer, "hla" ) ) then
-	
-			mov( type_hla, listebx.ftype );
-		
-		elseif( str.ieq( sbuffer, "hhf") ) then
-	
-			mov( type_hhf, listebx.ftype );
-		
-		endif;
-		
-		ENDUSE;
-	end updateAction;
 
 procedure RAEdit_open (fname:string);
 	// returns file node or NULL
@@ -287,67 +209,12 @@ begin RAEdit_open;
 	dbg.put("/RAEdit_open");
 end RAEdit_open;
 
-procedure RAHexed_new (var node:fList.fnode);
-begin RAHexed_new;
-USE (EBX);
-	mov (node, ebx);
-	w.CreateWindowEx(w.WS_EX_CLIENTEDGE, RAHexedClassName, NULL,
-		w.WS_CHILD, 0, 0, 0, 0, core.hwnd, NULL, core.hinst, NULL);
-	mov (eax, listebx.hwnd);	
-ENDUSE;
-end RAHexed_new;
-
-procedure RAHexed_openNew (fname:string);
-	var
-		s	:string;
-	
-begin RAHexed_openNew;
-	mov (str.talloc (pathsize_c), s);
-USE (EBX, ESI, EDI);
-	str.cpy (fname, s);
-	if (filesys.exists (s)) then
-
-		fileList.newNode();
-		mov (eax, ebx);
-		
-		filesys.a_extractFilename( s );
-		mov( eax, listebx.id );
-		
-		str.a_cpy (s);
-		mov (eax, listebx.fullname);
-		
-		fileList.append ([ebx]);
-
-		RAHexed_new ([ebx]);
-		RAEdit_loadFile ([ebx], s);
-
-	else
-		xor (ebx, ebx);
-	endif;
-	mov (ebx, eax);
-ENDUSE;
-
-end RAHexed_openNew;
-
 proc
-	RAHexed_open :procedure( fname:string );
-	begin RAHexed_open;
-		dbg.put ("hex open");
-		if (! selectOpen (fname)) then
-			RAHexed_openNew (fname);
-			mov( type_bin, listeax.ftype );
-		else
-			xor( eax, eax );
-		endif;
-		dbg.put ("/hex open");
-	end RAHexed_open;
 
 	RAEdit_setFormat :procedure( var node:fList.fnode );
 		var
 			gwstyle	:dword;
 			group	:dword;
-			hexfont	:HEFONT;
-			hexcolor:HECOLOR;
 			options	:dword;
 
 	begin RAEdit_setFormat;
@@ -357,29 +224,6 @@ proc
 		mov (0, group);
 		mov (node, ebx);
 	
-		if( listebx.ftype = type_bin ) then
-	
-			move (core.hmainfont, hexfont.hFont);
-			move (core.hlinefont, hexfont.hLnrFont);
-			lea (eax, hexfont);
-			w.SendMessage (listebx.hwnd, HEM_SETFONT, 0, eax);
-	
-			move (core.col.bckcol, hexcolor.bckcol);
-			move (core.col.txtcol, hexcolor.asctxtcol);
-			move (core.col.txtcol, hexcolor.adrtxtcol);
-			move (core.col.txtcol, hexcolor.dtatxtcol);
-			move (core.col.selbckcol, hexcolor.selbckcol);
-			move (core.col.seltxtcol, hexcolor.seltxtcol);
-			move (core.col.selbckcol, hexcolor.selascbckcol);
-			move (core.col.selbarbck, hexcolor.selbarbck);
-			move (core.col.selbarpen, hexcolor.selbarpen);
-			move (core.col.lnrcol, hexcolor.lnrcol);
-			move (core.col.cmntcol, hexcolor.sellfbckcol);
-			lea (eax, hexcolor);
-			w.SendMessage (listebx.hwnd, HEM_SETCOLOR, 0, eax);
-		
-		else
-			
 			// default settings for all source types
 			
 			w.GetWindowLong(listebx.hwnd,w.GWL_STYLE);
@@ -409,63 +253,20 @@ proc
 			xor (eax, eax);
 			w.SendMessage(listebx.hwnd,REM_AUTOINDENT,0, eax);
 	
-			// specific settings for assembly source types
-			if( listebx.ftype = type_hla ||
-				listebx.ftype = type_unit  ||
-				listebx.ftype = type_hhf ) then
-				
-				hed_ini.readInt( "HED Settings", "Show Divider" );
-				if( eax ) then
-				
-					or (STYLE_NODIVIDERLINE, gwstyle);
-					
-				else
-					
-					and(! (STYLE_NODIVIDERLINE) , gwstyle);
-					
-				endif;
-				
-				hed_ini.readInt( "HED Settings", "Highlight Comments" );
-				if( eax ) then
+			//+ TODO: add specifics based on file extension
+			// here we will add keywords too
+			// SetKeyWords( listebx );
+			
 
-					or (STYLE_HILITECOMMENT, gwstyle);
-				else
-					and (! STYLE_HILITECOMMENT, gwstyle);
-				endif;
-	
-				w.SendMessage (listebx.hwnd, REM_SETCHARTAB, '.', CT_OPER);
-				w.SendMessage(listebx.hwnd, REM_SETCHARTAB, ';', CT_NONE);
-				w.SendMessage(listebx.hwnd, REM_SETCHARTAB, '/', CT_CMNTDBLCHAR);
-				w.SendMessage (listebx.hwnd, REM_ADDBLOCKDEF, 0, 0);
-
-				if( listebx.ftype = type_hla ||
-					listebx.ftype = type_unit  ||
-					listebx.ftype = type_hhf  ) then
-					
-				endif;
-				SetKeyWords( listebx );
-	
-				w.SendMessage(listebx.hwnd, REM_SETCOMMENTBLOCKS, &szCmntStart,&szCmntEnd);
-				
-			
-			else
-				// default type
-				dbg.put("in default type");
-				w.SendMessage (listebx.hwnd, REM_ADDBLOCKDEF, 0, 0);
-	
-				or (STYLE_NOHILITE | STYLE_NOCOLLAPSE , gwstyle);
-				and (! STYLE_HILITECOMMENT, gwstyle);
-				mov (15, group);
-			
-			endif;
-			
+			w.SendMessage (listebx.hwnd, REM_ADDBLOCKDEF, 0, 0);	
+			or (STYLE_NOHILITE | STYLE_NOCOLLAPSE , gwstyle);
+			and (! STYLE_HILITECOMMENT, gwstyle);
+			mov (15, group);
 			w.SendMessage(listebx.hwnd,REM_SETWORDGROUP,0, group);
 			w.SendMessage(listebx.hwnd,REM_SETCOLOR,0,&core.col);
 			w.SendMessage(core.hwnd,HIDE_SETINSERTMODE,0,0);
 			w.SetWindowLong(listebx.hwnd,w.GWL_STYLE, gwstyle);
-	
-		endif;	
-	
+
 		ENDUSE;	
 	end RAEdit_setFormat;
 
@@ -484,29 +285,7 @@ USE (EBX);
 	cmp( listebx.hwnd, 0 ); je no_node;
 	
 	if ( str.eq (listebx.id, "Untitled")) then
-		if (autountitled) then
-			
-			env2.get ("hlatmp", sbuffer);
-			if(eax) then
-				str.put2 ( sbuffer, dirsep_c, "temp.hla");
-				WriteToFile (listebx.hwnd, sbuffer);
-				GetFileTime (listebx.relative, listebx.writetime);
-				str.cpy ("temp.hla", listebx.id);
-				mov( type_hla, listebx.ftype );
-				str.free (listebx.fullname);
-				str.a_cpy (sbuffer);
-				mov (eax, listebx.fullname);
-				tabtool_update ([ebx]);
-				
-				if (ebx = curnode) then
-					SetWindowCaption();
-				endif;
-				RAEdit_setFormat ([ebx]);
-				w.SendMessage (listebx.hwnd, w.WM_PAINT, 0, 0);
-			endif;
-		else
-			Menu_SaveAs();
-		endif;
+		Menu_SaveAs();
 	endif;
 	
 	no_node:
@@ -622,7 +401,7 @@ USE (EAX, ESI, EDI);
 ENDUSE;
 end Recent_Insert;
 
-procedure InitOF (title:string; defext:string; filtertype:dword);
+procedure InitOF (title:string; defext:string);
 	// initializes the OPENFILENAME structure
 begin InitOF;
 	pushabi;
@@ -645,31 +424,11 @@ begin InitOF;
 	mov(defext,eax);
 	mov(eax,of.lpstrDefExt);
 		
-	mov(filtertype,ebx);
-	// determine default extensions to use	
-	if ( (ebx = type_hla) || (ebx = type_unit) ) then
-		
-			mov(&hlatype,eax);
-
-    elseif (ebx = type_hhf) then
-    	mov(&hhftype,eax);
-    elseif (ebx = type_lib) then
-		mov(&libtype,eax);
-    elseif (ebx = type_all ) then
-    	mov(&allfiles,eax);
-    elseif (ebx = type_proj) then
-    	mov(&projtype,eax);
-
-    endif;
+    mov(&allfiles,eax);
 	mov(eax,of.lpstrFilter);
 	
 	mov	(	w.OFN_PATHMUSTEXIST | w.OFN_NOCHANGEDIR | w.OFN_FILEMUSTEXIST |
 			w.OFN_HIDEREADONLY | w.OFN_OVERWRITEPROMPT,of.Flags);
-	
-	if (filtertype = type_lib) then
-		// so that used does not have to navigate to the actual library location
-		and (! w.OFN_FILEMUSTEXIST, of.Flags);
-	endif;
 
 	popabi;
 end InitOF;
@@ -819,7 +578,7 @@ begin querySave;
 	mov (node, ebx);
 	if (w.SendMessage (listebx.hwnd, w.EM_GETMODIFY, 0, 0)) then
 		str.put (s, "Want to Save Changes to ", listebx.id, '?');
-		w.MessageBox (core.hwnd, s,AppName, w.MB_YESNOCANCEL | w.MB_ICONQUESTION);
+		w.MessageBox (core.hwnd, s, &AppName, w.MB_YESNOCANCEL | w.MB_ICONQUESTION);
 		if (eax= w.IDYES) then
 			RAEdit_SaveFile ([ebx]);
 			mov(false,eax);
@@ -841,11 +600,7 @@ USE (ESI, EDI, EBX);
 	fileList.getHead();
 	mov (eax, ebx);
 	while (ebx) do
-		if (listebx.ftype = type_bin) then
-			w.SendMessage (listebx.hwnd, HEM_REPAINT, 0, 0);
-		else
-			w.SendMessage (listebx.hwnd, REM_REPAINT, 0, 0);
-		endif;
+		w.SendMessage (listebx.hwnd, REM_REPAINT, 0, 0);
 		mov (listebx.next, ebx);
 	endwhile;
 ENDUSE;

@@ -19,11 +19,9 @@ storage
 	
 
 const
-	finditems_c		:= 4;		// increase this as more findscope is added
+	finditems_c		:= 2;		// increase this as more findscope is added
 	findcurrent_c	:= 0;
 	findall_c		:= 1;
-	findproject_c	:= 2;
-	findjob_c		:= 3;
 	
 	
 readonly
@@ -79,11 +77,6 @@ USE (ESI, EDI);
 		if (! eax) then
 			fileList.getHead();
 		endif;
-
-		mov (listeax.ftype, edi);
-		if (edi = type_bin) then
-			jmp next;
-		endif; 
 		
 		mov (start_file, ecx); 
 		
@@ -92,18 +85,6 @@ USE (ESI, EDI);
 			jmp l0;
 		endif;
 		
-		mov (settings.findscope, esi);
-		if (esi = findproject_c) then
-			if (! listeax.isproject) then
-				jmp next;
-			endif;
-		elseif (esi = findjob_c) then
-			mov (start_job, esi);
-			if ( listeax.job != esi) then
-				jmp next;
-			endif;
-		endif;
-
 		l0:
 		push( eax );
 		if( ! listeax.hwnd ) then
@@ -137,27 +118,11 @@ USE (ESI);
 		if (! eax) then
 			fileList.getTail();
 		endif;
-		mov (listeax.ftype, ecx);
-		if (ecx = type_bin) then
-			jmp prev;
-		endif; 
 		
 		if (eax = start_file) then
 			dbg.put ("prev: doneSearch");
 			mov (true, doneSearch);
 			jmp l0;
-		endif;
-		
-		mov (settings.findscope, esi);
-		if (esi = findproject_c) then
-			if (! listeax.isproject) then
-				jmp prev;
-			endif;
-		elseif (esi = findjob_c) then
-			mov (start_job, esi);
-			if ( listeax.job != esi) then
-				jmp prev;
-			endif;
 		endif;
 		
 		l0:
@@ -437,40 +402,8 @@ USE (EBX, ESI);
 	if (eax = findall_c) then
 		dbg.put ("findall_c");
 		while (ebx) do
-			mov (listebx.ftype, eax);
-			if( eax != type_bin ) then
-				replaceAll();
-				add( eax, replacecnt );
-			endif;
-			mov (listebx.next, ebx);
-		endwhile;
-
-	elseif (eax = findproject_c) then
-		
-		dbg.put ("findproject_c");
-
-		while (ebx) do
-			mov (listebx.ftype, eax);
-			if( eax != type_bin ) then
-				if (listebx.isproject) then
-					replaceAll();
-				endif;
-			endif;
-			mov (listebx.next, ebx);
-		endwhile;
-	
-	elseif (eax = findjob_c) then
-
-		dbg.put ("findjob_c");
-		mov (start_job, esi);
-
-		while (ebx) do
-			mov (listebx.ftype, eax);
-			if( eax != type_bin ) then
-				if (listebx.job = esi) then
-					replaceAll();
-				endif;
-			endif;
+			replaceAll();
+			add( eax, replacecnt );
 			mov (listebx.next, ebx);
 		endwhile;
 		
@@ -504,10 +437,6 @@ procedure Proc_FindDlg (lParam:dword; wParam:dword; uMsg:uns32; hWin:dword);
 		mov (settings.findscope, eax);
 		if (eax = findall_c) then
 			w.SetWindowText (ebx, "All Files");
-		elseif (eax = findproject_c ) then
-			w.SetWindowText (ebx, "In Project");
-		elseif (eax = findjob_c) then
-			w.SetWindowText (ebx, "Active Job");
 		else
 			w.SetWindowText (ebx, "Active File");
 		endif;

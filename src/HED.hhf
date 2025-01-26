@@ -5,7 +5,6 @@ const
 	#includeonce	("os.hhf")
 	#includeonce	("src/win_inc.hhf")
 	#includeonce	("src/raedit.hhf")
-	#includeonce	("src/RAHexEd.hhf")	
 	#includeonce	("hide/dbgwin.hhf")
 	#includeonce	("strings.hhf")
 	#includeonce	("tables.hhf") 
@@ -56,18 +55,7 @@ const
 	bufesi	:text := "(type tBuffer[esi])";
 	bufedx	:text := "(type tBuffer[edx])";
 	
-	PROJECT_MENU_START		:= 1500;
-		PVIEW_REBUILDJOB	:= PROJECT_MENU_START +1;
-		PVIEW_RUN			:= PROJECT_MENU_START +2;
-		PVIEW_REBUILDFILE	:= PROJECT_MENU_START +4;
-		PVIEW_OPENASHEX		:= PROJECT_MENU_START +5;
-		PVIEW_SETTOOPEN		:= PROJECT_MENU_START +6;
-		PVIEW_RELOAD		:= PROJECT_MENU_START +7;
-		PVIEW_RUNEXECUTABLE	:= PROJECT_MENU_START +8;
-		PVIEW_EDIT			:= PROJECT_MENU_START +9;
-	PROJECT_MENU_END		:= 1600;
-
-	RECENT_MENU_START		:= PROJECT_MENU_END;
+	RECENT_MENU_START		:= 1600;
 		RECENT_1			:= RECENT_MENU_START +1;
 		RECENT_2			:= RECENT_MENU_START +2;
 		RECENT_3			:= RECENT_MENU_START +3;
@@ -101,20 +89,6 @@ const
 	// status bar and tool bar IDs
 	IDC_SBR	:= 1003;
 	IDC_TBR	:= 1002;
-
-	mclear_c	:= 1;	// clear output
-	
-	// command - used in MakeProc
-	mbuild_c		:= 0;	// send build command
-	mbuildall_c		:= 1;	// send build-all command
-	mbuildone_c		:= 2;	// send build current command
-	mbuildonejob_c	:= 3;
-	mrebuildonejob_c:= 4;	// send a rebuild currend job command
-	mtestbuild_c	:= 5;	// send test build command
-	
-	// link - used in MakeProc
-	mnforce_c	:= 0;
-	mforce_c	:= 1;
 	
 	// winview settings	
 	dummy_sym_0038938 := @{0};	// required or HLA linux can't find next symbol --- why do i even care?
@@ -134,8 +108,7 @@ const
 
 	// used for side panel	
 	panel_closed	:=0;
-	panel_project	:=1;
-	panel_explorer	:=2;
+	panel_explorer	:=1;
 		
 	enum0
 	(	// docking window messages
@@ -159,23 +132,7 @@ const
 	lib_c			:= ".lib";
 	exe_c			:= ".exe";
 	
-	// relates to string array
-		jobtype_hlaprogram	:= 0;
-		jobtype_library		:= 3;
 	
-	
-		type_hla		:= 0;		// main hla source file
-		type_unit		:= 1;		// hla unit with separate compilation
-		type_hhf		:= 2;		// header file
-		type_bin		:= 6;		// binary file
-		
-	// file types not coverd above,
-	// these are not counted in string array
-	// but used for file filters
-	type_all		:= 1000;
-	type_proj		:= 1001;
-	type_lib		:= 1003;	
-		
 	// HIDE manager init values
 	manager_general		:= 0;
 	manager_env			:= 1;

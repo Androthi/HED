@@ -52,7 +52,6 @@ program HED_MAIN;
 	 	parts		:int32[STATUS_PARTS]:=[POS_LINES,POS_INS,-1];
 	
 		RadDLL			:str.constant("Data\RAEdit.dll");
-		RadHex			:str.constant("Data\RAHexed.dll");
 		linefont		:w.LOGFONT:=w.LOGFONT:[-12,0,0,0,400,0,0,0,0,3,2,1,49,strToBA("Lucida Console",w.LF_FACESIZE)];
 		current_menu	:uns16 := RECENT_MENU_START;		// track auto-added menus current number
 		align (4);
@@ -488,9 +487,6 @@ program HED_MAIN;
 		if (! ebx) then
 			jmp _exitnocall;
 		endif;
-		if (listebx.ftype = type_bin) then
-			jmp _exitnocall;
-		endif;
 		if(eax=w.WM_KEYUP) then
 			
 			mov(wparam,eax);
@@ -612,7 +608,7 @@ program HED_MAIN;
 
 		procedure doSelect; @noframe;
 		begin doSelect;
-			if (listebx.ftype != type_bin) then
+			
 				w.SendMessage(listebx.hwnd, w.EM_EXLINEFROMCHAR,0, chrg.cpMin);
 				mov	(eax, edi);
 				w.SendMessage(listebx.hwnd, REM_NXTBOOKMARK, edi,3);
@@ -627,7 +623,7 @@ program HED_MAIN;
 				inc	(eax);
 				mov	(IDM_EDIT_CLEARBOOK,edx);
 				Toggle();
-			endif;
+
 			ret();
 		end doSelect;
 
@@ -757,14 +753,6 @@ program HED_MAIN;
 			doEdit();
 			doSelect();
 			
-		case (update_hexed)
-			mov (curnode, ebx);
-			doEdit();
-			w.SendMessage (listebx.hwnd, HEM_ANYBOOKMARKS, 0, 0);
-			mov	(IDM_EDIT_NEXTBOOK, edx);
-			Toggle();
-			mov	(IDM_EDIT_PREVBOOK, edx);
-			Toggle();
 		default
 		endswitch;
 		
@@ -806,21 +794,6 @@ program HED_MAIN;
 		dbg.put ("/hed_openFile");
 	end hed_openFile;
 
-	procedure hide_openHex (fname:string);
-	begin hide_openHex;
-		if (RAHexed_open (fname)) then
-			push (eax);
-			mov( eax, ecx );
-			tabtool_add ([ecx]);
-			Recent_Insert( listecx.fullname );
-			UpdateMenu();
-			pop (eax);
-		else
-			xor (eax, eax);
-		endif;
-		updateDisplay (update_general);
-	end hide_openHex;
-
 	procedure hide_openNode ( var node:fList.fnode );
 	begin hide_openNode;
 	
@@ -830,10 +803,7 @@ program HED_MAIN;
 		
 		//dbg.put("3 :", listebx.fullname);
 		
-		mov( listebx.ftype, eax );
-		switch( eax );
-		
-		case(  type_hla, type_unit, type_hhf )
+
 				
 			RAEdit_new( [ebx] );
 			if( filesys.exists( listebx.fullname) ) then
@@ -846,21 +816,6 @@ program HED_MAIN;
 			
 			tabtool_add( [ebx] );
 				
-		case( type_bin )
-		
-			RAHexed_new ([ebx]);
-			if( filesys.exists( listebx.fullname) ) then
-				
-				RAEdit_loadFile ([ebx], listebx.fullname);
-				
-			else
-				toOutput("File not found: ", listebx.fullname, nl);
-				
-			endif;
-				
-			tabtool_add( [ebx] );
-			
-		endswitch;
 		
 		already_open:
 	ENDUSE;
@@ -909,7 +864,7 @@ program HED_MAIN;
 	procedure Menu_OpenFile;	@noframe;
 	begin Menu_OpenFile;
 		dbg.put(">open");
-		InitOF("Open File",NULL, type_all);
+		InitOF("Open File",NULL);
 		if ( GetOpenName() ) then
 			mov(eax,openfile_s);
 			hed_openFile (openfile_s);
@@ -918,19 +873,6 @@ program HED_MAIN;
 		updateDisplay (update_general);
 		ret();
 	end Menu_OpenFile;
-	
-	procedure Menu_OpenAsHex; @noframe;
-	begin Menu_OpenAsHex;
-		dbg.put ("open as hex");
-		InitOF ("Open As Hex", NULL, type_all);
-		if (GetOpenName() ) then
-			mov (eax, openfile_s);
-			hide_openHex (openfile_s);
-			str.free (openfile_s);
-		endif;
-		ret();
-	end Menu_OpenAsHex;
-
 	
 	procedure Menu_InsertFile;
 	
@@ -943,7 +885,7 @@ program HED_MAIN;
 		pushabi;
 		mov (curnode, ebx);
 		if (ebx) then
-			InitOF("Open File To Insert",NULL, type_all);
+			InitOF("Open File To Insert",NULL);
 			if ( GetOpenName() ) then
 				mov(eax,openfile_s);
 				buf.create( openfile_s );
@@ -983,7 +925,7 @@ program HED_MAIN;
 		pushabi;
 		dbg.put("<saveas>");
 		InitOF(	"Save File   : Default extension '.hla'   : End with '.' for no extension",
-				NULL, type_all);
+				NULL);
 		if ( GetSaveName() ) then
 			mov (eax, openfile_s);
 			str.cpy (openfile_s, s);
@@ -1038,7 +980,6 @@ program HED_MAIN;
 				
 				Recent_Insert( listebx.fullname );
 				UpdateMenu();
-				updateAction ([ebx]);
 				tabtool_update ([ebx]);
 			endif;
 			setupFind();
@@ -1129,13 +1070,6 @@ program HED_MAIN;
 				str.delete (taskstr, 0, 1);
 				str.trim (taskstr);
 				hed_openFile (taskstr);
-				
-			elseif (al = '>') then
-				
-				str.delete (taskstr, 0, 1);
-				str.trim (taskstr);
-				hide_openHex (taskstr);
-				
 				
 			else
 				
@@ -1858,7 +1792,6 @@ proc
 		menu_tbl	:dword;	@nostorage;
 			dword	IDM_FILE_NEW,		&Menu_NewFile;
 			dword	IDM_FILE_OPEN,		&Menu_OpenFile;
-			dword	IDM_FILE_OPENHEX,	&Menu_OpenAsHex;
 			dword	IDM_FILE_INSERT,	&Menu_InsertFile;
 			dword	IDM_FILE_SAVE,		&Menu_SaveFile;
 			dword	IDM_FILE_SAVEAS,	&Menu_SaveAs;
@@ -2094,10 +2027,6 @@ proc
 		if (eax = w.EN_SELCHANGE) then
 			mov (curnode, ebx);
 			if (! ebx) then
-				jmp xWndProc;
-			endif;
-			if (listebx.ftype = type_bin) then
-				updateDisplay (update_hexed);
 				jmp xWndProc;
 			endif;
 
@@ -2702,13 +2631,6 @@ proc
 			jmp _errorexit;
 		endif;
 		mov(eax,hradll);
-		
-		w.LoadLibrary (&RadHex);
-		if (! eax) then
-			error.fatal ("Data\RAHexEd.dll not found");
-			jmp _errorexit;
-		endif;
-		mov (eax,hexeddll);
 		
 		// register window classes
 		mov(@size(w.WNDCLASSEX),wc.cbSize);
