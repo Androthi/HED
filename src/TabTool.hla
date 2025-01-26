@@ -160,6 +160,7 @@ USE (ESI, ECX, EDI, EBX, EDX);
 	mov (ebx, core.tci.lParam);
 	dbg.put("inserting");
 	w.SendMessage(core.htab,w.TCM_INSERTITEM, 999, &core.tci);
+	dbg.put(".");
 	w.SendMessage(core.htab,w.TCM_SETCURSEL, eax,0);
 	mov (ebx, curnode);
 	call SetWindowCaption;

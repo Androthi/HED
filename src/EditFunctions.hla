@@ -253,7 +253,6 @@ begin RAEdit_openNew;
 				RAEdit_new ([ebx]);
 				updateAction([ebx]);
 				RAEdit_loadFile ([ebx], s);
-				dbg.put("post open here");
 			endif;
 		else
 			xor (ebx, ebx);
@@ -304,13 +303,7 @@ procedure RAEdit_open (fname:string);
 	// returns file node or NULL
 begin RAEdit_open;
 	if (! selectOpen (fname)) then
-		if (RAEdit_openNew (fname)) then
-			or( 1, eax);
-		else
-			xor (eax, eax);
-		endif;
-	else
-		xor (eax, eax);
+		RAEdit_openNew (fname);
 	endif;
 	dbg.put("/RAEdit_open");
 end RAEdit_open;

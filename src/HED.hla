@@ -44,7 +44,7 @@ program HED_MAIN;
 		IDM_HIDE_EXPANDALL		:= $0FFFD;
 
 		HED_DEFAULTINI		:="Data" + dirsep_c + "hed_default.ini";
-		HIDE_INI			:="Data" + dirsep_c + "HIDE.ini";
+		HED_INI_FILE			:="Data" + dirsep_c + "HED.ini";
 		raseledi	:text:= "(type RASELCHANGE [edi])";
 		rabecx		:text:= "(type RABLOCKDEF [ecx])";
 
@@ -611,6 +611,7 @@ program HED_MAIN;
 				mov (true, shiftdn);
 				
 			elseif( wparam = w.VK_ESCAPE ) then
+				dbg.put("close");
 				w.SendMessage(core.hwnd,w.WM_CLOSE,0,0);				
 			endif;
 		endif;
@@ -3407,7 +3408,7 @@ proc
 		filesys.extractPath( core.homepath, core.homepath );
 		dbg.put ("core.homepath = ", core.homepath);
 	
-		str.put (core.configmain, core.homepath, dirsep_c, HIDE_INI);	
+		str.put (core.configmain, core.homepath, dirsep_c, HED_INI_FILE);	
 		filesys.cd (core.homepath);		
 		hed_default_ini.create_file ( HED_DEFAULTINI );
 
