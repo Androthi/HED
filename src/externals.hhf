@@ -81,7 +81,7 @@ procedure PanelExplorer; @external;
 procedure PanelViewWin; @external;
 procedure PanelViewActive; @external;
 procedure PanelActivate; @external;
-procedure Panel_HideDocked; @external;
+procedure Panel_HideClosed; @external;
 procedure panel_setfrom; @external;
 
 // output
@@ -92,7 +92,6 @@ procedure WriteOutput ( _msg_:string);	@external;
 procedure CancelTimerCloseOutput; @external;
 
 procedure Proc_Explorer(lparam:dword; wparam:dword; umsg:uns32; hwin:dword);	@external;
-procedure Explorer_View (message:dword); @external;
 
 // make
 procedure MakeProc (command:dword; dparam:dword; wparam:dword);	@external;

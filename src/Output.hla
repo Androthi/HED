@@ -1,18 +1,12 @@
 unit OutputUnit;
 	
 	#includeonce ("HED.hhf")
-	#includeonce ("patterns.hhf")
-	#includeonce ("conv.hhf")
-	#includeonce	("memory.hhf")
-	#includeonce ("stdout.hhf")
 	
 	?@nodisplay :=true;
 	?@align:=4;
 
 
 storage
-	oldoutputedit	:dword;
-	oldhout			:dword;
 	htimer			:dword;
 
 procedure CloseOutputTimer(lparam:dword; wparam:dword; umsg:uns32; hwin:dword);
@@ -45,7 +39,6 @@ begin CancelTimerCloseOutput;
 end CancelTimerCloseOutput;
 
 procedure Output_View ( message:dword);
-	
 begin Output_View;
 	mov(message,eax);
 	
@@ -60,138 +53,14 @@ begin Output_View;
 		w.CheckMenuItem(core.hmenu,IDM_VIEW_OUTPUT,w.MF_BYCOMMAND |w.MF_CHECKED);
 		w.ShowWindow(core.hout,w.SW_SHOW);
 		or(OUTPUT,settings.winview);
-		//test(OUTPUT_D,settings.winview);
-		//if(@nz) then
-			w.ShowWindow(core.hVSplitBar,w.SW_SHOW);
-			or(VSPLIT,settings.winview);
-		//endif;
-
-//	elseif (eax = DOCK_YES) then
-//		w.GetWindowLong(core.hout,w.GWL_STYLE);
-//		and(!(w.WS_SIZEBOX),eax);
-//		w.SetWindowLong(core.hout,w.GWL_STYLE,eax);
-//		w.SetParent(core.hout,core.hwnd);
-//		mov(eax,oldhout);
-//		w.CheckMenuItem(core.hmenu,IDM_VIEW_OUT_DOCK,(w.MF_BYCOMMAND | w.MF_CHECKED));
-//		or(OUTPUT_D,settings.winview);
-//		test(OUTPUT,settings.winview);
-//		if(@nz) then
-//			Output_View(w.SW_SHOW);
-//		endif;
-//		
-		
+		w.ShowWindow(core.hVSplitBar,w.SW_SHOW);
+		or(VSPLIT,settings.winview);
 	endif;
 	
 	w.SendMessage(core.hwnd,w.WM_SIZE,0,0);
 	w.SetFocus (core.hwnd);
   
 end Output_View;
-
-procedure Proc_OutputEdit(lparam:dword; wparam:dword; umsg:uns32; hwin:dword);
-var
-	_chrg			:w.CHARRANGE;
-	_extFileName	:string;
-	_extLineNum		:string;
-	_linenum		:uns32;
-	_somestr		:string;
-endvar;
-
-begin Proc_OutputEdit;
-	pushabi;
-	mov(umsg,eax);
-	if(eax=w.WM_LBUTTONDBLCLK) then
-		dbg.put("click in outputwin");
-		
-		lea(eax,_chrg);
-		w.SendMessage(core.houtedt,w.EM_EXGETSEL,0,eax);
-		w.SendMessage(core.houtedt,w.EM_EXLINEFROMCHAR,0,_chrg.cpMin);
-		mov(&buffer,esi);
-		mov(@size(buffer),(type word [esi]));
-		
-		w.SendMessage(core.houtedt,w.EM_GETLINE,eax,&buffer);
-		str.a_cpyz(&buffer);
-		mov(eax,_somestr);
-		
-		// parse the line to find HLA errors, grab the file name,
-		// grab the line number and jump to that word, highlight the line.
-		
-		pat.match(_somestr);
-			pat.matchStr("Error in file ");
-			inc(esi);			// skip 1st '"'
-			pat.upToChar('"');	// find closing quote
-			pat.a_extract(_extFileName);
-			
-			// get line number
-			pat.matchToStr("at line ");
-			mov(esi,ebx);
-			pat.upToChar('[');
-			dec(esi);
-			pat.a_extract(_extLineNum);
-			dbg.put("file: ", _extFileName);
-			dbg.put("line: ", _extLineNum);
-			
-			// convert path from UNIX to MS-DOS style
-			USE (ESI);
-				mov (_extFileName, esi);
-				forever
-					mov ([esi], al);
-					breakif (! al);
-					if (al = '/' || al = '\') then
-						mov (dirsep_c, (type byte [esi]));
-					endif;
-					inc (esi);
-				endfor;
-				if (! selectOpen (_extFileName)) then
-					// is it a project file?
-					if  ( fileList.findFullname(_extFileName)) then
-						mov (eax, ebx);
-						if (! selectOpenMem ([ebx])) then
-							HED_openNode( [ebx] );
-						endif;
-
-					elseif (fileList.findID (_extFileName)) then
-						mov (eax, ebx);
-						if (! selectOpenMem ([ebx])) then
-							HED_openNode( [ebx] );
-						endif;
-						
-					else
-						
-						dbg.put ("not found in project, opening :", _extFileName);
-						if (! hed_openFile (_extFileName)) then
-							toOutput (nl nl"File not found :", _extFileName, nl nl);
-							jmp _skip;
-						endif;
-					endif;	
-				endif;
-				mov (curnode, ebx);
-				conv.strTou32(_extLineNum,0);
-				dec(eax);
-				mov(eax,_linenum);
-				
-				w.SendMessage(listebx.hwnd,w.EM_LINEINDEX,_linenum,0);
-				mov	(eax, _chrg.cpMin);
-				mov	(eax, _chrg.cpMax);
-				lea(eax,_chrg);
-				w.SendMessage(listebx.hwnd, w.EM_EXSETSEL,0,eax);
-				w.SendMessage(listebx.hwnd, w.EM_SCROLLCARET,0,0);
-				mov(&core.col,eax);
-				w.SendMessage(listebx.hwnd,REM_SETHILITELINE,_linenum,3);
-				_skip:
-			ENDUSE;
-
-			str.free(_extFileName);
-			str.free(_extLineNum);
-			pat.EOS();
-		pat.if_failure;
-			dbg.put("failure");
-		pat.endmatch;
-		str.free (_somestr);
-	
-	endif;
-	w.CallWindowProc(oldoutputedit,hwin,umsg,wparam,lparam);
-	popabi;
-end Proc_OutputEdit;
 
 procedure Proc_Output (lparam:dword; wparam:dword; umsg:uns32; hwin:dword);
 
@@ -200,8 +69,6 @@ procedure Proc_Output (lparam:dword; wparam:dword; umsg:uns32; hwin:dword);
 begin 	Proc_Output;
 	pushabi;
 		mov(umsg,eax);
-		cmp(eax,w.WM_MOVING);
-		je _changing;
 		cmp(eax,w.WM_SIZE);
 		je _size;
 		cmp(eax,w.WM_INITDIALOG);
@@ -214,13 +81,6 @@ begin 	Proc_Output;
 		je _activate;
 		jmp xProc_Output;
 		
-		
-	_changing:
-			cmp(oldhout,0);
-			je xProc_Output;
-			Output_View(DOCK_NO);
-			jmp xProc_Output;
-			
 	_size:
 			w.GetClientRect(hwin, &rect);
 			mov	(rect.bottom,eax);
@@ -244,18 +104,9 @@ begin 	Proc_Output;
 
 			w.SendMessage(core.houtedt,REM_SETFONT,0,&rafnt);
 			w.SendMessage(core.houtedt,REM_SETCOLOR,0,&core.col);
-	
-			w.SendMessage(core.houtedt,REM_SUBCLASS,0,&Proc_OutputEdit);
-			mov(eax,oldoutputedit);
 			w.ShowWindow(core.houtedt,w.SW_SHOWNA);		
 			
-			//w.GetWindowLong(core.hout,w.GWL_STYLE);
-			//and(!(w.WS_SIZEBOX),eax);
-			//w.SetWindowLong(core.hout,w.GWL_STYLE,eax);
 			w.SetParent(core.hout,core.hwnd);
-			mov(eax,oldhout);
-			//w.CheckMenuItem(core.hmenu,IDM_VIEW_OUT_DOCK,(w.MF_BYCOMMAND | w.MF_CHECKED));
-			//or(OUTPUT_D,settings.winview);
 			test(OUTPUT,settings.winview);
 			if(@nz) then
 				Output_View(w.SW_SHOW);

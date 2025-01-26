@@ -35,7 +35,7 @@ begin Proc_VSplit;
 	je _lbuttonup;
 	cmp(eax,w.WM_MOUSEMOVE);
 	je _mousemove;
-	// float defproc
+
 _defproc:
 	w.CallWindowProc(Proc_OldVSplit, hwin,umsg,wparam,lparam);
 	Exit Proc_VSplit;

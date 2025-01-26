@@ -1,4 +1,4 @@
-unit TabTool;  
+unit Panel;  
 
 #includeonce ("HED.hhf")
 #includeonce ("memory.hhf")
@@ -308,23 +308,14 @@ USE (EBX);
 ENDUSE;
 end tabtool_close;
 
-procedure Panel_HideDocked; @noframe;
-begin Panel_HideDocked;
-	dbg.put("Panel_HideDocked");	
+procedure Panel_HideClosed; @noframe;
+begin Panel_HideClosed;
 	mov (settings.panelactive, eax);
-	if (eax = core.htree) then
-		if (testnz (TREE_D, settings.winview)) then
-			w.ShowWindow (core.htree, w.SW_HIDE);
-		endif;
-	elseif (eax = core.hexplorer) then
-		if (testnz (EXPLORER_D, settings.winview)) then
-			w.ShowWindow (core.hexplorer, w.SW_HIDE);
-		endif;
-		
+	if (eax = core.hexplorer) then
+		w.ShowWindow (core.hexplorer, w.SW_HIDE);
 	endif;
-	dbg.put("/Panel_HideDocked");
 	ret();
-end Panel_HideDocked;
+end Panel_HideClosed;
 
 procedure PanelSetup (hwin:dword);
 begin PanelSetup;
@@ -352,7 +343,7 @@ procedure PanelFold; @noframe;
 begin PanelFold;
 	dbg.put ("PanelFold");	
 	mov (panel_closed, settings.panelwin);
-	Panel_HideDocked();
+	Panel_HideClosed();
 	w.ShowWindow (core.hHSplitBar, w.SW_HIDE);
 	w.SendMessage(core.hpaneltab, w.TCM_SETCURSEL, panel_closed, 0);	
 	w.CheckMenuItem (core.hmenu, IDM_VIEW_PANEL, w.MF_BYCOMMAND | w.MF_UNCHECKED);
@@ -414,9 +405,8 @@ end panel_setfrom;
 
 procedure PanelExplorer; @noframe;
 begin PanelExplorer;
-	Explorer_View ( DOCK_YES);
 	mov (panel_explorer, settings.panelwin);
-	Panel_HideDocked();
+	Panel_HideClosed();
 	move (core.hexplorer, settings.panelactive);
 	w.ShowWindow (core.hexplorer, w.SW_SHOW);
 	w.ShowWindow (core.hHSplitBar, w.SW_SHOW);
@@ -460,4 +450,4 @@ begin PanelViewActive;
 	ret();
 end PanelViewActive;
 
-end TabTool;
+end Panel;

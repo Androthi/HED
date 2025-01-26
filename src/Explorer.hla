@@ -10,7 +10,6 @@ unit explorer;
 storage	// internal variables
 	align(4);
 	selType			:dword;
-	oldhtree		:dword;
 	selMem			:pointer to fList.fnode;
 
 	tvins	:w.TV_INSERTSTRUCT;
@@ -18,44 +17,7 @@ storage	// internal variables
 	tvi		:w.TV_ITEM;
 	pt		:hide.point_t;
 	treebuffer	:byte[w.MAX_PATH];
-	align(4);	
-
-procedure Explorer_View (message:dword);
-	
-begin Explorer_View;
-
-	mov(message,eax);		
-	if (eax = DOCK_YES) then
-		w.GetWindowLong(core.hexplorer,w.GWL_STYLE);
-		and(!(w.WS_SIZEBOX),eax);
-		w.SetWindowLong(core.hexplorer,w.GWL_STYLE,eax);
-		w.SetParent(core.hexplorer,core.hwnd);
-		mov(eax,oldhtree);
-		or(EXPLORER_D,settings.winview);
-		
-	elseif (eax = DOCK_NO) then
-
-		mov (settings.panelactive, eax);
-		if (eax = core.hexplorer) then
-			PanelFold();
-		endif;
-
-		w.SetParent(core.hexplorer,NULL);
-		mov(0,oldhtree);
-		w.GetWindowLong(core.hexplorer,w.GWL_STYLE);
-		or(w.WS_SIZEBOX,eax);
-		w.SetWindowLong(core.hexplorer,w.GWL_STYLE,eax);
-		w.ShowWindow (core.hexplorer, w.SW_SHOW);
-		and(!(EXPLORER_D),settings.winview);
-	
-	elseif (eax = w.SW_HIDE) then
-		w.ShowWindow (core.hexplorer, w.SW_HIDE);	
-    endif;
-    
-    w.SendMessage(core.hwnd,w.WM_SIZE,0,0);
-    w.SetFocus (core.hwnd);
-    
-end Explorer_View;
+	align(4);
 
 procedure Explorer_AddNode(hparent:dword; item:string); @returns("EAX");
 begin Explorer_AddNode;
@@ -122,8 +84,6 @@ begin	Proc_Explorer;
 	je _command;
 	cmp(eax,w.WM_SIZE);
 	je _size;
-	cmp(eax,w.WM_MOVING);
-	je _changing;
 	cmp(eax,w.WM_CLOSE);
 	je _close;
 	cmp(eax,w.WM_MOUSEACTIVATE);
@@ -133,12 +93,6 @@ begin	Proc_Explorer;
 	cmp(eax,w.WM_DESTROY);
 	je _destroy;
 	jmp xProc_Explorer;
-		
-	_changing:
-			cmp(oldhtree,0);
-			je xProc_Explorer;
-			Explorer_View(DOCK_NO);
-			jmp xProc_Explorer;
 		
 	_command:	
 			mov(wparam,eax);
@@ -206,10 +160,11 @@ begin	Proc_Explorer;
 				move( &treebuffer ,tvi.pszText);
 				mov(@size(treebuffer),tvi.cchTextMax);
 				
-				w.SendMessage(core.h_explorer_tree,w.TVM_SELECTITEM,w.TVGN_CARET,tvi.hItem);
-				w.SendMessage(core.h_explorer_tree,w.TVM_GETITEM,0,&tvi);
+				w.SendMessage(core.hexplorertree,w.TVM_SELECTITEM,w.TVGN_CARET,tvi.hItem);
+				w.SendMessage(core.hexplorertree,w.TVM_GETITEM,0,&tvi);
 				
 				str.cpyz (&treebuffer, sbuffer);
+				dbg.put("opening :", sbuffer);
 				hed_openFile (sbuffer);
 
 			_exitrightclick:
@@ -219,29 +174,19 @@ begin	Proc_Explorer;
 		w.GetClientRect(hwin, &rect);
 		mov	(rect.bottom,eax);
 		sub	(rect.top,eax);
-		// eax = height
 		w.MoveWindow(core.hexplorertree,0,rect.top,rect.right,eax,true);
 		call _savepos;
 		w.InvalidateRect(core.hexplorertree,NULL,true);
 		jmp xProc_Explorer;
 
-	_init:	
+	_init:
 		pushabi;
 		mov (hwin, eax);
 		mov (eax, core.hexplorer);
-//		w.ImageList_Create(16,16,w.ILC_COLOR8,TREEICONS,TREEICONS);
-//		mov(eax,himl);
-//		w.LoadBitmap(core.hinst,val IDB_TRVMAP);
-//		mov(eax,hbmp);
-//		w.ImageList_Add(himl,hbmp,NULL);
-//		w.DeleteObject(hbmp);
+		w.SetParent(core.hexplorer,core.hwnd);
 		w.GetDlgItem(hwin,ID_EXPLORER_TREE);
 		mov(eax,core.hexplorertree);
-//		w.SendMessage(core.h_explorer_tree,w.TVM_SETIMAGELIST,0,himl);
-		if (testnz (EXPLORER_D, settings.winview)) then
-			Explorer_View (DOCK_YES);
-		endif;
-		w.MoveWindow(hwin,settings.explorerwin.x,settings.explorerwin.y,settings.explorerwin.wt,settings.explorerwin.ht,true);
+		Explorer_ReadFiles(core.hexplorertree);
 		popabi;
 		jmp xProc_Explorer;
 
@@ -255,12 +200,7 @@ begin	Proc_Explorer;
 		
 	_close:	
 		call _savepos;
-		Explorer_View( w.SW_HIDE);
-		if (testnz (EXPLORER_D, settings.winview)) then
-			PanelFold();
-		    w.SendMessage(core.hwnd,w.WM_SIZE,0,0);
-		endif;
-		or (EXPLORER_D, settings.winview);	// force docking
+		
 		
 xProc_Explorer:
 		xor(EAX,EAX);
@@ -279,11 +219,7 @@ _GetItem:
 		ret();
 
 _savepos:
-		w.GetWindowLong(hwin,w.GWL_STYLE);
-		test(w.WS_MAXIMIZE,eax);
-		jnz _setmax;
-		test(w.WS_MINIMIZE,eax);
-		jnz _retsavepos;
+
 		mov(false,settings.explorerwin.fmax);
 		w.GetWindowRect(hwin,&rect);
 		mov(rect.left,settings.explorerwin.x);
@@ -296,8 +232,6 @@ _savepos:
 		mov(eax,settings.explorerwin.ht);
 		ret();
 	
-_setmax:	
-		mov(true,settings.explorerwin.fmax);
 _retsavepos:
 	ret();
 

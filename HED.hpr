@@ -20,7 +20,7 @@ Docs
 console=false
 output=%h\..\HED_WORK\hed.exe
 type=modular
-main=HED.hla
+main=src\Panel.hla
 debug=true
 
 [HED.link]
@@ -39,7 +39,6 @@ HED.hla,src,hlaprogram
 HED.hhf,src,include
 raedit.hhf,src,include
 EditFunctions.hla,src,hlaunit
-TabTool.hla,src,hlaunit
 Output.hla,src,hlaunit
 make.hla,src,hlaunit
 Keywords.hla,src,hlaunit
@@ -56,6 +55,7 @@ data.hla,src,hlaunit
 filelist.hla,src,hlaunit
 README.md,,misc
 Explorer.hla,src,hlaunit
+Panel.hla,src,hlaunit
 
 [HPR Jobs]
 HED

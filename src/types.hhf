@@ -95,7 +95,6 @@ type
 			hmainfont		:dword;
 			hitalic			:dword;		
 			hdialogfont		:dword;
-			h_explorer_tree	:dword;
 			htree			:dword;
 			hexplorer		:dword;
 			hexplorertree	:dword;
@@ -240,3 +239,4 @@ type
 			htlt		:dword;		//Scroll tooltip
 		endrecord;
 
+	BOOL		:dword;

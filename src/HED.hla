@@ -2238,12 +2238,7 @@ proc
 		// check for output
 		test(OUTPUT,settings.winview);
 		jz _outputok;
-		test(OUTPUT_D,settings.winview);
-		jz _outputok;
 		
-		// output is docked, get position
-		// we have current client space in mainrect to workwith
-		// first, get output height and keep it constant
 		mov (lparam, eax);
 		or (eax, eax);
 		jz _updateoutput;

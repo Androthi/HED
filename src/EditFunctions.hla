@@ -6,10 +6,6 @@ unit EditFunctions;
 ?@nodisplay:=true;
 ?@align:=4;
 
-type
-
-	BOOL		:dword;
-
 readonly
 
 	align(4);

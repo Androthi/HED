@@ -109,13 +109,6 @@ const
 	// used for side panel	
 	panel_closed	:=0;
 	panel_explorer	:=1;
-		
-	enum0
-	(	// docking window messages
-		DOCK_TEST,	// phased out, but must remain at this position
-		DOCK_YES,
-		DOCK_NO
-	);
 
 	// Private messages
 	HED_BASE			:=w.WM_USER+2000;

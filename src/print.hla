@@ -18,7 +18,6 @@ type
 
 const
 	MAX_STR			:= 1024;
-//	PrinterTabWidth	:= 8;
 
 static
 	ppos		:PrnPos_t := PrnPos_t:[ w.RECT:[1000,1000,1000,1000], w.POINT:[21000,29700]];
