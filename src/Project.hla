@@ -12,8 +12,6 @@ Unit Project_unit;
 
 const	// local	
 
-	PROJ_VERSION	:= 10;		// current .hpr version, used for compatibility checks between updates
-	PROJ_NEWVERSION := 20;		//+ migrating to new project format
 	delims			:cset := {',',#0};
 
 	state_deselectall	:= 0;
@@ -21,8 +19,7 @@ const	// local
 	state_deselectfile	:= 2;
 	state_selectfile	:= 3;
 	state_selectlibrary	:= 4;
-	state_selecttarget	:= 5;
-	state_selectprogram	:= 6;
+	state_selectprogram	:= 5;
 	
 	storage
 	
@@ -76,11 +73,7 @@ readonly
 	jobTypes	:zstring[] := 
 	[
 		"HLA Program",
-		"kMake Script",
-		"DLL",
 		"Library",
-		"Misc",
-		"Odin Package",
 	];
 		
 	fileTypes	:zstring[] :=
@@ -88,14 +81,7 @@ readonly
 		"HLA Main",			// 0
 		"HLA Unit",			// 1
 		"HLA Header",		// 2
-		"Resource",			// 3
-		"kHelp Doc",		// 4
-		"DLL Definition",	// 5
 		"Binary",			// 6
-		"Misc.",			// 7
-		"kMake Script",		// 8
-		"Odin Source",		// 9
-		"Go Source",		// 10
 	];
 	
 	
@@ -107,44 +93,19 @@ type
 		hla_main,
 		hla_unit,
 		hla_header,
-		resource,
-		khelp_doc,
-		dll_def,
-		binary,
-		misc_file,
-		kmake_script,
-		odin_source,
-		go_source
+		binary
 	};
 	
 readonly
-	programTypes	:dword[7] := [ hla_main, hla_unit, hla_header, resource, khelp_doc, binary, misc_file ];
-	kmakeTypes		:dword[1] := [ kmake_script ];
-	dllTypes		:dword[8] := [ hla_main, hla_unit, hla_header, resource, khelp_doc, dll_def, binary, misc_file ];
-	libraryTypes	:dword[5] := [ hla_unit, hla_header, khelp_doc, binary, misc_file ];
-	miscTypes		:dword[3] := [ khelp_doc, misc_file, kmake_script ];
-
+	programTypes	:dword[] := [ hla_main, hla_unit, hla_header, binary ];
+	libraryTypes	:dword[] := [ hla_unit, hla_header, binary ];
 	actionStrings	:string[] :=
 	[
 		"hlaprogram",
 		"hlaunit",
 		"include",
-		"resource",
-		"khelp",
-		"misc",
 		"binary",
-		"misc",
-		"kmake",
-		"odin",
-		"go",
-	];
 
-	hlaLevels	:zstring[4] :=
-	[
-		"High",
-		"Medium",
-		"Low",
-		"Machine"
 	];
 	
 	align(4);
@@ -197,13 +158,11 @@ begin new_custom;
 	project.close();	// close existing project, if any
 	
 	str.put (sbuffer, core.projectpath, dirsep_c, pname);
-	dbg.put ("New project at: ", sbuffer);
 	try
 		filesys.mkdir( sbuffer );
 		filesys.cd ( sbuffer );
 		hpr.create();
 		str.put2 (pname, ".hpr");
-		iniesi.writeUns ("HPR Settings", "Project Version", PROJ_NEWVERSION);
 		iniesi.writeHex ("HPR Settings", "options", project.options);
 		movzx (project.tab, eax);
 		iniesi.writeUns ("HPR Settings", "tab", eax);
@@ -242,21 +201,16 @@ USE (ESI, EDI, EBX);
 	project.close();	// close existing project, if any
 	
 	str.put (sbuffer, core.projectpath, dirsep_c, pname);
-	dbg.put ("New project at: ", sbuffer);
 	try
 		filesys.mkdir( sbuffer );
 		filesys.cd ( sbuffer );
 		hpr.create();
 		str.put2 (pname, ".hpr");
-		iniesi.writeUns ("HPR Settings", "Project Version", PROJ_VERSION);
 		iniesi.writeHex ("HPR Settings", "options", project.options);
 		movzx (project.tab, eax);
 		iniesi.writeUns ("HPR Settings", "tab", eax);
 		movzx (project.backups, eax);
 		iniesi.writeUns ("HPR Settings", "backups", eax);
-		iniesi.writeBool ("HPR Settings", "usetemp", false);
-		iniesi.writeBool ("HPR Settings", "useunits", false);
-		iniesi.writeBool ("HPR Settings", "useback", false);
 		iniesi.write (pname);
 		iniesi.destroy();
 		
@@ -416,88 +370,6 @@ USE (EAX, ESI, EDI);
 ENDUSE;
 end addUnit;
 
-
-procedure project.addResource (folder:string; fname:string; import:boolean);
-	var
-		hasfolder	:BOOL;
-		buf			:tBuffer;
-		sbuffer		:string;
-		
-begin addResource;
-	mov( str.talloc(1000), sbuffer );
-USE (EAX, ESI, EDI);
-	mov (false, hasfolder);
-	addFile (folder, fname, ".rc");
-	mov (eax, hasfolder);
-
-	str.put2 (inwork, infile);
-	if (import) then
-		buf.create_file (fname);
-		buf.toFile (inwork);
-		buf.destroy();
-	else
-		fileio.openNew (inwork);
-		fileio.close (eax);
-	endif;
-	
-	project.addFileNode (inwork, "resource");
-	if (eax) then
-		move (curjob, listeax.job);
-	
-		mov (&project.hpr, esi);
-		str.put (inwork, infile, ',');
-		if (hasfolder) then
-			str.put2 (inwork, infolder);
-		endif;
-		
-		str.put2 (inwork, ",resource");
-		mov (curjob, eax);
-		str.put (sbuffer, jobeax.id, ".files");
-		iniesi.writeItem (sbuffer, -1, inwork);
-	endif;
-ENDUSE;
-end addResource;
-
-
-procedure project.addKhelp (folder:string; fname:string; import:boolean);
-	var
-		hasfolder	:BOOL;
-		buf			:tBuffer;
-		sbuffer		:string;
-		
-begin addKhelp;
-	mov( str.talloc(1000), sbuffer );
-USE (EAX, ESI, EDI);
-	mov (false, hasfolder);
-	addFile (folder, fname, ".khelp");
-	mov (eax, hasfolder);
-	
-	str.put2 (inwork, infile);
-	if (import) then
-		buf.create_file (fname);
-		buf.toFile (inwork);
-		buf.destroy();
-	else
-		fileio.openNew (inwork);
-		fileio.close (eax);
-	endif;
-	
-	project.addFileNode (inwork, "khelp");
-	if (eax) then
-		move (curjob, listeax.job);
-		mov (&project.hpr, esi);
-		str.put (inwork, infile, ',');
-		if (hasfolder) then
-			str.put2 (inwork, infolder);
-		endif;
-		str.put2 (inwork, ',', "khelp");
-		mov (curjob, eax);
-		str.put (sbuffer, jobeax.id, ".files");
-		iniesi.writeItem (sbuffer, -1, inwork);
-	endif;
-ENDUSE;
-end addKhelp;
-
 procedure project.addBinary(folder:string; fname:string; import:boolean);
 	var
 		hasfolder	:BOOL;
@@ -537,136 +409,6 @@ USE (EAX, ESI, EDI);
 ENDUSE;
 
 end addBinary;
-
-
-procedure project.addMisc (folder:string; fname:string; import:boolean);
-	var
-		hasfolder	:BOOL;
-		buf			:tBuffer;
-		sbuffer		:string;
-		
-begin addMisc;
-	mov( str.talloc(1000), sbuffer );
-USE (EAX, ESI, EDI);
-	mov (false, hasfolder);
-	addFile (folder, fname, "");
-	mov (eax, hasfolder);
-	
-	str.put2 (inwork, infile);
-	if (import) then
-		buf.create_file (fname);
-		buf.toFile (inwork);
-		buf.destroy();
-	else
-		fileio.openNew (inwork);
-		fileio.close (eax);
-	endif;
-	
-	project.addFileNode (inwork, "misc");
-	if (eax) then
-		move (curjob, listeax.job);
-		mov (&project.hpr, esi);
-		str.put (inwork, infile, ',');
-		if (hasfolder) then
-			str.put2 (inwork, infolder);
-		endif;
-		str.put2 (inwork, ',', "misc");
-		mov (curjob, eax);
-		str.put (sbuffer, jobeax.id, ".files");
-		iniesi.writeItem (sbuffer, -1, inwork);
-	endif;	
-ENDUSE;
-end addMisc;
-
-procedure project.addKmake (folder:string; fname:string; import:boolean);
-	var
-		hasfolder	:BOOL;
-		buf			:tBuffer;
-		sbuffer		:string;
-
-begin addKmake;
-	mov( str.talloc(1000), sbuffer );
-USE (EAX, ESI, EDI);
-	mov (false, hasfolder);
-	addFile (folder, fname, ".kmk");
-	mov (eax, hasfolder);
-		
-	str.put2 (inwork, infile);
-	
-	if (import) then
-		buf.create_file (fname);
-		buf.toFile (inwork);
-		buf.destroy();
-	else
-		fileio.openNew (inwork);
-		fileio.close (eax);
-	endif;
-	
-	project.addFileNode (inwork, "kmake");
-	if (eax) then
-		mov (curjob, ebx);
-		mov (ebx, listeax.job);
-		mov (&project.hpr, esi);
-		iniesi.writeString (jobebx.id, "target", inwork);
-		
-		
-		mov (&project.hpr, esi);
-		str.put (inwork, infile, ',');
-		if (hasfolder) then
-			str.put2 (inwork, infolder);
-		endif;
-		str.put2 (inwork, ',', "kmake");
-	
-		str.put (sbuffer, jobebx.id, ".files");
-		iniesi.writeItem (sbuffer, -1, inwork);
-	endif;
-ENDUSE;
-end addKmake;
-
-
-procedure project.addDef (folder:string; fname:string; import:boolean);
-	var
-		hasfolder	:BOOL;
-		buf			:tBuffer;
-		sbuffer		:string;
-		
-begin addDef;
-	mov( str.talloc(1000), sbuffer );
-USE (EAX, ESI, EDI);
-	mov (false, hasfolder);
-	addFile (folder, fname, ".def");
-	mov (eax, hasfolder);
-	
-	str.put2 (inwork, infile);
-	if (import) then
-		buf.create_file (fname);
-		buf.toFile (inwork);
-		buf.destroy();
-	else
-		fileio.openNew (inwork);
-		fileio.close (eax);
-	endif;
-	
-	project.addFileNode (inwork, "def");
-	if (eax) then
-		move (curjob, listeax.job);
-		mov (&project.hpr, esi);
-		str.put (inwork, infile, ',');
-		if (hasfolder) then
-			str.put2 (inwork, infolder);
-		endif;
-		str.put2 (inwork, ',', "def");
-		mov (curjob, eax);
-		str.put (sbuffer, jobeax.id, ".files");
-		iniesi.writeItem (sbuffer, -1, inwork);	
-		
-		// add this definition file to the linker response.
-		mov (curjob, ebx);
-		iniesi.writeItem (sbuffer, -1, workpath);
-		iniesi.writeString (jobebx.id, "def", infile);
-	endif;
-ENDUSE;
-end addDef;
 
 procedure project.addInc (folder:string; fname:string; import:boolean);
 	var
@@ -778,15 +520,7 @@ begin open;
 		mov (&project.hpr, esi);
 		iniesi.create_file (project.id);
 		
-		// check version
-		iniesi.readInt ("HPR Settings", "Project Version");
-		if ( eax < PROJ_VERSION) then
-			error.warning( "Older project versions not supported.");
-			str.free( project.id );
-			jmp exitopen;
-		elseif ( eax >= PROJ_NEWVERSION ) then
-			mov (true, core.new_format);
-		endif;
+	
 	else
 		
 		str.put (sbuffer, "Project file not found :", project.id, nl,
@@ -1189,11 +923,6 @@ begin deleteFile;
 	
 	mov (listebx.ftype, eax);
 	switch (eax);
-	case (type_misc)
-		str.put2 (sbuffer, "misc");
-		
-	case (type_khelp)
-		str.put2 (sbuffer,"khelp");
 	
 	case (type_hla)
 		str.put2 (sbuffer, "hlaprogram");
@@ -1201,24 +930,9 @@ begin deleteFile;
 		
 	case (type_unit)
 		str.put2 (sbuffer, "hlaunit");
-		
-	case (type_rc)
-		str.put2 (sbuffer, "resource");
-		
+
 	case (type_hhf)
 		str.put2 (sbuffer, "include");
-		
-	case (type_def)
-		mov (listebx.job, eax);
-		mov (&project.hpr, esi);
-		iniesi.deleteKey (jobeax.id, "def");
-		str.put2 (sbuffer, "def");
-	
-	case (type_kmake)
-		mov (listebx.job, eax);
-		mov (&project.hpr, esi);
-		iniesi.deleteKey (jobeax.id, "target");
-		str.put2 (sbuffer, "kmake");
 	
 	endswitch;
 
@@ -1316,11 +1030,7 @@ begin manager_updateDisplay;
 		w.GetDlgItem( hmanager, IDC_MANAGERJOBS_REMOVEFILE );
 		w.EnableWindow( eax, true );
 
-	case( state_selecttarget )
 
-		xor( ebx, ebx );
-		all( ebx );
-	
 	case( state_selectprogram )
 
 		or( 1, ebx );
@@ -1506,47 +1216,6 @@ proc
 
 	end job_addprogram;
 	
-	job_addodinpackage :procedure( src:string );
-		var
-			sbuffer	:string;
-			
-	begin job_addodinpackage;
-		mov( str.talloc(1000), sbuffer );
-		job_add( src );
-		mov( jobtype_odin, jobebx.job_type );
-				// create job section
-		mov( &project.hpr, esi );
-		str.put( sbuffer, infile, exe_c );
-		iniesi.writeString( infile, "output", sbuffer );
-		iniesi.writeString (infile, "type", "odin" );
-
-	end job_addodinpackage;
-
-	
-	job_addtarget :procedure( src:string );
-	begin job_addtarget;
-
-		str.cpy (src, infile);
-		if ( filesys.hasExtension( infile ) ) then
-			filesys.deleteExt( infile, infile );
-		endif;
-		mov (&project.hpr, esi);
-		if (holdjobmode) then
-			iniesi.writeItem ("Held Jobs", -1, infile);
-		else
-			iniesi.writeItem ("HPR Jobs", -1, infile);
-		endif;
-		dbg.put ("appending job: ", infile);
-		jobList.appendJob (infile);
-		if (! holdjobmode) then
-			mov (true, jobeax.inQueue);
-		endif;
-		mov (jobtype_target, jobeax.job_type);
-		mov (eax, ebx);
-		mov (&project.hpr, esi);
-		iniesi.writeString (jobebx.id, "type", "target");
-		
-	end job_addtarget;
 	
 	job_addlibrary :procedure( src:string ); 
 	
@@ -1581,29 +1250,6 @@ proc
 		iniesi.writeString (infile, "output", sbuffer);
 
 	end job_addlibrary;
-	
-	
-	job_addmisc :procedure( src:string );
-	begin job_addmisc;
-
-		str.cpy (src, infile);
-		mov (&project.hpr, esi);
-		if (holdjobmode) then
-			iniesi.writeItem ("Held Jobs", -1, infile);
-		else
-			iniesi.writeItem ("HPR Jobs", -1, infile);
-		endif;
-		dbg.put ("appending job: ", infile);
-		jobList.appendJob (infile);
-		if (! holdjobmode) then
-			mov (true, jobeax.inQueue);
-		endif;
-		mov (jobtype_misc, jobeax.job_type);
-		mov (eax, ebx);
-		mov (&project.hpr, esi);
-		iniesi.writeString (jobebx.id, "type", "miscjob");
-		
-	end job_addmisc;
 	
 	project_rename :procedure( var fnode:dword; folder:string; filename:string );
 		var
@@ -1700,11 +1346,7 @@ proc
 		mov( eax, listebx.relative );
 		
 		
-		if( jobecx.job_type = jobtype_target ) then
-			
-			iniesi.writeString( jobecx.id, "target", listebx.relative );
-			
-		elseif( jobecx.job_type = jobtype_hlaprogram ) then
+		if( jobecx.job_type = jobtype_hlaprogram ) then
 			
 			// change the main file
 			iniesi.writeString( jobecx.id, "main", listebx.relative );
@@ -1800,30 +1442,11 @@ proc
 					
 						project.addInc( workpath, sbuffer, al );
 						
-					case( type_rc )
-					
-						project.addResource( workpath, sbuffer, al );
-						
-					case( type_khelp )
-					
-						project.addKhelp( workpath, sbuffer, al );
-						
-					case( type_def )
-					
-						project.addDef( workpath, sbuffer, al );
-						
 					case( type_bin )
 					
 						project.addBinary( workpath, sbuffer, al );
 						
-					case( type_misc )
-					
-						project.addMisc( workpath, sbuffer, al );
-						
-					case( type_kmake )
-					
-						project.addKmake( workpath, sbuffer, al );
-			
+
 					endswitch;
 					
 					w.SendMessage( hwin, w.WM_CLOSE, true, 0 );
@@ -1908,19 +1531,7 @@ proc
 					inc( ebx );
 				endwhile;
 					
-				
-			case( jobtype_target )
 			
-				for( xor( ebx, ebx ); ebx < @elements( kmakeTypes ); inc( ebx ) )do
-
-					mov( kmakeTypes[ebx*4], esi );
-					mov( fileTypes[esi*4], eax );
-					
-					w.SendDlgItemMessage( hwin, IDC_NEWFILE_TYPE, w.CB_ADDSTRING, 0, eax );
-					w.SendDlgItemMessage( hwin, IDC_NEWFILE_TYPE, w.CB_SETITEMDATA, eax, esi );
-
-				endfor; 
-
 			case( jobtype_library )
 				
 				for( xor( ebx, ebx ); ebx < @elements( libraryTypes ); inc( ebx ) )do
@@ -1929,18 +1540,6 @@ proc
 					mov( libraryTypes[ebx*4], esi );
 					mov( fileTypes[esi*4], eax );
 				
-					w.SendDlgItemMessage( hwin, IDC_NEWFILE_TYPE, w.CB_ADDSTRING, 0, eax );
-					w.SendDlgItemMessage( hwin, IDC_NEWFILE_TYPE, w.CB_SETITEMDATA, eax, esi );
-
-				endfor; 
-	
-			case( jobtype_misc )
-			
-				for( xor( ebx, ebx ); ebx < @elements( miscTypes ); inc( ebx ) )do
-
-					mov( miscTypes[ebx*4], esi );
-					mov( fileTypes[esi*4], eax );
-					
 					w.SendDlgItemMessage( hwin, IDC_NEWFILE_TYPE, w.CB_ADDSTRING, 0, eax );
 					w.SendDlgItemMessage( hwin, IDC_NEWFILE_TYPE, w.CB_SETITEMDATA, eax, esi );
 
@@ -2097,21 +1696,9 @@ proc
 						
 						job_addprogram( sbuffer );
 						
-					case( jobtype_target )
-					
-						job_addtarget( sbuffer );
-					
 					case( jobtype_library )
 					
 						job_addlibrary( sbuffer );
-					
-					case( jobtype_misc )
-					
-						job_addmisc( sbuffer );
-						
-					case( jobtype_odin )
-					
-						job_addodinpackage( sbuffer );
 			
 					endswitch;
 					
@@ -2431,9 +2018,6 @@ proc
 							
 							pushd( state_selectlibrary );
 							
-						elseif( eax = jobtype_target || eax = jobtype_misc ) then
-							
-							pushd( state_selecttarget );
 							
 						else
 							

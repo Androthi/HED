@@ -867,55 +867,7 @@ USE (EBX, ESI, EDX);
 			xor (eax, eax);
 		endif;
 	
-	case (type_rc)
-		//dbg.put ("resource file");
-		
-		build_outfile();
-		filesys.deleteExt( outfile, outfile );
-		str.put2 (outfile, ".res");
-
-		if (force = mforce_c) then
-			mov (true, build);
-			
-		else
-
-			// see if we need a build
-			if (filesys.exists (outfile)) then
-			
-				// check dependencies
-				// 1st check default dependency
-				if (! checkFileTimes (outfile, listebx.relative)) then
-					
-					mov (false, build);
-				else
-					mov (true, build);
-				endif;
-			else
-				mov (true, build);
-			endif;
-		endif;
-		
-		xor (eax, eax);
-		if (build) then
-			toOutput ('-', listebx.relative, nl)
-			str.put (tmpStr, "porc -x -Fo""", outfile, """ """, listebx.relative, '"');
-			if( testbuild ) then
-				toOutput( tmpStr, nl );
-				 mov( false, eax );
-			else
-				pipeExec (tmpStr);
-			endif;
-			
-		endif;
-		
-		if (! eax) then
-			//dbg.put ("linkobjs += ", outfile);
-			linkobjs.append (outfile, nl);
-			xor (eax, eax);
-		endif;
-
-	
-	case (type_misc, type_def, type_hhf, type_khelp, type_bin)
+	case ( type_hhf, type_bin)
 		//dbg.put ("no action source");
 		xor (eax, eax);
 		
@@ -979,62 +931,7 @@ begin build_job;
 			endif;
 		endif;
 	
-	case ( jobtype_target )
-		// load the script file into a string, run it through
-		// expandPathMacs, save as temp file, exec kmake on temp
-		// file, delete temp file.
-		//dbg.put ("jobtype = target");
-		
-		mov (&project.hpr, esi);
-		
-		if (iniesi._readString (jobebx.id, "target", stringbuffer)) then
-			try
-				buf.create (stringbuffer);
-				buf.toString();
-				mov (eax, str0);
-				mov ( (type str.strRec[eax]).length, eax);
-				shl (2, eax);
-				str.alloc (eax);
-				mov (eax, str1);
-				
-				filesys.extractFilename( stringbuffer, stringbuffer );
-				str.put (s0, "temp_", stringbuffer );	// dest filename
-				
-				buf.erase();
-				expandPathMacs (str0, str1);
-				buf.inserts (str1);
-				str.free (str0);
-				str.free (str1);
-				buf.toFile (s0);
-				str.put (workpath, "kmake """, s0, '"');
-	
-				dbg.put ("target :", workpath);
-				if( testbuild ) then
-					toOutput( workpath, nl );
-					mov( false, eax );
-				else
-					pipeExec (workpath);
-				endif;			
-				
-				
-				filesys.delete (s0);
-				buf.destroy();
 
-			anyexception
-				
-				error.fileopenfailure (stringbuffer);
-			
-			endtry;
-			
-				
-		else
-			toOutput ("Selected target is missing a script, add one using Project Manager" nl);
-		endif;
-	
-	case ( jobtype_misc )
-		toOutput ("  Nothing to build" nl);
-		xor (eax, eax);
-		
 	default
 		error.warning ("Unknown job task in project build!");
 	endswitch;

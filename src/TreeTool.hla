@@ -14,7 +14,6 @@ type
 			sources		:dword;
 			resources	:dword;
 			extlink		:dword;
-			misc		:dword;
 			orphans		:dword;
 		endrecord;
 	
@@ -134,53 +133,25 @@ procedure TreeToolSetup;
 		///dbg.put ("projectview_readjob");
 		mem2.fillMem (&handles, @size(handles), 0);
 		mov (node, ebx);		
-		if (jobebx.job_type = jobtype_target) then
-			mov (&project.hpr, esi);
-			if (iniesi._readString (jobebx.id, "target", stringbuffer)) then
-				fileList.findJobRelative ([ebx], stringbuffer);
-			else
-				mov (NULL, eax);
-			endif;
-			
-			if (jobebx.inQueue) then
-				TrvAddNode (0, jobebx.id, [eax], IMG_TARGET);
-			else
-				TrvAddNode (0, jobebx.id, [eax], IMG_NOTARGET);
-			endif;
-			mov (eax, jobebx.treenode);
-			jmp done;	// no other things for targets
-			
-			
+	
+		if (jobebx.inQueue) then
+			mov (IMG_HAMMER, eax);
 		else
-			if (jobebx.inQueue) then
-				mov (IMG_HAMMER, eax);
-			else
-				mov (IMG_NOHAMMER, eax);
-			endif;
-			TrvAddNode (0, jobebx.id, [ebx], eax);
-			mov (eax, jobebx.treenode);
+			mov (IMG_NOHAMMER, eax);
 		endif;
+		TrvAddNode (0, jobebx.id, [ebx], eax);
+		mov (eax, jobebx.treenode);
+
 		mov (eax, handles.base);
 		
-		if (jobebx.job_type = jobtype_misc) then
-	
-			TrvAddNode (handles.base, "Includes", NULL, IMG_FOLDER);
-			mov (eax, handles.includes);
-			TrvAddNode (handles.base, "Files", NULL, IMG_FOLDER);
-			mov (eax, handles.files);
-			
-		else
 			
 			TrvAddNode (handles.base, "Sources", NULL, IMG_FOLDER);
 			mov (eax, handles.sources);
 			TrvAddNode (handles.base, "Includes", NULL, IMG_FOLDER);
 			mov (eax, handles.includes);
-			TrvAddNode (handles.base, "Resources", NULL, IMG_FOLDER);
-			mov (eax, handles.resources);
 			TrvAddNode (handles.base, "Files", NULL, IMG_FOLDER);
 			mov (eax, handles.files);
-		endif;
-		
+
 
 		fileList.getHead();
 		mov (eax, esi);
@@ -198,9 +169,6 @@ procedure TreeToolSetup;
 					
 				case (type_hhf)
 					TrvAddNode (handles.includes, listesi.id, [esi], IMG_FILE);
-
-				case (type_rc)
-					TrvAddNode (handles.resources, listesi.id, [esi], IMG_RC);
 				
 				case (type_bin)
 					TrvAddNode (handles.files, listesi.id, [esi], IMG_BINARY);
@@ -354,7 +322,7 @@ USE (ESI, EDI);
 	mov ( (type baseNode_t[ebx]).nodeID, eax);
 	if (eax = jnode_id) then
 		mov (node, eax);
-		if (jobeax.job_type != jobtype_misc) then
+
 			w.AppendMenu ( pviewmenu, w.MF_BYPOSITION | w.MF_ENABLED | w.MF_STRING,
 							PVIEW_REBUILDJOB, "Rebuild Job");
 			
@@ -362,36 +330,20 @@ USE (ESI, EDI);
 			if (jobeax.job_type < 4) then
 				w.AppendMenu ( pviewmenu, w.MF_BYPOSITION | w.MF_ENABLED | w.MF_STRING,
 							PVIEW_RUN, "Run");
-				w.AppendMenu ( pviewmenu, w.MF_BYPOSITION | w.MF_ENABLED | w.MF_STRING,
-							PVIEW_RUNWITHDBG, "Run With Debug");
+
 			endif;
-		endif;
+
 		
 	elseif (eax = fnode_id) then
 		dbg.put("fnode_id");
 		mov (node, eax);
 		mov (listeax.ftype, eax);
 		switch (eax);
-			case (type_hla, type_rc, type_unit)
+			case (type_hla, type_unit)
 					
 				w.AppendMenu ( pviewmenu, w.MF_BYPOSITION | w.MF_ENABLED | w.MF_STRING,
 						PVIEW_REBUILDFILE, "Rebuild File");
 				
-				mov (node, eax);
-				if (listeax.ftype = type_rc) then
-					w.AppendMenu ( pviewmenu, w.MF_BYPOSITION | w.MF_ENABLED | w.MF_STRING,
-								PVIEW_OPENWITHRESED, "Open With ResEd");
-				endif;		
-	
-			case (type_khelp)
-				w.AppendMenu ( pviewmenu, w.MF_BYPOSITION | w.MF_ENABLED | w.MF_STRING,
-								PVIEW_OPENWITHKHELP, "Open With kHelp");
-								
-			case (type_kmake)
-				w.AppendMenu ( pviewmenu, w.MF_BYPOSITION | w.MF_ENABLED | w.MF_STRING,
-								PVIEW_KMAKETARGET, "Execute Script");
-																
-			
 		endswitch;
 		
 

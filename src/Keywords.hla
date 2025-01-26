@@ -112,47 +112,6 @@ proc
 				
 			endwhile;
 			
-		elseif( listedx.ftype = type_odin ) then
-			str.put( stringbuffer, core.homepath, dirsep_c, GroupFiles[3*4] ); // this is hacky! 3 == custom
-			if( filesys.exists( stringbuffer )) then
-				buf.create( stringbuffer );
-				mov( [ebx+3*4], edi );
-				mov( buf.cursor, eax );
-				mov( node, edx );
-				w.SendMessage( listedx.hwnd, REM_SETHILITEWORDS, edi, eax );
-				buf.destroy();
-			endif;
-			str.put( stringbuffer, core.homepath, dirsep_c, GroupFiles[4*4] ); // 4 == odin
-			if( filesys.exists( stringbuffer )) then
-				buf.create( stringbuffer );
-				mov( [ebx+4*4], edi );
-				mov( buf.cursor, eax );
-				mov( node, edx );
-				w.SendMessage( listedx.hwnd, REM_SETHILITEWORDS, edi, eax );
-				buf.destroy();
-			endif;
-			
-		elseif( listedx.ftype = type_go ) then
-			str.put( stringbuffer, core.homepath, dirsep_c, GroupFiles[3] );
-			if( filesys.exists( stringbuffer )) then
-				buf.create( stringbuffer );
-				mov( [ebx+3*4], edi );
-				mov( buf.cursor, eax );
-				mov( node, edx );
-				w.SendMessage( listedx.hwnd, REM_SETHILITEWORDS, edi, eax );
-				buf.destroy();
-			endif;
-			str.put( stringbuffer, core.homepath, dirsep_c, GroupFiles[5] ); // 5 == go
-			if( filesys.exists( stringbuffer )) then
-				buf.create( stringbuffer );
-				mov( [ebx+5*4], edi );
-				mov( buf.cursor, eax );
-				mov( node, edx );
-				w.SendMessage( listedx.hwnd, REM_SETHILITEWORDS, edi, eax );
-				buf.destroy();
-			endif;
-		else
-			dbg.put("ELSE : ", listedx.ftype)
 		endif;
 		
 

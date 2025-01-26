@@ -63,14 +63,11 @@ const
 		PVIEW_RUN			:= PROJECT_MENU_START +2;
 		PVIEW_RUNWITHDBG	:= PROJECT_MENU_START +3;
 		PVIEW_REBUILDFILE	:= PROJECT_MENU_START +4;
-		PVIEW_KMAKETARGET	:= PROJECT_MENU_START +5;
-		PVIEW_OPENWITHRESED	:= PROJECT_MENU_START +6;
-		PVIEW_OPENWITHKHELP	:= PROJECT_MENU_START +7;
-		PVIEW_OPENASHEX		:= PROJECT_MENU_START +8;
-		PVIEW_SETTOOPEN		:= PROJECT_MENU_START +9;
-		PVIEW_RELOAD		:= PROJECT_MENU_START +11;
-		PVIEW_RUNEXECUTABLE	:= PROJECT_MENU_START +13;
-		PVIEW_EDIT			:= PROJECT_MENU_START +14;
+		PVIEW_OPENASHEX		:= PROJECT_MENU_START +5;
+		PVIEW_SETTOOPEN		:= PROJECT_MENU_START +6;
+		PVIEW_RELOAD		:= PROJECT_MENU_START +7;
+		PVIEW_RUNEXECUTABLE	:= PROJECT_MENU_START +8;
+		PVIEW_EDIT			:= PROJECT_MENU_START +9;
 	PROJECT_MENU_END		:= 1600;
 
 	RECENT_MENU_START		:= PROJECT_MENU_END;
@@ -122,12 +119,6 @@ const
 	mnforce_c	:= 0;
 	mforce_c	:= 1;
 	
-	// hla levels - used for builds, corresponds with strings
-	level_high		:= 0;
-	level_medium	:= 1;
-	level_low		:= 2;
-	level_machine	:= 3;
-	
 	// winview settings	
 	dummy_sym_0038938 := @{0};	// required or HLA linux can't find next symbol --- why do i even care?
 	TOOL	:= @{0};
@@ -173,23 +164,13 @@ const
 	
 	// relates to string array
 		jobtype_hlaprogram	:= 0;
-		jobtype_target		:= 1;
 		jobtype_library		:= 3;
-		jobtype_misc		:= 4;
-		jobtype_odin		:= 5;
 	
 	
 		type_hla		:= 0;		// main hla source file
 		type_unit		:= 1;		// hla unit with separate compilation
 		type_hhf		:= 2;		// header file
-		type_rc			:= 3;		// resource file
-		type_khelp		:= 4;		// khelp document file
-		type_def		:= 5;		// dll definition file
 		type_bin		:= 6;		// binary file
-		type_misc		:= 7;		// misc file
-		type_kmake		:= 8;		// kmake file\
-		type_odin		:= 9;		// odin source files -- unused for now
-		type_go			:= 10;		// go source files -- unused for now
 		
 	// file types not coverd above,
 	// these are not counted in string array

@@ -280,17 +280,6 @@ proc
 	
 			mov( type_hhf, listebx.ftype );
 		
-		elseif( str.ieq( sbuffer, "odin" )) then
-			
-			mov( type_odin, listebx.ftype );
-			
-		elseif( str.ieq( sbuffer, "go" )) then
-			
-			mov( type_go, listebx.ftype );
-		
-		else
-			
-			mov( type_misc, listebx.ftype );
 		endif;
 		
 		ENDUSE;
@@ -444,9 +433,7 @@ proc
 			// specific settings for assembly source types
 			if( listebx.ftype = type_hla ||
 				listebx.ftype = type_unit  ||
-				listebx.ftype = type_hhf ||
-				listebx.ftype = type_odin ||
-				listebx.ftype = type_go ) then
+				listebx.ftype = type_hhf ) then
 				
 				hed_ini.readInt( "HED Settings", "Show Divider" );
 				if( eax ) then
@@ -481,9 +468,6 @@ proc
 	
 				w.SendMessage(listebx.hwnd, REM_SETCOMMENTBLOCKS, &szCmntStart,&szCmntEnd);
 				
-			elseif( listebx.ftype = type_rc ) then
-				
-				mov (1, group);
 			
 			else
 				// default type
@@ -752,20 +736,13 @@ begin InitOF;
 
     elseif (ebx = type_hhf) then
     	mov(&hhftype,eax);
-    elseif (ebx = type_rc) then
-    	mov(&rctype,eax);
     elseif (ebx = type_lib) then
 		mov(&libtype,eax);
     elseif (ebx = type_all ) then
     	mov(&allfiles,eax);
     elseif (ebx = type_proj) then
     	mov(&projtype,eax);
-    elseif (ebx= type_khelp) then
-    	mov (&khelptype, eax);
-    elseif (ebx= type_odin) then
-    	mov (&odintype, eax);
-    elseif (ebx= type_go) then
-    	mov( &gotype, eax);
+
     endif;
 	mov(eax,of.lpstrFilter);
 	

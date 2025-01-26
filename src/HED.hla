@@ -95,28 +95,14 @@ program HED_MAIN;
 		szOVR		:mzstr ( "OVR");
 		
 	// auto inserts
-		ins_begin			:mzstr ( "begin ");
-		ins_end			 	:mzstr ( "end ");
 		ins_nl				:byte := 13; byte 10,0,0;	// new line sequence, aligned 4
 		ins_tab				:byte := 09; byte 0, 0, 0;	// tab sequence, aligned 4
-		ins_endif			:mzstr ( "endif;");
-		ins_endclass		:mzstr ( "endclass;");
-		ins_endwhile		:mzstr ( "endwhile;");
-		ins_endfor			:mzstr ( "endfor;");
-		ins_until			:mzstr ( "until ( );");
-		ins_endrecord		:mzstr ( "endrecord;");
-		ins_endunion		:mzstr ( "endunion;");
-		ins_endtry			:mzstr ( "endtry;");
 		ins_endParen		:mzstr ( ")" );
 		ins_endBrace		:mzstr ( "}" );
 		ins_endBracket		:mzstr ( "]" );
 		ins_startParen		:mzstr ( "(" );
 		ins_startBrace		:mzstr ( "{" );
 		ins_startBracket	:mzstr ( "[" );
-		ctl_endmacro		:mzstr ( "#endmacro");
-		ctl_endfor			:mzstr ( "#endfor");
-		ctl_endif			:mzstr ( "#endif");
-		ctl_endwhile		:mzstr ( "#endwhile");
 		
 	proc
 	
@@ -422,36 +408,6 @@ program HED_MAIN;
 			ret();
 		end _getname;
 	
-		procedure _doproc;
-		
-			var
-				temp_s	:string;
-				
-		
-		begin _doproc;
-			mov(&ins_begin,eax);	call _insertit;
-			
-			str.trim(workpath);
-			call _getname;
-			mov(eax,temp_s);
-			call _insertit;
-			
-			mov(&ins_nl,eax);		call _insertit;
-			mov(&wordbuf,eax);		call _insertit;
-			mov(&ins_tab,eax);		call _insertit;
-			w.SendMessage(listebx.hwnd,w.EM_EXGETSEL,0,&chrg);
-			mov(&ins_nl,eax);		call _insertit;
-			mov(&wordbuf,eax);		call _insertit;
-			mov(&ins_end,eax);		call _insertit;
-			mov(temp_s,eax);		call _insertit;
-			mov(&ins_nl,eax);		call _insertit;
-			
-			w.SendMessage(listebx.hwnd,w.EM_EXSETSEL,0,&chrg);
-			w.SendMessage(listebx.hwnd,w.EM_SCROLLCARET,0,0);
-			
-			str.free(temp_s);
-		end _doproc;
-
 	
 		procedure findDot; @noframe;
 		begin findDot;
@@ -929,8 +885,7 @@ program HED_MAIN;
 		mov( listebx.ftype, eax );
 		switch( eax );
 		
-		case( type_misc, type_hla, type_unit, type_rc,
-				type_hhf, type_def, type_khelp, type_kmake )
+		case(  type_hla, type_unit, type_hhf )
 				
 			RAEdit_new( [ebx] );
 			if( filesys.exists( listebx.fullname) ) then
@@ -998,7 +953,6 @@ program HED_MAIN;
 	begin Menu_NewFile;
 		//dbg.put ("Menu_NewFile");
 		RAEdit_openNew (NULL);
-		mov (type_misc, listeax.ftype);	
 		tabtool_add ([eax]);
 		TreeToolSetup();
 		//dbg.put ("/Menu_NewFile");
@@ -1439,22 +1393,6 @@ program HED_MAIN;
 		ret();
 	end Menu_MakeReBuildJob;
 		
-	proc
-		
-		Menu_BuildScript	:procedure;
-			var s	:string;
-	
-				
-		begin Menu_BuildScript;
-			mov (str.talloc (pathsize_c), s);
-			
-			if (filesys.exists ("Build.kmk")) then
-					str.put (s, "kmake Build.kmk" );
-					launchProgram( s, true, true );
-			endif;
-			
-		end Menu_BuildScript;
-
 	
 	procedure Menu_MakeBuildJob; @noframe;
 	begin Menu_MakeBuildJob;
@@ -1519,13 +1457,6 @@ program HED_MAIN;
 		ret();
 	end Menu_Pview_RebuildFile;
 
-	procedure Menu_Pview_kMakeTarget; @noframe;
-	begin Menu_Pview_kMakeTarget;
-		mov (pview_curSel, eax);
-		mov (listeax.job, eax);
-		MakeProc (mbuildonejob_c, eax, mclear_c);
-		ret();
-	end Menu_Pview_kMakeTarget;
 
 	procedure Menu_Pview_runExecutable; @noframe;
 	begin Menu_Pview_runExecutable;
@@ -2054,25 +1985,15 @@ proc
 		mov (curnode, eax);
 		if (eax) then
 			
-			if ( listeax.ftype = type_kmake ) then
-				IndentComment ( $3b, true);
-			else
-				IndentComment(DOUBLESLASH,true);
-			endif;
-				
+			IndentComment(DOUBLESLASH,true);
+
 		endif;
 		ret();
 			
 	_meuncmnt::
 		mov (curnode, eax);
 		if (eax) then
-			
-			if ( listeax.ftype = type_kmake ) then
-				IndentComment ( $3b, false);
-			else
-				IndentComment(DOUBLESLASH,false);
-			endif;
-
+			IndentComment(DOUBLESLASH,false);
 		endif;
 		ret();
 			
@@ -2366,7 +2287,6 @@ proc
 			dword	IDM_MAKE_REBUILD,		&Menu_MakeRebuild;
 			dword	IDM_MAKE_REBUILDONE,	&Menu_MakeBuildOne;
 			dword	IDM_MAKE_REBUILDJOB,	&Menu_MakeReBuildJob;
-			dword	IDM_BUILD_SCRIPT,		&Menu_BuildScript;
 			dword	IDM_MAKE_RUN,			&Menu_MakeRun;
 			dword	IDM_MAKE_BUILDITRUN,	&Menu_MakeBuildRun;
 			dword	IDM_MAKE_RUNDBG,		&Menu_MakeRunWithDebug;
@@ -2377,10 +2297,7 @@ proc
 			dword	PVIEW_RUN,				&Menu_Pview_Run;
 			dword	PVIEW_RUNWITHDBG,		&Menu_Pview_RunWithdebug;
 			dword	PVIEW_REBUILDFILE,		&Menu_Pview_RebuildFile;
-			dword	PVIEW_KMAKETARGET,		&Menu_Pview_kMakeTarget;
 			dword	PVIEW_RUNEXECUTABLE,	&Menu_Pview_runExecutable;
-			dword	PVIEW_OPENWITHRESED,	&Menu_Pview_OpenWithResed;
-			dword	PVIEW_OPENWITHKHELP,	&Menu_Pview_OpenWithKhelp;
 			dword	PVIEW_OPENASHEX,		&Menu_Pview_OpenAsHex;
 			dword	PVIEW_SETTOOPEN,		&Menu_Pview_SetToOpen;
 			dword	IDM_OPTION_GENERAL,		&Menu_OptionGeneral;
