@@ -378,9 +378,8 @@ begin PanelActivate;
 	w.SendMessage(core.hpaneltab ,w.TCM_GETITEM, EAX, &core.tci);
 	mov (core.tci.pszText, eax);
 	str.cpyz (eax, s);
-	if (str.eq (s, s_project)) then
-		PanelProject();
-	elseif (str.eq (s, s_panel)) then
+
+	if (str.eq (s, s_panel)) then
 		PanelFold();
 	elseif (str.eq (s, s_explorer)) then
 		PanelExplorer();
@@ -416,22 +415,6 @@ begin panel_setfrom;
 	
 end panel_setfrom;
 
-
-procedure PanelProject; @noframe;
-begin PanelProject;
-//	dbg.put ("panelproject");
-	Project_View (DOCK_YES);
-	mov (panel_project, settings.panelwin);
-	Panel_HideDocked();
-	move (core.htree, settings. panelactive);
-	w.ShowWindow (core.htree, w.SW_SHOW);
-	w.ShowWindow (core.hHSplitBar, w.SW_SHOW);
-	w.SendMessage(core.hpaneltab, w.TCM_SETCURSEL, panel_project, 0);	
-	w.CheckMenuItem (core.hmenu,IDM_VIEW_PANEL,w.MF_BYCOMMAND | w.MF_CHECKED);
-//	dbg.put ("/panelproject");
-	ret();	
-end PanelProject;
-
 procedure PanelExplorer; @noframe;
 begin PanelExplorer;
 	Explorer_View ( DOCK_YES);
@@ -452,9 +435,6 @@ begin PanelViewWin;
 	case (panel_closed)
 		PanelFold();
 		
-	case (panel_project)
-		PanelProject();
-		
 	case (panel_explorer)
 		PanelExplorer();
 		
@@ -471,13 +451,11 @@ begin PanelViewActive;
 	if (! eax) then
 		// panel is closed, open it
 		mov (settings.panelactive, eax);
-		if (eax) then
-			if (eax = core.htree) then
-				PanelProject();
-			elseif (eax = core.hexplorer) then 
+
+			if (eax = core.hexplorer) then 
 				PanelExplorer();
 			endif;
-		endif;
+
 	else
 		PanelFold();
 	endif;

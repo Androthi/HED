@@ -54,7 +54,6 @@ static
 readonly
 	
 //========================================
-	zDebug		:zstring := "Debug";
 	zProject	:zstring := "Project";
 	zJobs		:zstring := "Jobs";
 	zFiles		:zstring := "Files";
@@ -63,7 +62,6 @@ readonly
 	zGeneral	:zstring := "General";
 	zEnvironment:zstring := "Environment";
 	zSettings	:zstring := "Settings";
-	zThemes		:zstring := "Themes";
 	zSeperator	:zstring := "=====================================";
 	
 	

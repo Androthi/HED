@@ -32,12 +32,12 @@ readonly
 
 procedure find_nextScope; @returns ("EAX"); @noframe;
 begin find_nextScope;
-	mov (project.findscope, eax);
+	mov (settings.findscope, eax);
 	inc (eax);
 	if (eax = finditems_c) then
 		mov (0, eax);
 	endif;
-	mov (eax, project.findscope);
+	mov (eax, settings.findscope);
 	ret();
 end find_nextScope;
 
@@ -51,7 +51,7 @@ begin resetFind;
 		move (listeax.job, start_job);
 	endif;
 	
-	if (testnz (w.FR_DOWN, project.findflags)) then
+	if (testnz (w.FR_DOWN, settings.findflags)) then
 		mov (0, ft.chrg.cpMin);
 		mov (-1, ft.chrg.cpMax);
 	else
@@ -92,7 +92,7 @@ USE (ESI, EDI);
 			jmp l0;
 		endif;
 		
-		mov (project.findscope, esi);
+		mov (settings.findscope, esi);
 		if (esi = findproject_c) then
 			if (! listeax.isproject) then
 				jmp next;
@@ -148,7 +148,7 @@ USE (ESI);
 			jmp l0;
 		endif;
 		
-		mov (project.findscope, esi);
+		mov (settings.findscope, esi);
 		if (esi = findproject_c) then
 			if (! listeax.isproject) then
 				jmp prev;
@@ -208,7 +208,7 @@ begin find_next;
 	mov (eax, ft.chrg.cpMin);
 	mov (-1, ft.chrg.cpMax);
 
-	mov (project.findflags, eax);
+	mov (settings.findflags, eax);
 	or (w.FR_DOWN, eax);
 	mov (eax, esi);
 
@@ -228,7 +228,7 @@ begin find_next;
 
 			mov (false, isFound);
 			
-			mov (project.findscope, eax);
+			mov (settings.findscope, eax);
 			if (eax > 0 ) then
 				if (find_getNextFile([ebx])) then
 					mov (eax, ebx);
@@ -295,7 +295,7 @@ begin find_prev;
 	mov (eax, ft.chrg.cpMin);
 	mov (0, ft.chrg.cpMax);
 
-	mov (project.findflags, eax);
+	mov (settings.findflags, eax);
 	and (!w.FR_DOWN, eax);
 	mov (eax, esi);
 
@@ -313,7 +313,7 @@ begin find_prev;
 
 			mov (false, isFound);
 
-			mov (project.findscope, eax);
+			mov (settings.findscope, eax);
 			if (eax > 0 ) then
 				if (find_getPrevFile([ebx])) then
 					mov (eax, ebx);
@@ -377,7 +377,7 @@ procedure find_replaceAll;
 		endif;
 		
 		w.SendMessage (listebx.hwnd, w.EM_SETSEL, 0, 0);
-		mov (project.findflags, esi);
+		mov (settings.findflags, esi);
 		or (w.FR_DOWN, esi);
 		mov (0, ft.chrg.cpMin);
 		mov (-1, ft.chrg.cpMax);
@@ -433,7 +433,7 @@ USE (EBX, ESI);
 
 	fileList.getHead();
 	mov (eax, ebx);
-	mov (project.findscope, eax);
+	mov (settings.findscope, eax);
 	if (eax = findall_c) then
 		dbg.put ("findall_c");
 		while (ebx) do
@@ -501,7 +501,7 @@ procedure Proc_FindDlg (lParam:dword; wParam:dword; uMsg:uns32; hWin:dword);
 	
 		w.GetDlgItem (ebp::hWin, IDC_SCOPE);
 		mov (eax, ebx);
-		mov (project.findscope, eax);
+		mov (settings.findscope, eax);
 		if (eax = findall_c) then
 			w.SetWindowText (ebx, "All Files");
 		elseif (eax = findproject_c ) then
@@ -540,15 +540,15 @@ begin	Proc_FindDlg;
 
 		scopeSetCheck();
 		
-		if (testnz (w.FR_MATCHCASE, project.findflags)) then
+		if (testnz (w.FR_MATCHCASE, settings.findflags)) then
 			w.CheckDlgButton(hWin,IDC_CHK_MATCHCASE,w.BST_CHECKED);
 		endif;
 		
-		if (testnz (w.FR_WHOLEWORD, project.findflags)) then
+		if (testnz (w.FR_WHOLEWORD, settings.findflags)) then
 			w.CheckDlgButton(hWin,IDC_CHK_WHOLEWORD,w.BST_CHECKED);
 		endif;
 		
-		if (testnz (w.FR_DOWN, project.findflags)) then
+		if (testnz (w.FR_DOWN, settings.findflags)) then
 			w.CheckDlgButton(hWin, IDC_RBN_DOWN, w.BST_CHECKED);
 		else
 			w.CheckDlgButton(hWin, IDC_RBN_UP, w.BST_CHECKED);
@@ -572,7 +572,7 @@ begin	Proc_FindDlg;
 		if (edx = w.BN_CLICKED) then
 			if(eax = w.IDOK) then
 				
-				if (testnz (w.FR_DOWN, project.findflags)) then
+				if (testnz (w.FR_DOWN, settings.findflags)) then
 					find_next();
 				else
 					find_prev();
@@ -605,7 +605,7 @@ begin	Proc_FindDlg;
 
 						// if search is down, adjust past the replaced text so
 						// we don't enter infinite replacement loop
-						if (testnz (w.FR_DOWN, project.findflags)) then
+						if (testnz (w.FR_DOWN, settings.findflags)) then
 							mov (ft.chrg.cpMax, eax);
 							inc (eax);
 							mov (eax, ft.chrg.cpMax);
@@ -628,14 +628,14 @@ begin	Proc_FindDlg;
 			
 			elseif (eax = IDC_RBN_DOWN) then
 				
-				or (w.FR_DOWN, project.findflags);
+				or (w.FR_DOWN, settings.findflags);
 				mov (-1, ft.chrg.cpMax);
 				inc (ft.chrg.cpMin);
 				
 				
 			elseif (eax = IDC_RBN_UP) then
 			
-				and (! w.FR_DOWN, project.findflags);
+				and (! w.FR_DOWN, settings.findflags);
 				mov (0, ft.chrg.cpMax);
 				
 			elseif (eax = IDC_SCOPE) then
@@ -648,18 +648,18 @@ begin	Proc_FindDlg;
 			elseif (eax = IDC_CHK_MATCHCASE) then
 
 				if (w.IsDlgButtonChecked(hWin, IDC_CHK_MATCHCASE)) then
-					or (w.FR_MATCHCASE, project.findflags);
+					or (w.FR_MATCHCASE, settings.findflags);
 				else
-					and(! w.FR_MATCHCASE, project.findflags);
+					and(! w.FR_MATCHCASE, settings.findflags);
 				endif;
 				resetFind();
 				
 			elseif (eax = IDC_CHK_WHOLEWORD) then
 
 				if (w.IsDlgButtonChecked(hWin, IDC_CHK_WHOLEWORD)) then
-					or (w.FR_WHOLEWORD, project.findflags);
+					or (w.FR_WHOLEWORD, settings.findflags);
 				else
-					and(! w.FR_WHOLEWORD, project.findflags);
+					and(! w.FR_WHOLEWORD, settings.findflags);
 				endif;
 				resetFind();
 				

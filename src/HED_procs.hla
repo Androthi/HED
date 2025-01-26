@@ -626,10 +626,6 @@ begin showAboutWin;
 		mov( eax, h_static );
 		// load jpg background
 		
-		GraphicEx.LoadGraphic( core.hinst, "IDB_ABOUTJPG" );
-		mov( eax, h_back );
-		w.SendMessage( h_static, w.STM_SETIMAGE, w.IMAGE_BITMAP, h_back );
-		
 		// central credits
 		w.CreateWindowEx(	0, "EDIT", txt_credits,
 							w.WS_CHILD | w.WS_VISIBLE | w.ES_MULTILINE | w.WS_VSCROLL | w.ES_READONLY,

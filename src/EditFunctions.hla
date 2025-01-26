@@ -109,13 +109,6 @@ begin SetWindowCaption;
 	str.cpy("", workpath);
 	
 	if (ebx) then
-		if (projectview_checkUpdate ([ebx])) then
-			mov (true, changed);
-		endif;
-		mov (listebx.job, eax);
-		if (eax) then
-			str.put (workpath, project.id, " - {", jobeax.id, "} ");
-		endif;
 		
 		if (changed) then
 			str.put2 (workpath, '*');
@@ -363,12 +356,6 @@ proc
 		mov (0, gwstyle);
 		mov (0, group);
 		mov (node, ebx);
-		
-		if( listebx.isproject ) then
-			move( project.options, options );
-		else
-			mov( settings.options, options );
-		endif;
 	
 		if( listebx.ftype = type_bin ) then
 	
@@ -408,12 +395,6 @@ proc
 				mov (false, eax);
 			endif;
 			
-			if( listebx.isproject ) then
-				movzx (project.tab, edx);
-			else
-				movzx( settings.tab, edx );
-			endif;
-			
 			w.SendMessage(listebx.hwnd,REM_TABWIDTH, edx, eax);
 			
 			hed_ini.readInt( "HED Settings", "Show Line Numbers" );
@@ -424,10 +405,8 @@ proc
 			w.SendMessage(listebx.hwnd,REM_SETFONT,0,&rafnt);
 			w.SendMessage(listebx.hwnd,REM_MOUSEWHEEL,3,0);
 	
+			// TODO: file types autoindent, set here. default is off	
 			xor (eax, eax);
-			if (testnz (opt_indent, project.options)) then
-				mov (true, eax);
-			endif;
 			w.SendMessage(listebx.hwnd,REM_AUTOINDENT,0, eax);
 	
 			// specific settings for assembly source types
@@ -570,65 +549,9 @@ USE (ebx, esi, edi, ecx, edx);
 		endif;
 	endif;
 		
-	// see if we need to do some backups.
-	if (project.backups > 0 ) then
-			
-		if (listebx.job) then
-			
-			// see if the project has a Backup folder
-			mov (&project.hpr, esi);
-			if ( iniesi.readBool ("HPR Settings", "useback")) then
-				// we have BAK folder
-				str.put (backpath, "BAK", dirsep_c);
-			elseif (iniesi.readBool ("HPR Settings", "usetemp")) then
-				// we have temp folder in project
-				str.put (backpath, "temp", dirsep_c);
-			else
-				jmp useHIDETemp;
-			endif;
-		else
-			
-			// save backups in the HIDE\Temp folder
-			useHIDETemp:
-			str.put (backpath, core.homepath, dirsep_c, "temp", dirsep_c);
-			
-		endif;
-		
-		// get first file with match
-		if (backindex = 0) then		
-			lea (edi, filestruc);
-			str.put (stringbuffer, backpath, "[*]", listebx.id);
-			w.FindFirstFile ( stringbuffer, filestruc);
-			if (eax <> w.INVALID_HANDLE_VALUE) then
-				mov(eax, nextfile);
-				inc (backindex);
-				lea (edx, thisfile.cFileName);
-				repeat
-					w.FindNextFile ( nextfile, filestruc);
-					if (eax ) then
-						inc (backindex);
-						lea (edx, thisfile.cFileName);
-					endif;
-				until ( eax = 0 );
-				w.FindClose (nextfile);
-			endif;
-		endif;
-		
-		// numbacks contains the number of backups found
-		// for the current save file
-		movzx (project.backups, eax);
-		inc (backindex);
-		if (backindex > eax ) then
-			mov (1, backindex);
-		endif;
-		str.put (stringbuffer, backpath, '[', backindex, ']', listebx.id);
-		WriteToFile (listebx.hwnd, stringbuffer);
-	endif;
-	
 	if (! saveAsed) then
 		WriteToFile (listebx.hwnd, listebx.fullname);
 		GetFileTime (listebx.relative, listebx.writetime);
-		projectview_checkUpdate ([ebx]);
 		
 	endif;
 	updateDisplay( update_general );
@@ -716,12 +639,6 @@ begin InitOF;
 
 	if (pathbuf[0] <> 0) then
 		mov(&pathbuf,eax);
-	else
-		if (project.isOpen) then
-			mov(project.folder,eax);
-		else
-			mov(core.homepath,eax);
-		endif;
 	endif;
 	mov(eax,of.lpstrInitialDir);
 
@@ -1009,7 +926,7 @@ begin IndentComment;
 				dec (ochr.cpMax);
 				
 			elseif (nChr = $09) then	// checks for tab-indentation
-				movzx (project.tab, ecx);
+				movzx (settings.tab, ecx);
 				dec (esi);
 				l0:
 				inc (esi);
@@ -1023,7 +940,7 @@ begin IndentComment;
 					inc	(esi);
 					dec	(ecx);
 				endif;
-				movzx (project.tab, eax);
+				movzx (settings.tab, eax);
 				sub	(ecx, eax);
 				sub	(eax, ochr.cpMax);
 				w.SendMessage(listebx.hwnd, w.EM_REPLACESEL, true, esi);

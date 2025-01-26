@@ -40,8 +40,6 @@ HED.hhf,src,include
 raedit.hhf,src,include
 EditFunctions.hla,src,hlaunit
 TabTool.hla,src,hlaunit
-TreeTool.hla,src,hlaunit
-Project.hla,src,hlaunit
 Output.hla,src,hlaunit
 make.hla,src,hlaunit
 Keywords.hla,src,hlaunit

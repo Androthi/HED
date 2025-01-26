@@ -5,9 +5,7 @@ const
 	#includeonce	("os.hhf")
 	#includeonce	("src/win_inc.hhf")
 	#includeonce	("src/raedit.hhf")
-	#includeonce	("src/RAHexEd.hhf")
-	#includeonce	("hide/graphicex_lib.hhf")
-	
+	#includeonce	("src/RAHexEd.hhf")	
 	#includeonce	("hide/dbgwin.hhf")
 	#includeonce	("strings.hhf")
 	#includeonce	("tables.hhf") 
@@ -61,7 +59,6 @@ const
 	PROJECT_MENU_START		:= 1500;
 		PVIEW_REBUILDJOB	:= PROJECT_MENU_START +1;
 		PVIEW_RUN			:= PROJECT_MENU_START +2;
-		PVIEW_RUNWITHDBG	:= PROJECT_MENU_START +3;
 		PVIEW_REBUILDFILE	:= PROJECT_MENU_START +4;
 		PVIEW_OPENASHEX		:= PROJECT_MENU_START +5;
 		PVIEW_SETTOOPEN		:= PROJECT_MENU_START +6;

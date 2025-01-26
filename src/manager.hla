@@ -12,7 +12,6 @@ storage
 	optCurrent	:dword;
 	optGeneral	:dword;
 	optSettings	:dword;
-	optThemes	:dword;
 	optEnv		:dword;
 	optProject	:dword;
 	optJobs		:dword;
@@ -59,10 +58,6 @@ readonly
 		"govern the initial settings of each newly" nl
 		"created project.";
 		
-		
-	zThemesHelp		:zstring :=
-		"Setup keywords and color schemes.  Save and" nl
-		"load desired theme colors.";
 		
 	zProjectHelp	:zstring :=
 		"Change settings and options for current project." nl
@@ -237,8 +232,6 @@ proc
 			w.SendDlgItemMessage( hwin, ID_HIDE_SPNTAB, w.UDM_SETRANGE, 0, $0001_000E );
 			movzx( settings.tab, eax );
 			w.SendDlgItemMessage( hwin, ID_HIDE_SPNTAB, w.UDM_SETPOS, 0, eax );
-			w.SendDlgItemMessage( hwin, ID_HIDE_SPNBACK, w.UDM_SETRANGE, 0, $0000_000A );
-
 			
 			if ( testnz (opt_exptabs, settings.options)) then
 				mov (true, eax);
@@ -279,207 +272,6 @@ proc
 		popabi;
 	end Proc_ManagerSettings;
 	
-	updateFolders :procedure;
-	
-		var
-			sbuffer	:string;
-			
-	begin updateFolders;
-		
-		mov( str.talloc(1000), sbuffer );
-		
-		w.SendDlgItemMessage( optProject, IDC_MANAGERPROJ_FOLDERS, w.LB_RESETCONTENT, 0, 0);
-		
-		str.put( sbuffer, project.id );
-		filesys.deleteExt( sbuffer, sbuffer );
-		w.SendDlgItemMessage( optProject, IDC_MANAGERPROJ_FOLDERS, w.LB_ADDSTRING, 0, sbuffer );
-		w.SendDlgItemMessage( optProject, IDC_MANAGERPROJ_FOLDERS, w.LB_SETCURSEL, eax, 0 );
-		
-		// user folders
-		mov( &project.hpr, esi );
-		if( iniesi.getItemCount( "HPR Folders" )) then
-			mov( eax, count );
-			xor( ebx, ebx );
-			while( ebx < count ) do
-
-				iniesi.readItem( "HPR Folders", ebx, sbuffer );
-				w.SendDlgItemMessage( optProject, IDC_MANAGERPROJ_FOLDERS, w.LB_ADDSTRING, 0, sbuffer );
-				inc (ebx);
-				
-			endwhile;			
-		endif;
-		
-	end updateFolders;
-
-	
-	Proc_ManagerProjOpt	:procedure( lparam:dword; wparam:dword; umsg:uns32; hwin:dword );
-	begin Proc_ManagerProjOpt;
-		mov( umsg, eax );
-		if( eax = w.WM_COMMAND ) then
-			
-			mov( wparam, eax );
-			mov( eax, edx );
-			shr( 16, edx );
-			and( $0ffff, eax );
-			if( edx = w.BN_CLICKED ) then
-				
-				if( eax = IDC_MANAGERPROJ_RENAME ) then
-					//dbg.enters( "Rename Project" );
-					if( getStringInput( "Rename Project To", stringbuffer ) ) then
-						
-						// rename hpr
-						mov (&project.hpr, esi);
-						filesys.deleteExt( stringbuffer, stringbuffer );
-						str.put2 (stringbuffer, ".hpr");
-						iniesi.writeFileName( stringbuffer );
-						filesys.delete (project.id);
-						str.free( project.id );
-						str.a_cpy( stringbuffer );
-						mov( eax, project.id );
-						
-						// rename project folder
-						filesys.deleteExt( stringbuffer, stringbuffer );
-						str.cpy( project.folder, workpath );
-						filesys.extractPath( workpath, workpath );
-						str.put2( workpath, dirsep_c, stringbuffer );
-						filesys.cd( core.projectpath );
-						filesys.rename( project.folder, workpath );
-						str.free( project.folder );
-						str.a_cpy( workpath );
-						mov( eax, project.folder );
-						filesys.cd( project.folder );
-
-						w.SetDlgItemText( hwin, IDC_MANAGERPROJ_PATH, project.folder );
-						w.SetDlgItemText( hwin, IDC_MANAGERPROJ_NAME, project.id);
-
-						updateFolders();						
-
-						// update hlatmp environment
-
-						mov( &project.hpr, esi );
-						if( iniesi.readBool( "HPR Settings", "usetemp") ) then
-
-							str.put( workpath, project.folder, dirsep_c, "temp" );
-							env2.put( "hlatmp", workpath );
-						
-						endif;
-						
-					endif;
-					SetWindowCaption();
-					
-					//dbg.exits( "Rename Project" );
-					
-				elseif( eax = IDC_MANAGERPROJ_NEWFOLDER ) then
-					
-					writeMessage( "TODO: NEW FOLDER" );
-					if( getStringInput( "Create new Project folder", stringbuffer ) ) then
-						
-						if( filesys.exists( stringbuffer ) ) then
-							
-							writeMessage( "Folder already exists" );
-							
-						else
-							
-							filesys.mkdir( stringbuffer );
-							
-						endif;
-						
-						mov( &project.hpr, esi );
-						if( iniesi.findItem( "HPR Folders", stringbuffer ) = -1 ) then
-								
-							iniesi.writeItem( "HPR Folders", -1, stringbuffer );
-								
-						endif;
-							
-						updateFolders();
-						
-					endif;
-					
-					
-				elseif( eax = IDC_MANAGERPROJ_DELFOLDER ) then
-					
-					w.SendDlgItemMessage( hwin, IDC_MANAGERPROJ_FOLDERS, w.LB_GETCURSEL, 0, 0 );
-					w.SendDlgItemMessage( hwin, IDC_MANAGERPROJ_FOLDERS, w.LB_GETTEXT, eax, &buffer );
-					str.cpyz( &buffer, workpath );
-					if( w.RemoveDirectory (workpath) ) then
-
-						mov( &project.hpr, esi );
-						if( iniesi.findItem ("HPR Folders", workpath) != -1) then
-
-							iniesi.deleteItem( "HPR Folders", eax );
-							updateFolders();
-
-						endif;
-
-					else
-
-						writeMessage( "Unable to delete folder, make sure it's empty" );
-						
-					endif;
-				endif;
-			
-			elseif( edx = w.LBN_SELCHANGE ) then
-				
-				if( eax = IDC_MANAGERPROJ_FOLDERS ) then
-					
-					w.SendDlgItemMessage( hwin, IDC_MANAGERPROJ_FOLDERS, w.LB_GETCURSEL, 0, 0 );
-					w.SendDlgItemMessage( hwin, IDC_MANAGERPROJ_FOLDERS, w.LB_GETTEXT, eax, &buffer );
-					str.cpyz( &buffer, workpath );
-					str.cpy( project.id, stringbuffer );
-					filesys.deleteExt( stringbuffer, stringbuffer );
-					if( ! str.eq (workpath, stringbuffer )) then
-
-						// not root folder, so activate delete button
-						w.GetDlgItem( hwin, IDC_MANAGERPROJ_DELFOLDER );
-						w.EnableWindow( eax, true );
-						
-					else
-						
-						w.GetDlgItem( hwin, IDC_MANAGERPROJ_DELFOLDER );
-						w.EnableWindow( eax, false );
-
-					endif;
-
-				endif;
-			
-			endif;
-			or( 1, eax );
-			
-		elseif( eax = w.WM_INITDIALOG ) then
-			move( hwin, optProject );
-			w.SetDlgItemText( hwin, IDC_MANAGERPROJ_PATH, project.folder );
-			w.SetDlgItemText( hwin, IDC_MANAGERPROJ_NAME, project.id);
-			
-			// Set range
-			w.SendDlgItemMessage( hwin, IDC_MANAGERPROJ_UDTABS, w.UDM_SETRANGE, 0, $0001_000E );
-			movzx( project.tab, eax );
-			w.SendDlgItemMessage( hwin, IDC_MANAGERPROJ_UDTABS, w.UDM_SETPOS, 0, eax );
-			
-			if( bitSet( opt_exptabs, project.options )) then
-				mov( true, eax );
-			else
-				mov( false, eax );
-			endif;
-			w.CheckDlgButton( hwin, IDC_MANAGERPROJ_EXPTABS, eax );
-			
-			if( bitSet( opt_indent, project.options )) then
-				mov( true, eax );
-			else
-				mov( false, eax );
-			endif;
-			w.CheckDlgButton( hwin, IDC_MANAGERPROJ_AUTOIND, eax );
-
-			updateFolders();
-	
-			or( 1, eax );
-			
-		else
-			
-			xor( eax, eax );
-			
-		endif;
-			
-	end Proc_ManagerProjOpt;
 	
 	saveSettings	:procedure;
 	begin saveSettings;
@@ -598,39 +390,6 @@ proc
 
 		
 		//==========================================================
-		// save colors and themes settings
-		//==========================================================
-		
-		keywordsUpdate( optThemes );
-		
-
-		//==========================================================
-		// save project settings
-		//==========================================================
-		
-		if( project.isOpen ) then
-			
-			mov( 0, project.options );
-
-			w.GetDlgItemInt( optProject, IDC_MANAGERPROJ_TABS, null, false );
-			mov( al, project.tab );
-			
-			if( w.IsDlgButtonChecked( optProject, IDC_MANAGERPROJ_EXPTABS ) ) then
-				or( opt_exptabs, project.options );
-			endif;
-			
-			if( w.IsDlgButtonChecked( optProject, IDC_MANAGERPROJ_AUTOIND ) ) then
-				or( opt_indent, project.options );
-			endif;
-
-			mov( &project.hpr, esi );
-			iniesi.write( project.id );
-			
-			TreeToolSetup();
-
-		endif;
-		
-		//==========================================================
 		// save standard mode settings
 		//==========================================================
 		
@@ -710,16 +469,6 @@ proc
 			w.ShowWindow( optSettings, w.SW_SHOW ); 
 			mov( optSettings, eax );
 			mov( eax, optCurrent );
-		
-		case( manager_themes )
-			
-			writeMessage( zThemesHelp );
-
-			w.MoveWindow( optThemes, client_r.x, client_r.y, client_r.width, client_r.height, false );
-			w.ShowWindow( optCurrent, w.SW_HIDE );
-			w.ShowWindow( optThemes, w.SW_SHOW ); 
-			mov( optThemes, eax );
-			mov( eax, optCurrent );
 			
 		case( manager_project )
 		
@@ -748,161 +497,5 @@ proc
 		
 	end displayTool;
 
-	Proc_HIDEManager	:procedure( lparam:dword; wparam:dword; umsg:uns32; hwin:dword );
-	begin Proc_HIDEManager;
-		
-		pushabi;
-
-		mov( umsg, eax );
-		if( eax = w.WM_INITDIALOG ) then
-			mov( false, linksChanged );
-			mov( false, settingsChanged );
-			mov( false, newCodeFont );
-			mov( false, newLineFont );
-
-			w.GetDlgItem( hwin, IDC_MANAGERTAB );
-			mov( eax, optTab );
-			w.GetDlgItem( hwin, IDC_MANAGEREDIT );
-			mov( eax, optEdit );
-			
-			w.CreateDialogParam( core.hinst, val ID_MANAGERENV, hwin, &Proc_ManagerEnv, false );
-			w.CreateDialogParam( core.hinst, val ID_MANAGERGEN, hwin, &Proc_ManagerGen, false );
-			w.CreateDialogParam( core.hinst, val ID_KEYWORDS, hwin, &Proc_KeyWords, false );
-			
-			dbg.put("params created");
-			
-			mov( eax, optThemes );
-			w.CreateDialogParam( core.hinst,val ID_MANAGERSET, hwin, &Proc_ManagerSettings, false );
-
-			
-			if( project.isOpen ) then
-				w.CreateDialogParam( core.hinst, val ID_MANAGERPROJ, hwin, &Proc_ManagerProjOpt, false );
-			dbg.put("params created 3");				
-				w.CreateDialogParam( core.hinst, val ID_MANAGERJOBS, hwin, &Proc_JobsManager, false );
-				mov( eax, optJobs );
-			endif;
-			
-			
-			
-			// fill the tab tool
-			mov( w.TCIF_TEXT, optTCI.imask );
-			mov(30, optTCI.cchTextMax );
-
-			move( zGeneral, optTCI.pszText );
-			w.SendMessage( optTab, w.TCM_INSERTITEM, manager_general, &optTCI );
-
-			move( zEnvironment, optTCI.pszText );
-			w.SendMessage( optTab, w.TCM_INSERTITEM, manager_env, &optTCI );
-			move( zSettings, optTCI.pszText );
-			
-			w.SendMessage( optTab, w.TCM_INSERTITEM, manager_settings, &optTCI );
-			
-			move( zThemes, optTCI.pszText );
-			w.SendMessage( optTab, w.TCM_INSERTITEM, manager_themes, &optTCI );
-
-			// project related settings should always be below standard
-			// related settings
-			if( project.isOpen ) then
-				
-				move( zProject, optTCI.pszText );
-				w.SendMessage( optTab, w.TCM_INSERTITEM, manager_project, &optTCI );
-			
-				move( zJobs, optTCI.pszText );
-				w.SendMessage( optTab, w.TCM_INSERTITEM, manager_jobs, &optTCI );
-				
-			endif;
-			
-			w.SendMessage( optTab, w.TCM_SETCURSEL, lparam, 0 );
-			
-			w.GetClientRect( hwin, &client_r );
-			w.GetWindowRect( optTab, &work_r );
-			mov( work_r.right, eax );
-			sub( work_r.left, eax );
-			add( eax, client_r.left );
-			
-			w.GetWindowRect( optEdit, &work_r );
-			mov( work_r.bottom, eax );
-			sub( work_r.top, eax );
-			sub( eax, client_r.height );
-			
-			
-			mov( 0, optCurrent );
-			displayTool( lparam );
-			
-			or( 1, eax );
-			
-		elseif( eax = w.WM_COMMAND ) then
-			
-			mov( wparam, eax );
-			mov( eax,edx );
-			shr( 16, edx );
-			and( $0ffff, eax );
-			if( edx = w.BN_CLICKED ) then
-				
-				if( eax = w.IDOK ) then
-					
-					//dbg.put( "OK" );
-					
-					saveSettings();
-					w.SendMessage( hwin, w.WM_CLOSE, 0, 0 );
-					or( 1, eax );
-				
-				elseif( eax = w.IDCANCEL ) then
-					
-					//dbg.put( "CANCEL" );
-					
-					w.SendMessage( hwin, w.WM_CLOSE, 0, 0 );
-					or( 1, eax );
-					
-				else
-					
-					xor( eax, eax );
-					
-				endif;
-			
-			else
-				
-				xor( eax, eax );
-				
-			endif;
-	
-
-		elseif( eax = w.WM_NOTIFY ) then
-		
-			mov( lparam, eax );
-			mov( (type w.NMHDR [eax]).hwndFrom, eax );
-			if( eax = optTab ) then
-				
-				w.SendMessage( optTab, w.TCM_GETCURSEL, 0,0 );
-				if( eax != -1 ) then
-					
-					displayTool( eax );
-					
-				endif;
-				
-			endif;
-			
-			or( 1, eax );
-			
-		elseif( eax = w.WM_SETFOCUS ) then
-			
-			w.SetFocus (hwin);
-
-		elseif( eax = w.WM_CLOSE ) then
-			
-			w.EndDialog( hwin, NULL );
-			or( 1, eax );
-
-		else
-			
-			sub( eax, eax );
-			
-		
-		endif;
-		
-		popabi;
-	end Proc_HIDEManager;
-
-	
 
 end manager_unit;

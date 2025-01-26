@@ -885,15 +885,6 @@ proc
 			w.EndDialog( hwin, NULL );
 			or( 1, eax );
 			
-		case( w.WM_INITDIALOG )
-			
-			w.GetDlgItem( hwin, IDC_CB_THEMES );
-			mov( eax, hcbthemes );
-			mov( false, listChanged );
-			setupLists( hwin );
-			loadThemes();
-			
-			or( 1, eax );
 		
 		default
 		

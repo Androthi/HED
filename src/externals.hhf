@@ -5,24 +5,17 @@ proc
 	expandPathMacs			:procedure( source:string; dest:string ); @external;
 	UpdateMenu				:procedure; @external;
 	Menu_CloseFile			:procedure; @external;
-	Menu_ProjectMan			:procedure; @external;
 	hide_openNode			:procedure( var node:fList.fnode ); @external;
 	hide_closeNode			:procedure( var node:fList.fnode ); @external;
 	hide_selectNode			:procedure( var node:fList.fnode ); @external;
 	updateDisplay			:procedure( toupdate:dword ); @external;
 
-	Proc_HIDEManager		:procedure( lparam:dword; wparam:dword; umsg:uns32; hwin:dword ); external;
 	keywordsUpdate	:procedure( hwin:dword ); external;
 	writeMessage :procedure( message:zstring ); external;
 	launchProgram :procedure( 
 					path:string;
 					useoutput:boolean;
 					clear:boolean ); external;
-
-	runNode :procedure( var node: var; clear:boolean ); external;
-	runDebugNode :procedure( var node: var ); external;
-	makeSource :procedure( ftype:dword ); external;
-	make_init :procedure; external;
 
 
 procedure hed_openFile( fname:string ); @returns ("EAX"); @external;
@@ -77,15 +70,6 @@ procedure find_next; @external;
 procedure find_prev; @external;
 procedure setupFind; @external;
 
-// treetool
-procedure Proc_ProjectView (lparam:dword; wparam:dword; umsg:uns32; hwin:dword);	@external;
-procedure TreeToolSetup;				@external;
-procedure ResetTreeView;				@external;
-procedure UpdateTree;				@external;
-procedure Project_View ( message:dword);	@external;
-procedure projectview_checkUpdate (var fnode:fList.fnode); @returns ("EAX"); @external;
-procedure projectview_checkUpdates; @external;
-
 // explorer
 procedure Explorer_Reload; @external;
 
@@ -100,7 +84,6 @@ procedure tabtool_isOpen( var node:fList.fnode ); @returns("EAX"); @external;
 procedure Proc_TabToolSubclass(lparam:dword; wparam:dword; umsg:uns32; hwin:dword);	@external;
 procedure PanelSetup (hwin:dword); @external;
 procedure PanelFold; @external;
-procedure PanelProject; @external;
 procedure PanelExplorer; @external;
 procedure PanelViewWin; @external;
 procedure PanelViewActive; @external;
@@ -151,36 +134,6 @@ procedure getStringInput2 (title:string; dest:string); @returns ("EAX"); @extern
 procedure getStringInput3 (title:string; initial:string; dest:string); @returns ("EAX"); @external;
 
 procedure showAboutWin; @external;
-
-namespace project;
-
-	storage
-		folder		:string;	@external;
-		id			:string;	@external;
-		hpr			:@global:tConfig;	@external;
-		flags		:dword;		@external;
-		options		:dword;		@external;
-		ptype		:uns8;		@external;
-		tab			:uns8;		@external;
-		backups		:uns8;		@external;
-		isOpen		:boolean;	@external;
-		findflags	:dword;		@external;
-		findscope	:dword;		@external;
-	
-	procedure new (projname:string); @returns ("EAX"); @external;
-	procedure new_custom (projname:string); @returns ("EAX"); @external;
-	procedure open (fname:string); @external;
-	procedure addFileNode (fname:string; ftype:string); @returns ("EAX"); @external;
-	procedure init; @external;
-	procedure close; @external;
-	procedure importLib (src:string); @external;
-	procedure removeLib ( lib:string ); @external;
-	procedure addMain (folder:string; fname:string; import:boolean); @external;
-	procedure addInc (folder:string; fname:string; import:boolean); @external;
-	procedure addUnit (folder:string; fname:string; import:boolean); @external;
-	procedure addBinary (folder:string; fname:string; import:boolean); @external;
-	procedure deleteFile (var bnode:@global:fList.fnode); @external;
-end project;
 
 static	// externals
 	align(4);
@@ -245,7 +198,6 @@ static	// externals
 	zGeneral	:zstring; @external;
 	zEnvironment:zstring; @external;
 	zSettings	:zstring; @external;
-	zThemes		:zstring; @external;
 	zSeperator	:zstring; @external;
 	
 	id_strings :zstring[ 20 ]; @external;

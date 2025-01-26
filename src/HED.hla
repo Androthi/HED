@@ -272,21 +272,8 @@ program HED_MAIN;
 			mov( (type byte[eax+1]), bl );
 			if (bl = 'p') then
 				buf.puts( core.projectpath );
-			elseif (bl = 'c') then
-				if (project.isOpen) then
-					buf.puts( project.folder );
-				endif;
 			elseif (bl = 'h') then
 				buf.puts( core.homepath );
-			elseif (bl = 't') then
-				env2.get ("hlatmp", dest);
-				buf.puts( dest );
-			elseif (bl = 'i') then
-				env2.get ("hlainc", dest);
-				buf.puts( dest );
-			elseif (bl = 'l') then
-				env2.get ("lib", dest);
-				buf.puts( dest );
 			elseif (bl = 's') then
 				mov (curnode, eax);
 				if (eax) then
@@ -683,29 +670,19 @@ program HED_MAIN;
 				Toggle();
 				mov (IDM_EDIT_SETMARK, EDX);
 				Toggle();
-				mov (IDM_MAKE_BUILDJOB,edx);
-				Toggle();
+
 				mov (IDM_MAKE_BUILDIT,edx);
 				Toggle();
 				mov (IDM_MAKE_REBUILD,edx);
-				Toggle();
-				mov (IDM_MAKE_REBUILDONE,edx);
-				Toggle();
-				mov (IDM_MAKE_REBUILDJOB,edx);
 				Toggle();
 				mov (IDM_MAKE_RUN,edx);
 				Toggle();
 				mov (IDM_MAKE_BUILDITRUN,edx);
 				Toggle();
-				mov (IDM_MAKE_RUNDBG,edx);
-				Toggle();
 				
 			else
-				if (project.isOpen) then
-					or (1, eax);
-				else
-					xor (eax, eax);
-				endif;
+	
+				xor (eax, eax);
 				mov (IDM_EDIT_FIND, edx);
 				Toggle();
 
@@ -758,41 +735,23 @@ program HED_MAIN;
 				Toggle();
 				mov (IDM_EDIT_SETMARK, EDX);
 				Toggle();
-				
-				mov (IDM_MAKE_BUILDJOB,edx);
-				Toggle();
 				mov (IDM_MAKE_BUILDIT,edx);
 				Toggle();
 				mov (IDM_MAKE_REBUILD,edx);
-				Toggle();
-				mov (IDM_MAKE_REBUILDONE,edx);
-				Toggle();
-				mov (IDM_MAKE_REBUILDJOB,edx);
 				Toggle();
 				mov (IDM_MAKE_RUN,edx);
 				Toggle();
 				mov (IDM_MAKE_BUILDITRUN,edx);
 				Toggle();
-				mov (IDM_MAKE_RUNDBG,edx);
-				Toggle();
+
 				
 			endif;
-			if (project.isOpen) then
-				or (1, eax);
-			else				
+		
 				xor(eax,eax);
-			endif;
-			mov(IDM_MAKE_REBUILDONE,edx);
-			Toggle();
+
 			mov(IDM_MAKE_REBUILD,edx);
 			Toggle();
-			mov(IDM_PROJECT_CLOSE,edx);
-			Toggle();
-			mov(IDM_PROJECT_MANAGER, edx);
-			Toggle();
-			mov(IDM_PROJECT_JOBS, edx );
-			Toggle();
-			
+
 		case (update_selection)
 			mov (curnode, ebx);
 			doEdit();
@@ -824,12 +783,6 @@ program HED_MAIN;
 		mov(IDM_FILE_SAVEALL,edx);
 		Toggle();
 
-		if( ! project.isOpen ) then
-			mov( 0, eax );
-			mov(IDM_MAKE_REBUILD,edx);
-			Toggle();
-		endif;
-
 
 	ENDUSE;
 	//dbg.put ("/updateDisplay");
@@ -845,7 +798,6 @@ program HED_MAIN;
 			dbg.put ( listecx.fullname );
 			Recent_Insert( listecx.fullname );
 			UpdateMenu();
-			TreeToolSetup();
 			updateDisplay (update_general);
 			pop (eax);
 		else
@@ -857,15 +809,11 @@ program HED_MAIN;
 	procedure hide_openHex (fname:string);
 	begin hide_openHex;
 		if (RAHexed_open (fname)) then
-			//dbg.put ("opened");
 			push (eax);
 			mov( eax, ecx );
 			tabtool_add ([ecx]);
-			//dbg.put ("update");
 			Recent_Insert( listecx.fullname );
 			UpdateMenu();
-			//dbg.put("tree");
-			TreeToolSetup();
 			pop (eax);
 		else
 			xor (eax, eax);
@@ -880,7 +828,7 @@ program HED_MAIN;
 		mov( node, ebx );
 		cmp( listebx.hwnd, 0 );	jne already_open;
 		
-		//dbg.put("hide_openNode :", listebx.fullname);
+		//dbg.put("3 :", listebx.fullname);
 		
 		mov( listebx.ftype, eax );
 		switch( eax );
@@ -951,11 +899,8 @@ program HED_MAIN;
 
 	procedure Menu_NewFile; @noframe;
 	begin Menu_NewFile;
-		//dbg.put ("Menu_NewFile");
 		RAEdit_openNew (NULL);
 		tabtool_add ([eax]);
-		TreeToolSetup();
-		//dbg.put ("/Menu_NewFile");
 		updateDisplay (update_general);
 		w.SetFocus( core.hwnd );
 		ret();
@@ -1124,7 +1069,6 @@ program HED_MAIN;
 					// orphaned file...
 					// also remove from list and update treeview.
 					fileList.remove ([ebx]);
-					TreeToolSetup();
 				endif;
 			endif;
 		endif;
@@ -1237,11 +1181,7 @@ program HED_MAIN;
 			endif;
 			
 			filesys.extractExt( workpath, stringbuffer );
-			if( str.ieq( stringbuffer, "hpr" )) then
 
-				project.open (workpath);
-
-			else
 				if (filesys.exists (workpath)) then
 					if (! selectOpen (workpath)) then
 						hed_openFile (workpath);
@@ -1250,7 +1190,7 @@ program HED_MAIN;
 					str.put (stringbuffer, "File not found :", workpath);
 					error.warning (stringbuffer);
 				endif;
-			endif;
+
 		endif;
 		updateDisplay (update_general);
 		dbg.put("/Menu_recentMenu");
@@ -1281,274 +1221,49 @@ program HED_MAIN;
 		ret();	
 	end Menu_Print;
 
-	procedure Menu_MakeClean;
-	
-		var
-			filestruc	:w.WIN32_FIND_DATA;
-			nextfile	:dword;
-			thisbuf		:string;
-			workdir		:string;
-
-		val
-			thisfile	:text := "(type w.WIN32_FIND_DATA [edx])";
-			
-	begin Menu_MakeClean;
-		
-		str.talloc( 1024 ); mov( eax, thisbuf );
-		str.talloc( 400 ); mov( eax, workdir );
-		filesys.gwd( workdir );
-		toOutput( nl "Clean..." nl );
-		if( project.isOpen ) then
-			// we are currently in the project folder
-			mov( &project.hpr, eax );
-			if ( inieax.readBool ("HPR Settings", "useunits")) then
-				try
-					filesys.cd( "units" );
-				anyexception
-				endtry;
-			endif;
-		endif;
-		
-		try
-			str.put( workpath, "*.obj" );
-			w.FindFirstFile( workpath, filestruc );
-			if (eax <> w.INVALID_HANDLE_VALUE) then
-				mov( eax, nextfile );
-				toOutput ("Deleting Object files" nl );
-				forever
-					// delete the file
-					lea( eax, filestruc.cFileName );
-					str.cpyz( eax, thisbuf );
-					filesys.delete( thisbuf );
-					toOutput( "deleted ", thisbuf, nl );
-					
-					// get the next one
-					w.FindNextFile( nextfile, filestruc );
-					breakif( ! eax );
-
-				endfor;
-				w.FindClose (nextfile);
-			endif; 
-			
-		anyexception
-			
-			error.fatal( "Exception occured during clean");
-			
-		endtry;
-		
-		try
-			str.put( workpath, "*.res" );
-			w.FindFirstFile( workpath, filestruc );
-			if (eax <> w.INVALID_HANDLE_VALUE) then
-				mov( eax, nextfile );
-				toOutput ("Deleting compiled resource files" nl );
-				forever
-					// delete the file
-					lea( eax, filestruc.cFileName );
-					str.cpyz( eax, thisbuf );
-					filesys.delete( thisbuf );
-					toOutput( "deleted ", thisbuf, nl );
-					
-					// get the next one
-					w.FindNextFile( nextfile, filestruc );
-					breakif( ! eax );
-
-				endfor;
-				w.FindClose (nextfile);
-			endif; 
-			
-		anyexception
-			
-			error.fatal( "Exception occured during clean");
-			
-		endtry;
-
-		filesys.cd( workdir );
-		toOutput(nl "Clean done" nl );
+	procedure Menu_MakeClean; @noframe;
+	begin Menu_MakeClean;	
+		toOutput( nl "TODO: Clean..." nl );
+		ret();
 	end Menu_MakeClean;
 	
 	procedure Menu_MakeBuild;	@noframe;
 	begin Menu_MakeBuild;
-		MakeProc ( mbuild_c, NULL, mclear_c);
+		toOutput( nl "TODO: Make Build" nl );
 		ret();
 	end Menu_MakeBuild;
 	
 	procedure Menu_MakeRebuild;	@noframe;
 	begin Menu_MakeRebuild;
-			MakeProc( mbuildall_c, NULL, mclear_c);
-			ret();
+		toOutput( nl "TODO: Make Rebuild" nl );
+		ret();
 	end Menu_MakeRebuild;
-	
-	procedure Menu_MakeBuildOne;	@noframe;
-	begin Menu_MakeBuildOne;
-		MakeProc( mbuildone_c, curnode, mclear_c);
-		ret();
-	end Menu_MakeBuildOne;
-	
-	procedure Menu_MakeReBuildJob; @noframe;
-	begin Menu_MakeReBuildJob;
-		mov (curnode, eax);
-		mov (listeax.job, eax);
-		MakeProc (mrebuildonejob_c, eax, mclear_c);
-		ret();
-	end Menu_MakeReBuildJob;
-		
-	
-	procedure Menu_MakeBuildJob; @noframe;
-	begin Menu_MakeBuildJob;
-		mov (curnode, eax);
-		mov (listeax.job, eax);
-		MakeProc (mbuildonejob_c, eax, mclear_c);
-		ret();
-	end Menu_MakeBuildJob;
-
-	
-	procedure Menu_Pview_RebuildJob; @noframe;
-	begin Menu_Pview_RebuildJob;
-		//dbg.put ("pview_rebuild job");
-		MakeProc (mrebuildonejob_c, pview_curSel, mclear_c);
-		ret();
-	end Menu_Pview_RebuildJob;
-
-	procedure Menu_Pview_Run; @noframe;
-	begin Menu_Pview_Run;
-
-		dbg.put ("pview_run");		
-		runNode( val pview_curSel, true );
-		
-		ret();
-	end Menu_Pview_Run;
-
-	procedure Menu_Pview_RunWithdebug; @noframe;
-	begin Menu_Pview_RunWithdebug;
-
-		dbg.put ("pview_run with debug");
-		runDebugNode( val pview_curSel );
-		
-		ret();
-	end Menu_Pview_RunWithdebug;
 
 	procedure Menu_MakeRun;	@noframe;
 	begin Menu_MakeRun;
 		
-		runNode( val curnode, true );
-		
+		toOutput( nl "TODO: Run" nl );
+		//runNode( val curnode, true );
 		ret();
 	end Menu_MakeRun;
-	
-	procedure Menu_MakeRunWithDebug;	@noframe;
-	begin Menu_MakeRunWithDebug;
-		
-		runDebugNode( val curnode );
-		
-		ret();
-	end Menu_MakeRunWithDebug;
 	
 	procedure Menu_MakeTestBuild;	@noframe;
 	begin Menu_MakeTestBuild;
 		
-		MakeProc( mtestbuild_c, NULL, mclear_c );
+		toOutput( nl "TODO: Test build" nl );
 		ret();
 	end Menu_MakeTestBuild;
 
-	procedure Menu_Pview_RebuildFile; @noframe;
-	begin Menu_Pview_RebuildFile;
-		MakeProc (mbuildone_c, pview_curSel, mclear_c);
-		ret();
-	end Menu_Pview_RebuildFile;
-
-
-	procedure Menu_Pview_runExecutable; @noframe;
-	begin Menu_Pview_runExecutable;
-		mov( pview_curSel, eax );
-		mov( listeax.job, eax );
-		MakeProc( mbuildonejob_c, eax, mclear_c );
-		ret();
-	end Menu_Pview_runExecutable;
-
-	procedure Menu_Pview_OpenWithResed;
-		var
-			s	:string;
-			
-	begin Menu_Pview_OpenWithResed;
-		mov (str.talloc (pathsize_c), s);
-		pushabi;
-		mov (pview_curSel, ebx);
-		RAEdit_SaveFile ([ebx]);
-		w.GetFullPathName(listebx.relative, @size(buffer), &buffer, dummy);
-		str.put (s, "ResEd """);
-		str.catz (&buffer, s);
-		str.put2 (s, '"');
-		launchProgram( s, false, false );
-		
-		popabi;
-	end Menu_Pview_OpenWithResed;
-
-	procedure Menu_Pview_OpenWithKhelp;
-		var
-			s	:string;
-			
-	begin Menu_Pview_OpenWithKhelp;
-		mov ( str.talloc ( pathsize_c), s);
-		pushabi;
-
-		mov (pview_curSel, eax);
-		str.put (s, "kHelp """, listeax.relative, '"');
-		launchProgram( s, false, false );
-
-		popabi;
-	end Menu_Pview_OpenWithKhelp;
-
-	procedure Menu_Pview_OpenAsHex; @noframe;
-	begin Menu_Pview_OpenAsHex;
-		
-		hide_openHex ( pview_curSel );
-		ret();
-	end Menu_Pview_OpenAsHex;
-
-	procedure Menu_Pview_SetToOpen; @noframe;
-	begin Menu_Pview_SetToOpen;
-	USE (ESI, EDI);
-		mov (pview_curSel, eax);
-		mov (&project.hpr, esi);
-		iniesi.writeString ("HPR Settings", "mainfile", listeax.relative);
-		mov (pview_curSel, eax);
-		toOutput (listeax.relative, " set to automatically open next time Project is loaded" nl);
-	ENDUSE;
-	ret();
-	end Menu_Pview_SetToOpen;
-
-	procedure Menu_Pview_ReopenFile; @noframe;
-	begin Menu_Pview_ReopenFile;
-	USE (EBX);
-		mov (pview_curSel, ebx);
-		w.SendMessage (listebx.hwnd, w.EM_SETSEL, 0, -1);
-		w.SendMessage(listebx.hwnd, w.WM_CLEAR,0,0);
-		RAEdit_loadFile ([ebx], listebx.relative);
-		projectview_checkUpdate([ebx]);
-	ENDUSE;
-	ret();
-	end Menu_Pview_ReopenFile;
-
-
 	procedure Menu_MakeBuildRun; @noframe;
 	begin Menu_MakeBuildRun;
-		Menu_MakeBuild();
-		if (! eax) then
-			
-			runNode( val curnode, false );
-			
-		endif;
-		
+		toOutput( nl "TODO: Build Run" nl );
 		ret();
 	end Menu_MakeBuildRun;
 
 	
 	procedure Menu_ToolsCalc; @noframe;
 	begin Menu_ToolsCalc;
-		
 		launchProgram( "calc.exe", false, false );
-		
 		ret();
 	end Menu_ToolsCalc;
 
@@ -1558,7 +1273,6 @@ program HED_MAIN;
 		
 		env2.get( "COMSPEC", workpath );
 		launchProgram( workpath, false, true );
-		
 		ret();
 	end Menu_ToolsConsole;
 	
@@ -1616,70 +1330,6 @@ program HED_MAIN;
 		
 	end Menu_ToolsColor;
 	
-	procedure Menu_ProjectClose;	@noframe;
-	begin Menu_ProjectClose;
-		project.close();
-		ret();
-	end Menu_ProjectClose;
-
-	procedure Menu_ProjectMan; @noframe;
-	begin Menu_ProjectMan;
-		dbg.put("menu project manager");
-		if( project.isOpen ) then
-			w.DialogBoxParam (core.hinst, val ID_MANAGER, core.hwnd, &Proc_HIDEManager, manager_project );
-		endif;
-		dbg.put("/menu project manager");
-		ret();
-	end Menu_ProjectMan;
-	
-proc
-	Menu_ProjectJob :procedure {@noframe};
-	begin Menu_ProjectJob;
-		
-		if( project.isOpen ) then
-			w.DialogBoxParam (core.hinst, val ID_MANAGER, core.hwnd, &Proc_HIDEManager, manager_jobs );
-		endif;
-		ret();
-	end Menu_ProjectJob;
-
-
-	procedure Menu_ProjectCustomNew;
-		var
-			s	:string;
-	begin Menu_ProjectCustomNew;
-		mov (str.talloc (pathsize_c), s);
-		pushabi;
-		if ( getStringInput( "New Empty Project", s )) then
-			project.new_custom( s );
-		endif;	
-		updateDisplay (update_general);
-		popabi;		
-	end Menu_ProjectCustomNew;
-	procedure Menu_ProjectOpen;	@noframe;
-	begin Menu_ProjectOpen;
-		pushabi;
-		InitOF ("Open Project", "hpr", type_proj);
-		if ( GetOpenProjectName() ) then
-			mov(eax,openfile_s);
-			project.open (openfile_s);
-			UpdateMenu();
-			str.free (openfile_s);
-		endif;
-		dbg.put ("/Menu_projectOpen");
-		popabi;
-		updateDisplay (update_general);
-		ret();
-	end Menu_ProjectOpen;
-
-proc
-	Menu_OptionGeneral :procedure {@noframe};
-	begin Menu_OptionGeneral;
-		
-		w.DialogBoxParam( core.hinst, val ID_MANAGER, core.hwnd, &Proc_HIDEManager, manager_general );
-		ret();
-		
-	end Menu_OptionGeneral;
-	
 	procedure Menu_Help_ShowEnv;
 		var
 			s	:string;
@@ -1692,20 +1342,9 @@ proc
 					"===================================" nl
 					"%h home    : ", core.homepath,nl
 					"%p projects: ", core.projectpath,nl);
-		if (project.isOpen) then
-			toOutput ( "%c project : ", project.folder, nl); 
-		endif;
+
 		filesys.gwd (workpath);
 		toOutput (  "%$ current : ", workpath, nl);
-					
-		env2.get ("hlatmp", s);
-		toOutput (nl "%t hlatmp   :", s,nl);
-		env2.get ("hlalib", s);
-		toOutput ("   hlalib   :", s, nl);
-		env2.get ("lib", s);
-		toOutput ("%l lib      :", s, nl);
-		env2.get ("hlainc", s);
-		toOutput ("%i hlainc   :", s,nl);
 		toOutput ("%s filename :");
 		mov (curnode, eax);
 		if (eax) then
@@ -2135,19 +1774,6 @@ proc
 	//	ENDUSE;
 		ret();
 	
-	_mokwrds::
-		w.DialogBoxParam( core.hinst, val ID_MANAGER, core.hwnd, &Proc_HIDEManager, manager_themes );
-		ret();
-	
-	_mohide::	// hide/editor options
-		w.DialogBoxParam( core.hinst, val ID_MANAGER, core.hwnd, &Proc_HIDEManager, manager_settings );
-		ret();
-	
-	_mosetp::	// HIDE paths
-		
-		w.DialogBoxParam( core.hinst, val ID_MANAGER, core.hwnd, &Proc_HIDEManager, manager_env );
-		ret();
-	
 	_mhabt::	
 		showAboutWin();
 		ret();
@@ -2277,35 +1903,15 @@ proc
 			dword	IDM_HIDE_EXPANDALL,		&_expandall;	// expand/collapse buttons
 			dword	IDM_HIDE_COLLAPSEALL,	&_collapseall;
 			
-			dword	IDM_PROJECT_MANAGER,	&Menu_ProjectMan;
-			dword	IDM_PROJECT_JOBS,		&Menu_ProjectJob;
-			dword	IDM_PROJECT_NEWV2,		&Menu_ProjectCustomNew;
-			dword	IDM_PROJECT_OPEN,		&Menu_ProjectOpen;
-			dword	IDM_PROJECT_CLOSE,		&Menu_ProjectClose;
-			dword	IDM_MAKE_BUILDJOB,		&Menu_MakeBuildJob;
 			dword	IDM_MAKE_BUILDIT,		&Menu_MakeBuild;
 			dword	IDM_MAKE_REBUILD,		&Menu_MakeRebuild;
-			dword	IDM_MAKE_REBUILDONE,	&Menu_MakeBuildOne;
-			dword	IDM_MAKE_REBUILDJOB,	&Menu_MakeReBuildJob;
 			dword	IDM_MAKE_RUN,			&Menu_MakeRun;
 			dword	IDM_MAKE_BUILDITRUN,	&Menu_MakeBuildRun;
-			dword	IDM_MAKE_RUNDBG,		&Menu_MakeRunWithDebug;
 			dword	IDM_MAKE_TESTBUILD,		&Menu_MakeTestBuild;
 			dword	IDM_MAKE_CLEAN,			&Menu_MakeClean;
 			
-			dword	PVIEW_REBUILDJOB,		&Menu_Pview_RebuildJob;
-			dword	PVIEW_RUN,				&Menu_Pview_Run;
-			dword	PVIEW_RUNWITHDBG,		&Menu_Pview_RunWithdebug;
-			dword	PVIEW_REBUILDFILE,		&Menu_Pview_RebuildFile;
-			dword	PVIEW_RUNEXECUTABLE,	&Menu_Pview_runExecutable;
-			dword	PVIEW_OPENASHEX,		&Menu_Pview_OpenAsHex;
-			dword	PVIEW_SETTOOPEN,		&Menu_Pview_SetToOpen;
-			dword	IDM_OPTION_GENERAL,		&Menu_OptionGeneral;
-			dword	IDM_OPTION_HIDE,		&_mohide;
-			dword	IDM_OPTION_SETPATHS,	&_mosetp;
 			dword	IDM_OPTION_CODEFONT,	&_mocfnt;
 			dword	IDM_OPTION_LINEFONT,	&_molfnt;
-			dword	IDM_OPTION_KEYWORDS,	&_mokwrds;
 			
 			dword	IDM_TOOL_CALC,			&Menu_ToolsCalc;
 			dword	IDM_TOOL_COLOR,			&Menu_ToolsColor;
@@ -2426,16 +2032,10 @@ proc
 			mov(eax,openfile_s);
 			//dbg.put ("buffer:", openfile_s);
 			filesys.extractExt( openfile_s, stringbuffer );
-			if( str.ieq( stringbuffer, "hpr" ) ) then
-			
-				dbg.put ("open proj");
-				project.open (openfile_s);
-				
-			else
+
 				
 				hed_openFile (openfile_s);
 				
-			endif;
 			Recent_Insert( openfile_s );
 			UpdateMenu();
 			str.free(openfile_s);
@@ -2592,21 +2192,11 @@ proc
 			
 			//	check for open output/tree windows and close them.
 			//	but maintain their open status for next time program loads
-			if (project.isOpen) then
-				project.close();
-				dbg.put ("closed eax = ", eax);
-				if (eax) then
-					jmp _cancel;
-				endif;
-			else
+	
 				closeAll();
 				cmp (eax, true);
 				je _cancel;
-			endif;
 	
-			if (core.htree) then
-				w.DestroyWindow(core.htree);
-			endif;
 			if (core.hout) then
 	        	w.DestroyWindow(core.hout);
 			endif;
@@ -2651,7 +2241,6 @@ proc
 			
 			hed_ini.writeBin ("HED Settings", "pos", &settings, @size(settings));
 			hed_ini.write (core.configmain);
-			GraphicEx.Deinit();
 			//dbg.put ("quitting");
 			w.PostQuitMessage(0);
 			
@@ -2896,19 +2485,13 @@ proc
 		_if(@nz);
 			w.CheckMenuItem(core.hmenu,IDM_VIEW_OUT_DOCK,(w.MF_BYCOMMAND | w.MF_CHECKED));
 		_endif;
-		w.CreateDialogParam(core.hinst,val ID_TREEWIN, hwin, &Proc_ProjectView,false);
 		w.CreateDialogParam(core.hinst,val ID_EXPLORER, hwin, &Proc_Explorer, false);
 		w.SendMessage(core.hpaneltab, w.TCM_SETCURSEL, settings.panelwin, 0);
 		
-		w.ShowWindow (core.htree, w.SW_HIDE);
 		w.ShowWindow (core.hexplorer, w.SW_HIDE);
 		
 		PanelViewWin();
-				
-		if (testz (TREE_D, settings.winview)) then
-			w.ShowWindow (core.htree, w.SW_SHOW);
-		endif;
-		
+
 		if (testz (EXPLORER_D, settings.winview)) then
 			w.ShowWindow( core.hexplorer, w.SW_SHOW);
 		endif;
@@ -3001,9 +2584,6 @@ proc
 		move( str.alloc (pathsize_c), core.projectpath);
 		move( str.alloc (mastersize_c), stringbuffer);
 	
-		GraphicEx.Init();
-		make_init();
-
 		and(! opt_exptabs, settings.options);
 		or( opt_indent, settings.options);			
 		
@@ -3081,13 +2661,6 @@ proc
 			hed_ini.readHex( "HED Settings", "options" );
 			mov( eax, settings.options );
 		endif;
-		
-		move (settings.options, project.options);
-		mov (settings.tab, al);
-		mov (al, project.tab);
-		move (settings.findflags, project.findflags);
-		move (settings.findscope, project.findscope);
-		project.init();			// initialize default job
 		fileList.create();
 		setupFind();
 		mov (0, settings.panelactive);
@@ -3174,11 +2747,6 @@ proc
 				mov (eax, openfile_s);
 				
 				filesys.extractExt( openfile_s, stringbuffer );
-				if( str.ieq( stringbuffer, "hpr" ) ) then
-					project.open (openfile_s);
-					Recent_Insert( openfile_s );
-					jmp _nxtarg;
-				endif;
 
 				
 				dbg.put("open :", openfile_s);
@@ -3189,14 +2757,6 @@ proc
 				dec (argc);
 			endwhile;
 
-		else
-			hed_ini.readInt ("HED Settings", "Restore Project");
-			if ( eax ) then
-				if (hed_ini._readString ("HED Settings", "LastProject", workpath)) then
-					Recent_Insert( workpath );
-					project.open (workpath);
-				endif;
-			endif;
 		endif;
 
 		updateDisplay (update_general);
