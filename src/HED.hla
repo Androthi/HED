@@ -1379,21 +1379,6 @@ program HED_MAIN;
 	_mfq::	
 			w.SendMessage(hwin,w.WM_CLOSE,0,0);
 			ret();
-	
-	_mvsod::
-			// dock output
-			xor(OUTPUT_D,settings.winview);
-
-
-
-			test(OUTPUT_D,settings.winview);
-			if(@nz) then
-				Output_View(DOCK_YES);
-			else
-				Output_View(DOCK_NO);
-			endif;
-			ret();
-			        
 			
 	_meud::	
 			mov (curnode, eax);
@@ -1782,7 +1767,6 @@ proc
 			
 			dword	IDM_VIEW_STATUS,	&Menu_ViewStatusbar;
 			dword	IDM_VIEW_OUTPUT,	&Menu_ViewOutput;
-			dword	IDM_VIEW_OUT_DOCK,	&_mvsod;
 			dword	IDM_VIEW_PANEL,		&Menu_ViewPanel;
 			dword	IDM_VIEW_HIDEALL,	&Menu_ViewHideAll;
 			dword	IDM_VIEW_TOGGLE,	&Menu_ViewToggleWindows;
@@ -2387,10 +2371,6 @@ proc
 			w.ShowWindow( core.hout, w.SW_HIDE );
 		endif;
 	
-		test(OUTPUT_D,settings.winview);
-		_if(@nz);
-			w.CheckMenuItem(core.hmenu,IDM_VIEW_OUT_DOCK,(w.MF_BYCOMMAND | w.MF_CHECKED));
-		_endif;
 		w.CreateDialogParam(core.hinst,val ID_EXPLORER, hwin, &Proc_Explorer, false);
 		w.SendMessage(core.hpaneltab, w.TCM_SETCURSEL, settings.panelwin, 0);
 		

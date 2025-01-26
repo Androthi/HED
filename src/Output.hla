@@ -60,35 +60,25 @@ begin Output_View;
 		w.CheckMenuItem(core.hmenu,IDM_VIEW_OUTPUT,w.MF_BYCOMMAND |w.MF_CHECKED);
 		w.ShowWindow(core.hout,w.SW_SHOW);
 		or(OUTPUT,settings.winview);
-		test(OUTPUT_D,settings.winview);
-		if(@nz) then
+		//test(OUTPUT_D,settings.winview);
+		//if(@nz) then
 			w.ShowWindow(core.hVSplitBar,w.SW_SHOW);
 			or(VSPLIT,settings.winview);
-		endif;
+		//endif;
 
-	elseif (eax = DOCK_YES) then
-		w.GetWindowLong(core.hout,w.GWL_STYLE);
-		and(!(w.WS_SIZEBOX),eax);
-		w.SetWindowLong(core.hout,w.GWL_STYLE,eax);
-		w.SetParent(core.hout,core.hwnd);
-		mov(eax,oldhout);
-		w.CheckMenuItem(core.hmenu,IDM_VIEW_OUT_DOCK,(w.MF_BYCOMMAND | w.MF_CHECKED));
-		or(OUTPUT_D,settings.winview);
-		test(OUTPUT,settings.winview);
-		if(@nz) then
-			Output_View(w.SW_SHOW);
-		endif;
-		
-	elseif (eax = DOCK_NO) then
-		w.SetParent(core.hout,oldhout);
-		mov(0,oldhout);
-		w.GetWindowLong(core.hout,w.GWL_STYLE);
-		or(w.WS_SIZEBOX,eax);
-		w.SetWindowLong(core.hout,w.GWL_STYLE,eax);
-		w.CheckMenuItem(core.hmenu,IDM_VIEW_OUT_DOCK,(w.MF_BYCOMMAND));
-		w.ShowWindow(core.hVSplitBar,w.SW_HIDE);
-		and(!(VSPLIT),settings.winview);
-		and(!(OUTPUT_D),settings.winview);
+//	elseif (eax = DOCK_YES) then
+//		w.GetWindowLong(core.hout,w.GWL_STYLE);
+//		and(!(w.WS_SIZEBOX),eax);
+//		w.SetWindowLong(core.hout,w.GWL_STYLE,eax);
+//		w.SetParent(core.hout,core.hwnd);
+//		mov(eax,oldhout);
+//		w.CheckMenuItem(core.hmenu,IDM_VIEW_OUT_DOCK,(w.MF_BYCOMMAND | w.MF_CHECKED));
+//		or(OUTPUT_D,settings.winview);
+//		test(OUTPUT,settings.winview);
+//		if(@nz) then
+//			Output_View(w.SW_SHOW);
+//		endif;
+//		
 		
 	endif;
 	
@@ -247,7 +237,6 @@ begin 	Proc_Output;
 						STYLE_NOSPLITT | STYLE_NOLINENUMBER | STYLE_NOCOLLAPSE | STYLE_NOHILITE | STYLE_NODIVIDERLINE,
 						0,0,0,0,hwin,NULL,core.hinst,NULL);
 			mov(eax,core.houtedt);
-			dbg.put("houtedit = ", core.houtedt);
 	
 			mov(core.hmainfont,rafnt.hFont);
 			mov(core.hitalic,rafnt.hIFont);
@@ -258,14 +247,20 @@ begin 	Proc_Output;
 	
 			w.SendMessage(core.houtedt,REM_SUBCLASS,0,&Proc_OutputEdit);
 			mov(eax,oldoutputedit);
-			w.ShowWindow(core.houtedt,w.SW_SHOWNA);			
-			test(OUTPUT_D,settings.winview);
+			w.ShowWindow(core.houtedt,w.SW_SHOWNA);		
+			
+			//w.GetWindowLong(core.hout,w.GWL_STYLE);
+			//and(!(w.WS_SIZEBOX),eax);
+			//w.SetWindowLong(core.hout,w.GWL_STYLE,eax);
+			w.SetParent(core.hout,core.hwnd);
+			mov(eax,oldhout);
+			//w.CheckMenuItem(core.hmenu,IDM_VIEW_OUT_DOCK,(w.MF_BYCOMMAND | w.MF_CHECKED));
+			//or(OUTPUT_D,settings.winview);
+			test(OUTPUT,settings.winview);
 			if(@nz) then
-				Output_View(DOCK_YES);
-			else
-				w.MoveWindow(hwin,settings.outwin.x,settings.outwin.y,settings.outwin.wt,settings.outwin.ht,true);
-				w.SendMessage(hwin,w.WM_SIZE,0,0);			
+				Output_View(w.SW_SHOW);
 			endif;
+			
 			w.SetWindowText(core.hout, "Output");
 			jmp xProc_Output;
 	
