@@ -51,8 +51,8 @@ static
 
 readonly
 	
-	AppName		:zstring := "HED";
-	RAEditClassName		:string := "RAEDIT";
+	AppName			:zstring := "HED";
+	RAEditClassName	:string := "RAEDIT";
 
 	commaDelimcst	:cset; @nostorage;
 		cset { ',' };

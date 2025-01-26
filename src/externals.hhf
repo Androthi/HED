@@ -119,10 +119,7 @@ procedure initPrinter; @external;
 procedure Proc_HSplit(lparam:dword; wparam:dword; umsg:uns32; hwin:dword); @external;
 procedure Proc_VSplit(lparam:dword; wparam:dword; umsg:uns32; hwin:dword); @external;
 
-procedure Proc_ManagerSettings(lparam:dword; wparam:dword; umsg:uns32; hwin:dword); @external;
-
 procedure Proc_Goto(lparam:dword; wparam:dword; umsg:uns32; hwin:dword); @external;
-procedure Proc_BuildTarget(lparam:dword; wparam:dword; umsg:uns32; hwin:dword); @external;
 procedure getStringInput2 (title:string; dest:string); @returns ("EAX"); @external;
 procedure getStringInput3 (title:string; initial:string; dest:string); @returns ("EAX"); @external;
 
