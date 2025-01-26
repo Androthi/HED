@@ -113,72 +113,66 @@ proc
 		mov (0, return);
 		inc (nprocesses);
 	
-		if (mode = mode_gui) then
-			mem2.fillMem(&pinfo,@size(pinfo),0);
-			mem2.fillMem(&startinfo,@size(startinfo),0);
+		mem2.fillMem(&pinfo,@size(pinfo),0);
+		mem2.fillMem(&startinfo,@size(startinfo),0);
+	
+		mov(@size(w.SECURITY_ATTRIBUTES),sat.niLength);
+		mov(NULL,sat.lpSecurityDescriptor);
+		mov(true,sat.bInheritHandle);
+	
+		dbg.put("piping :", source);
+		//verbOut ("=> ", source, nl);
+		w.CreatePipe(hread,hwrite,&sat,PIPE_MEM);
 		
-			mov(@size(w.SECURITY_ATTRIBUTES),sat.niLength);
-			mov(NULL,sat.lpSecurityDescriptor);
-			mov(true,sat.bInheritHandle);
-		
-			dbg.put("piping :", source);
-			//verbOut ("=> ", source, nl);
-			w.CreatePipe(hread,hwrite,&sat,PIPE_MEM);
+		if (eax) then
+	
+			mov(@size(w.STARTUPINFO),startinfo.cb);
+			mov(hwrite,eax);
+			mov(eax,startinfo.hStdOutput);
+			mov(eax,startinfo.hStdError);
+			mov(w.STARTF_USESHOWWINDOW | w.STARTF_USESTDHANDLES,startinfo.dwFlags);
+			mov(w.SW_HIDE,startinfo.wShowWindow);
+			
+			filesys.gwd( stringbuffer );
+			dbg.put(" PIPE path :", stringbuffer, nl, "source :", source );
+			
+			w.CreateProcess(NULL, source, NULL,NULL, true, NULL,NULL,NULL,&startinfo, &pinfo);
 			
 			if (eax) then
 		
-				mov(@size(w.STARTUPINFO),startinfo.cb);
-				mov(hwrite,eax);
-				mov(eax,startinfo.hStdOutput);
-				mov(eax,startinfo.hStdError);
-				mov(w.STARTF_USESHOWWINDOW | w.STARTF_USESTDHANDLES,startinfo.dwFlags);
-				mov(w.SW_HIDE,startinfo.wShowWindow);
-				
-				filesys.gwd( stringbuffer );
-				dbg.put(" PIPE path :", stringbuffer, nl, "source :", source );
-				
-				w.CreateProcess(NULL, source, NULL,NULL, true, NULL,NULL,NULL,&startinfo, &pinfo);
-				
-				if (eax) then
-			
-					// process creation ok
-					dbg.put ("waiting for process completion...");
-					w.WaitForSingleObject(pinfo.hProcess,w.INFINITE);
-					w.GetExitCodeProcess( pinfo.hProcess, return );
-					w.CloseHandle(pinfo.hProcess);
-					w.CloseHandle(pinfo.hThread);
-					w.CloseHandle (hwrite);
-					try
-						forever
-							fileio.read (hread, _buffer, @size(_buffer)-1);
-							mov (0, _buffer[eax]);
-							lea (eax, _buffer);
-							SendStr	(core.houtedt, w.EM_REPLACESEL, false, eax );
-						endfor;
-					anyexception
-					endtry;
-				else
-					
-					w.GetLastError();
-					mov (eax, return);
-					error.syserror (eax);
-					w.CloseHandle(hwrite);
-					
-				endif;
-				
-				w.CloseHandle (hread);
-				
+				// process creation ok
+				dbg.put ("waiting for process completion...");
+				w.WaitForSingleObject(pinfo.hProcess,w.INFINITE);
+				w.GetExitCodeProcess( pinfo.hProcess, return );
+				w.CloseHandle(pinfo.hProcess);
+				w.CloseHandle(pinfo.hThread);
+				w.CloseHandle (hwrite);
+				try
+					forever
+						fileio.read (hread, _buffer, @size(_buffer)-1);
+						mov (0, _buffer[eax]);
+						lea (eax, _buffer);
+						SendStr	(core.houtedt, w.EM_REPLACESEL, false, eax );
+					endfor;
+				anyexception
+				endtry;
 			else
 				
 				w.GetLastError();
 				mov (eax, return);
 				error.syserror (eax);
+				w.CloseHandle(hwrite);
 				
 			endif;
+			
+			w.CloseHandle (hread);
+			
 		else
 			
-			os2.sysexec (source);
+			w.GetLastError();
 			mov (eax, return);
+			error.syserror (eax);
+			
 		endif;
 			
 		mov (return, eax);
@@ -578,19 +572,6 @@ proc
 					linkfile.append( "debug.lib" nl );
 					
 				endif;
-				 				
-			elseif( eax = jobtype_dll ) then
-				dbg.put("dll");
-				mov( &project.hpr, esi );
-				if( iniesi._readString( jobebx.id, "def", tmpStr ) ) then
-					
-					linkfile.append( "-def:", tmpStr, nl );
-					
-				else
-					
-					toOutput( "Warning: no definition specified for dll, add a def from Project Manager" nl );
-					
-				endif;
 			
 			endif;
 			
@@ -617,13 +598,7 @@ proc
 			str.insert( """", -1, tmpStr );
 
 			mov( jobebx.job_type, eax );
-			if( eax = jobtype_hlaprogram || eax = jobtype_dll ) then
-				
-				dbg.put("here");
-				str.put( workpath, "polink @", tmpStr );
-				toOutput( "Link :", jobebx.id, nl );
-				
-			elseif( eax = jobtype_library ) then
+			if( eax = jobtype_library ) then
 
 				str.put( workpath, "polib @", tmpStr );
 				toOutput( "Library :", jobebx.id, nl );
@@ -976,7 +951,7 @@ begin build_job;
 	
 	mov (jobebx.job_type, eax);
 	switch (eax)
-	case ( jobtype_hlaprogram, jobtype_dll, jobtype_library )
+	case ( jobtype_hlaprogram, jobtype_library )
 		USE (ESI);
 			
 			linkobjs.erase();
@@ -1156,12 +1131,6 @@ begin MakeProc;
 		
 		mov( dparam, eax );
 		
-		if( eax = mobject_c ) then
-		
-			mov( false, buildlink );
-		
-		endif;
-		
 		if( project.isOpen ) then
 
 			filesys.cd( project.folder );
@@ -1233,36 +1202,6 @@ begin MakeProc;
 			build_job ([eax], mnforce_c);
 		else
 			jmp buildnonproj;
-		endif;
-		
-	case( mhla_c )
-		
-		mov( dparam, ebx );
-		if( ebx ) then
-
-			str.cpy( "", workpath );
-			env2.get( workpath, "hlaopt" );
- 
-			if( listebx.isproject ) then
-				filesys.cd( project.folder );
-				str.put( stringbuffer, listebx.relative );
-			else
-				filesys.extractPath( listebx.fullname, stringbuffer );
-				filesys.cd( stringbuffer );
-				dbg.put("curdir = ", stringbuffer );
-				filesys.extractFilename( listebx.fullname, stringbuffer );
-			endif;
-			
-			str.put( s, "hla " );
-			if( str.length( workpath )) then
-				str.put2( s, workpath, ' ' );
-			endif;
-			
-			str.put2( s, '"', stringbuffer, '"' );
-			
-			toOutput( ">", s, nl );
-			pipeExec( s );
-			filesys.cd( curdir );
 		endif;
 		
 	endswitch;

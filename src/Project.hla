@@ -23,7 +23,6 @@ const	// local
 	state_selectlibrary	:= 4;
 	state_selecttarget	:= 5;
 	state_selectprogram	:= 6;
-	state_selectdll		:= 7;
 	
 	storage
 	
@@ -917,29 +916,24 @@ begin open;
 		
 		mov (true, project.isOpen);
 	
-		if (mode = mode_gui) then
-	
-			mov (&project.hpr, esi);
-			if (iniesi._readString ("HPR Settings", "mainfile", workpath)) then
-				if (fileList.findFullname (workpath)) then
-					hide_openNode( [eax] );
-				else
-					mov( &project.hpr, esi );
-					iniesi.deleteKey ("HPR Settings", "mainfile");
-					error.warning ("Project mainfile not found, please select a new file");
-				endif;
+		mov (&project.hpr, esi);
+		if (iniesi._readString ("HPR Settings", "mainfile", workpath)) then
+			if (fileList.findFullname (workpath)) then
+				hide_openNode( [eax] );
 			else
-				SetWindowCaption();
+				mov( &project.hpr, esi );
+				iniesi.deleteKey ("HPR Settings", "mainfile");
+				error.warning ("Project mainfile not found, please select a new file");
 			endif;
-	
-			w.SendMessage(core.hwnd,HIDE_TOGGLEDEBUG,0,0);
-			TreeToolSetup();
-			repaintAll();
-			w.SendMessage( core.hwnd, HIDE_SETSTATUS, STATUS_PROJ, zProject );
-			
-			Explorer_Reload();
-	
+		else
+			SetWindowCaption();
 		endif;
+
+		TreeToolSetup();
+		repaintAll();
+		
+		Explorer_Reload();
+
 	else
 		dbg.put ("new format");
 		// new_format
@@ -1001,29 +995,25 @@ begin open;
 		endwhile;
 		buf.destroy();	
 		mov (true, project.isOpen);
-		if (mode = mode_gui) then
 	
-			mov (&project.hpr, esi);
-			if (iniesi._readString ("HPR Settings", "mainfile", workpath)) then
-				if (fileList.findFullname (workpath)) then
-					hide_openNode( [eax] );
-				else
-					mov( &project.hpr, esi );
-					iniesi.deleteKey ("HPR Settings", "mainfile");
-					error.warning ("Project mainfile not found, please select a new file");
-				endif;
+		mov (&project.hpr, esi);
+		if (iniesi._readString ("HPR Settings", "mainfile", workpath)) then
+			if (fileList.findFullname (workpath)) then
+				hide_openNode( [eax] );
 			else
-				SetWindowCaption();
+				mov( &project.hpr, esi );
+				iniesi.deleteKey ("HPR Settings", "mainfile");
+				error.warning ("Project mainfile not found, please select a new file");
 			endif;
-	
-			w.SendMessage(core.hwnd,HIDE_TOGGLEDEBUG,0,0);
-			TreeToolSetup();
-			repaintAll();
-			w.SendMessage( core.hwnd, HIDE_SETSTATUS, STATUS_PROJ, zProject );
-			
-			Explorer_Reload();
-	
+		else
+			SetWindowCaption();
 		endif;
+
+		TreeToolSetup();
+		repaintAll();
+		
+		Explorer_Reload();
+
 	endif;
 	
 	w.SendMessage( core.hwnd, w.WM_SETFOCUS, 0, 0);
@@ -1074,8 +1064,7 @@ USE (EBX, ESI, EDI);
 		// restore default settings
 		mov (settings.tab, al);
 		mov (al, project.tab);
-		mov (settings.backups, ah);
-		mov (ah, project.backups);
+
 		move (settings.options, project.options);
 		move (settings.findflags, project.findflags);
 		move (settings.findscope, project.findscope);
@@ -1095,7 +1084,6 @@ USE (EBX, ESI, EDI);
 		anyexception
 			error.warning("Project folder no longer exists, please fix project path");
 		endtry;
-		w.SendMessage(core.hwnd,HIDE_SETSTATUS,STATUS_PROJ, zStandard );
 		SetWindowCaption();
 		xor (eax, eax);
 	endif;
@@ -1260,21 +1248,12 @@ procedure manager_updateDisplay (state:dword);
 
 	procedure all( state: dword in ebx ); @noframe;
 	begin all;
-		w.GetDlgItem( hmanager, IDC_MANAGERJOBS_LINK );
-		w.EnableWindow( eax, ebx );
+
 		w.GetDlgItem( hmanager, IDC_MANAGERJOBS_NEWLIB );
 		w.EnableWindow (eax, ebx);
 		w.GetDlgItem( hmanager, IDC_MANAGERJOBS_REMOVELIB );
 		w.EnableWindow( eax, ebx );
-		w.GetDlgItem( hmanager, IDC_MANAGERJOBS_LEVEL );
-		w.EnableWindow( eax, ebx );
 		w.GetDlgItem( hmanager, IDC_MANAGERJOBS_CON2OUT );
-		w.EnableWindow( eax, ebx );
-		w.GetDlgItem( hmanager, IDC_MANAGERJOBS_THREADSAFE );
-		w.EnableWindow( eax, ebx );
-		w.GetDlgItem( hmanager, IDC_MANAGERJOBS_DEBUG );
-		w.EnableWindow( eax, ebx );
-		w.GetDlgItem( hmanager, IDC_MANAGERJOBS_PEGUI );
 		w.EnableWindow( eax, ebx );
 		ret();
 		
@@ -1341,27 +1320,11 @@ begin manager_updateDisplay;
 
 		xor( ebx, ebx );
 		all( ebx );
-		
-	case( state_selectlibrary )
-
-		xor( ebx, ebx );
-		all( ebx );
-		w.GetDlgItem( hmanager, IDC_MANAGERJOBS_LEVEL );
-		w.EnableWindow( eax, true );
-		w.GetDlgItem( hmanager, IDC_MANAGERJOBS_THREADSAFE );
-		w.EnableWindow( eax, true );
 	
 	case( state_selectprogram )
 
 		or( 1, ebx );
 		all( ebx );
-		
-	case( state_selectdll )
-		
-		xor( ebx, ebx );
-		all( ebx );
-		w.GetDlgItem( hmanager, IDC_MANAGERJOBS_LINK );
-		w.EnableWindow( eax, true );
 
 	endswitch;
 	
@@ -1476,66 +1439,6 @@ proc
 		
 		dbg.exits("updateJobs");
 	end updateJobs;
-
-
-	updateLinkedObjects :procedure;
-	
-		var
-			sbuffer	:string;
-			
-	begin updateLinkedObjects;
-		
-		mov( str.talloc(1000), sbuffer );
-		pushabi;
-	
-		w.SendDlgItemMessage( hmanager, IDC_MANAGERJOBS_LINKLIST, w.LB_RESETCONTENT, 0, 0 );
-		mov( curjob, eax );
-		str.put( workpath, jobeax.id, ".extlinked" );
-		mov( &project.hpr, esi );
-		iniesi.getItemCount( workpath );
-		mov( eax, count );
-		xor( ebx, ebx );
-		while( ebx < count ) do
-			
-			iniesi.readItem( workpath, ebx, sbuffer );
-			w.SendDlgItemMessage( hmanager, IDC_MANAGERJOBS_LINKLIST, w.LB_ADDSTRING, 0, sbuffer );
-			
-			w.GetDlgItem( hmanager, IDC_MANAGERJOBS_THREADSAFE );
-			mov( eax, edi );
-			
-			if( str.ieq( sbuffer, "hlalib.lib" )) then
-
-				w.EnableWindow( edi, true );
-				w.CheckDlgButton( hmanager, IDC_MANAGERJOBS_THREADSAFE, w.BST_UNCHECKED );
-
-			elseif( str.ieq( sbuffer, "hlalib_safe.lib" )) then
-
-				w.EnableWindow( edi, true );
-				w.CheckDlgButton( hmanager, IDC_MANAGERJOBS_THREADSAFE, w.BST_CHECKED );
-
-			endif;
-			
-			inc( ebx );
-		endwhile;
-		
-		popabi;
-	end updateLinkedObjects;
-	
-	job_defaultlibs :procedure;
-	
-		var
-			sbuffer	:string;
-			
-	begin job_defaultlibs;
-
-		mov( str.talloc(1000), sbuffer );
-		str.put( inwork, infile, ".extlinked" );
-		hed_ini.readSection( "default libs", sbuffer );
-		mov (&project.hpr, esi);
-		iniesi._writeSection( inwork, sbuffer );
-		
-	end job_defaultlibs;
-
 	
 	job_add :procedure( src:string );
 		
@@ -1563,8 +1466,6 @@ proc
 			mov (true, jobeax.inQueue);
 		endif;
 		mov (eax, ebx);
-
-		job_defaultlibs();
 		
 		if (testnz (opt_windows, settings.options)) then
 			mov (false, eax);
@@ -1681,54 +1582,6 @@ proc
 
 	end job_addlibrary;
 	
-	job_adddll :procedure( src:string ); 
-		
-		var
-			buf		:tBuffer;
-			sbuffer	:string;
-			
-	begin job_adddll;
-
-		mov( str.talloc(1000), sbuffer );
-		str.cpy (src, infile);
-		if ( filesys.hasExtension( infile )) then
-			filesys.deleteExt( infile, infile );
-		endif;
-		mov (&project.hpr, esi);
-		if (holdjobmode) then
-			iniesi.writeItem ("Held Jobs", -1, infile);
-		else
-			iniesi.writeItem ("HPR Jobs", -1, infile);
-		endif;
-		dbg.put ("appending job: ", infile);
-		jobList.appendJob (infile);
-		mov (eax, ebx);
-		if (! holdjobmode) then
-			mov (true, jobebx.inQueue);
-		endif;
-		mov (jobtype_dll, jobebx.job_type);
-		
-		job_defaultlibs();
-
-		// create job section
-		mov (&project.hpr, esi);
-		iniesi.writeString (infile, "type", "dll");
-
-		buf.create();
-		buf.insert (	"-base:0x40000000" nl
-						"-entry:DLLEntry", nl
-						"-dll" nl);
-						
-		mov (&project.hpr, esi);
-		str.put (inwork, infile, ".link");
-		iniesi.writeBufSection (inwork, buf);
-
-		str.put (sbuffer, infile, dll_c); 
-		iniesi.writeString (infile, "output", sbuffer);
-
-		buf.destroy();
-		
-	end job_adddll;
 	
 	job_addmisc :procedure( src:string );
 	begin job_addmisc;
@@ -1850,13 +1703,6 @@ proc
 		if( jobecx.job_type = jobtype_target ) then
 			
 			iniesi.writeString( jobecx.id, "target", listebx.relative );
-			
-		elseif( jobecx.job_type = jobtype_dll ) then
-			
-			filesys.extractExt( listebx.id, inwork );
-			if( str.eq( inwork, "def" ) ) then
-				iniesi.writeString( jobecx.id, "def", listebx.relative );
-			endif;
 			
 		elseif( jobecx.job_type = jobtype_hlaprogram ) then
 			
@@ -2074,31 +1920,6 @@ proc
 					w.SendDlgItemMessage( hwin, IDC_NEWFILE_TYPE, w.CB_SETITEMDATA, eax, esi );
 
 				endfor; 
-			
-			case( jobtype_dll )
-
-				mov( &project.hpr, esi );
-				mov( curjob, eax );
-				if( iniesi.isKeyDefined( jobeax.id, "main") ) then
-					
-					mov( 1, ebx );
-					
-				else
-					
-					xor( ebx, ebx );
-					
-				endif;
-				
-				while( ebx < @elements( dllTypes ) ) do
-					
-					mov( dllTypes[ebx*4], esi );
-					mov( fileTypes[esi*4], eax );
-					
-					w.SendDlgItemMessage( hwin, IDC_NEWFILE_TYPE, w.CB_ADDSTRING, 0, eax );
-					w.SendDlgItemMessage( hwin, IDC_NEWFILE_TYPE, w.CB_SETITEMDATA, eax, esi );
-					
-					inc( ebx );
-				endwhile;
 
 			case( jobtype_library )
 				
@@ -2279,10 +2100,6 @@ proc
 					case( jobtype_target )
 					
 						job_addtarget( sbuffer );
-						
-					case( jobtype_dll )
-					
-						job_adddll( sbuffer );
 					
 					case( jobtype_library )
 					
@@ -2350,19 +2167,7 @@ proc
 
 		if( edx = w.BN_CLICKED ) then
 
-			if( eax = IDC_MANAGERJOBS_PEGUI ) then
-				
-				mov( curjob, ebx );
-				mov( &project.hpr, esi );
-				
-				if( w.IsDlgButtonChecked( hwin, IDC_MANAGERJOBS_PEGUI )) then
-					mov( false, eax );
-				else
-					mov( true, eax );
-				endif;
-				iniesi.writeBool( jobebx.id, "console", al );
-			
-			elseif( eax = IDC_MANAGERJOBS_CON2OUT ) then
+			if( eax = IDC_MANAGERJOBS_CON2OUT ) then
 
 				mov( curjob, ebx );
 				mov( &project.hpr, esi );
@@ -2370,61 +2175,6 @@ proc
 				w.IsDlgButtonChecked( hwin, IDC_MANAGERJOBS_CON2OUT );
 				iniesi.writeBool( jobebx.id, "stdout to output", al );
 				
-			elseif( eax = IDC_MANAGERJOBS_DEBUG ) then
-				
-				mov( curjob, ebx );
-				mov( &project.hpr, esi );
-
-				w.IsDlgButtonChecked( hwin, IDC_MANAGERJOBS_DEBUG );			
-				iniesi.writeBool( jobebx.id, "debug", al );
-
-
-			elseif( eax = IDC_MANAGERJOBS_THREADSAFE ) then
-				
-				mov( curjob, ebx );
-				mov( &project.hpr, esi );
-				
-				if( w.IsDlgButtonChecked( hwin, IDC_MANAGERJOBS_THREADSAFE ) = w.BST_CHECKED ) then
-					
-					project.removeLib( "hlalib.lib" );
-					project.importLib( "hlalib_safe.lib" );
-					updateLinkedObjects();
-					//or( opt_threadsafe, project.options );
-					iniesi.writeBool( jobebx.id, "thread safe", true );
-					
-				else
-					
-					project.removeLib( "hlalib_safe.lib" );
-					project.importLib( "hlalib.lib" );
-					updateLinkedObjects();
-					//and( ! opt_threadsafe, project.options );
-					iniesi.writeBool( jobebx.id, "thread safe", false );
-					
-				endif;
-				
-			elseif( eax = IDC_MANAGERJOBS_NEWLIB ) then
-				InitOF( "Add a library or object for linking", "lib", type_lib );
-				if ( GetOpenName() ) then
-					
-					push( eax );
-					project.importLib( eax );
-					pop( eax );
-					str.free( eax );
-					updateLinkedObjects();
-					
-				endif;
-		
-			elseif( eax = IDC_MANAGERJOBS_REMOVELIB ) then
-
-				w.SendDlgItemMessage( hwin, IDC_MANAGERJOBS_LINKLIST, w.LB_GETCURSEL, 0, 0 );
-				if( eax != w.LB_ERR ) then
-
-					w.SendDlgItemMessage( hwin, IDC_MANAGERJOBS_LINKLIST, w.LB_GETTEXT, EAX, &buffer );
-					str.cpyz( &buffer, stringbuffer );
-					project.removeLib( stringbuffer );
-					updateLinkedObjects();
-
-				endif;
 			
 			elseif (eax = IDC_MANAGERJOBS_NEWFILE) then
 				
@@ -2605,12 +2355,6 @@ proc
 					
 				endif;
 			
-			elseif( eax = IDC_MANAGERJOBS_LINK ) then
-
-				mov( curjob, eax );
-				saveAll();
-				w.DialogBoxParam( core.hinst, val ID_ADVANCEDLINK, hwin, &Proc_AdvancedLink, eax );
-				
 			endif;
 			
 		
@@ -2641,23 +2385,6 @@ proc
 					w.GetDlgItem( hwin, IDC_MANAGERJOBS_REMOVELIB );
 					w.EnableWindow( eax, true );
 
-				endif;
-				
-			endif;
-			
-			
-		elseif( edx = w.CBN_SELENDOK ) then
-
-			if( eax = IDC_MANAGERJOBS_LEVEL ) then
-				
-				w.SendDlgItemMessage( hwin, IDC_MANAGERJOBS_LEVEL, w.CB_GETCURSEL, 0, 0 );
-				if( eax != w.CB_ERR ) then
-					
-					mov( &project.hpr, esi );
-					mov( curjob, ebx );
-					
-					iniesi.writeInt( jobebx.id, "HLA Level", eax );
-					
 				endif;
 				
 			endif;
@@ -2697,7 +2424,6 @@ proc
 		
 						manager_updateDisplay( state_selectjob );
 						updateFiles( curjob );
-						updateLinkedObjects();
 						
 						mov( curjob, ebx );
 						mov( jobebx.job_type, eax );
@@ -2708,10 +2434,6 @@ proc
 						elseif( eax = jobtype_target || eax = jobtype_misc ) then
 							
 							pushd( state_selecttarget );
-								
-						elseif( eax = jobtype_dll ) then
-							
-							pushd( state_selectdll );
 							
 						else
 							
@@ -2721,15 +2443,6 @@ proc
 						
 						call manager_updateDisplay;
 						
-						if( iniesi.readBool( jobebx.id, "console") ) then
-
-							w.CheckDlgButton( hwin, IDC_MANAGERJOBS_PEGUI, w.BST_UNCHECKED );
-
-						else
-
-							w.CheckDlgButton( hwin, IDC_MANAGERJOBS_PEGUI, w.BST_CHECKED );
-
-						endif;
 						
 						if( iniesi._readString( jobebx.id, "output", stringbuffer )) then
 							w.SetDlgItemText( hwin, IDC_MANAGERJOBS_OUTPUT, stringbuffer );
@@ -2737,17 +2450,9 @@ proc
 							w.SetDlgItemText( hwin, IDC_MANAGERJOBS_OUTPUT, NULL );
 						endif;
 						
-						iniesi.readInt( jobebx.id, "HLA Level" );
-						w.SendDlgItemMessage( hwin, IDC_MANAGERJOBS_LEVEL, w.CB_SETCURSEL, eax, 0 );
-						
-						iniesi.readBool( jobebx.id, "thread safe" );
-						w.CheckDlgButton( hwin, IDC_MANAGERJOBS_THREADSAFE, eax );
 						
 						iniesi.readBool( jobebx.id, "stdout to output" );
 						w.CheckDlgButton( hwin, IDC_MANAGERJOBS_CON2OUT, eax );
-						
-						iniesi.readBool( jobebx.id, "debug" );
-						w.CheckDlgButton( hwin, IDC_MANAGERJOBS_DEBUG, eax );
 						
 					endif;
 					
@@ -2875,16 +2580,6 @@ proc
 
 		w.SendDlgItemMessage( hwin, IDC_MANAGERJOBS_OUTPUT, w.EM_LIMITTEXT, 300, 0 );
 		updateJobs();
-	
-		w.SendDlgItemMessage( hwin, IDC_MANAGERJOBS_LEVEL, w.CB_RESETCONTENT, 0, 0 );
-		xor( ebx, ebx );
-		while( ebx < @elements( hlaLevels ) ) do
-			
-			mov( hlaLevels[ebx*4], eax );
-			w.SendDlgItemMessage( hwin, IDC_MANAGERJOBS_LEVEL, w.CB_ADDSTRING, 0, eax );
-			
-			inc( ebx );
-		endwhile;
 		
 		w.CheckDlgButton( hwin, IDC_MANAGERJOBS_BUILD, true );
 		

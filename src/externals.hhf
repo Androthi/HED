@@ -29,7 +29,6 @@ procedure hed_openFile( fname:string ); @returns ("EAX"); @external;
 
 // project
 procedure Proc_JobsManager (lparam:dword; wparam:dword; umsg:uns32; hwin:dword);	@external;
-procedure writeStdTpl ( fileName:string; ftype:uns32); @external;
 procedure Proc_NewProject  (lparam:dword; wparam:dword; umsg:uns32; hwin:dword); @external;
 
 // keywords
@@ -150,7 +149,6 @@ procedure Proc_Goto(lparam:dword; wparam:dword; umsg:uns32; hwin:dword); @extern
 procedure Proc_BuildTarget(lparam:dword; wparam:dword; umsg:uns32; hwin:dword); @external;
 procedure getStringInput2 (title:string; dest:string); @returns ("EAX"); @external;
 procedure getStringInput3 (title:string; initial:string; dest:string); @returns ("EAX"); @external;
-procedure Proc_AdvancedLink(lparam:dword; wparam:dword; umsg:uns32; hwin:dword); @external;
 
 procedure showAboutWin; @external;
 
@@ -187,7 +185,6 @@ namespace project;
 	procedure addKmake (folder:string; fname:string; import:boolean); @external;
 	procedure addBinary (folder:string; fname:string; import:boolean); @external;
 	procedure deleteFile (var bnode:@global:fList.fnode); @external;
-	procedure convertToTpl (fname:string); @external;
 end project;
 
 static	// externals
@@ -255,7 +252,5 @@ static	// externals
 	zSettings	:zstring; @external;
 	zThemes		:zstring; @external;
 	zSeperator	:zstring; @external;
-	zRelease	:zstring; @external;
-	zStandard	:zstring; @external;
 	
 	id_strings :zstring[ 20 ]; @external;

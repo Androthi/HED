@@ -65,8 +65,6 @@ readonly
 	zSettings	:zstring := "Settings";
 	zThemes		:zstring := "Themes";
 	zSeperator	:zstring := "=====================================";
-	zRelease	:zstring := "Release";
-	zStandard	:zstring := "Standard";
 	
 	
 	// as per enum id_types; must match correctly

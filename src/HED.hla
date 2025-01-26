@@ -32,29 +32,27 @@ program HED_MAIN;
 	const
 	
 		// status bar positionals
-		POS_LINES	:=160;
-		POS_INS		:=POS_LINES+31;
-		POS_PROJ	:=POS_INS+63;
-		POS_DBG		:=POS_PROJ+60;
+		POS_LINES				:=160;
+		POS_INS					:=POS_LINES+31;
 
 		// increase this when a new Panel window is added, "Fold" is Window #0
-		nPanelWindows	:= 2;
+		nPanelWindows			:= 2;
 
 		IDM_HIDE_COLLAPSEALL	:= $0fffC;
 		IDM_HIDE_EXPANDALL		:= $0FFFD;
 
-		HED_DEFAULTINI		:="Data" + dirsep_c + "hed_default.ini";
+		HED_DEFAULTINI			:="Data" + dirsep_c + "hed_default.ini";
 		HED_INI_FILE			:="Data" + dirsep_c + "HED.ini";
-		raseledi	:text:= "(type RASELCHANGE [edi])";
-		rabecx		:text:= "(type RABLOCKDEF [ecx])";
+		raseledi				:text:= "(type RASELCHANGE [edi])";
+		rabecx					:text:= "(type RABLOCKDEF [ecx])";
 
 	static	// local
 		align(4);
-			// parts : Ln : lines| ins | (Non)Project | Debug | -
-	 	parts		:int32[STATUS_PARTS]:=[POS_LINES,POS_INS, POS_PROJ,POS_DBG,-1];
+		// parts : Ln : lines | ins | -
+	 	parts		:int32[STATUS_PARTS]:=[POS_LINES,POS_INS,-1];
 	
-		RadDLL	:str.constant("Data\RAEdit.dll");
-		RadHex	:str.constant("Data\RAHexed.dll");
+		RadDLL			:str.constant("Data\RAEdit.dll");
+		RadHex			:str.constant("Data\RAHexed.dll");
 		linefont		:w.LOGFONT:=w.LOGFONT:[-12,0,0,0,400,0,0,0,0,3,2,1,49,strToBA("Lucida Console",w.LF_FACESIZE)];
 		current_menu	:uns16 := RECENT_MENU_START;		// track auto-added menus current number
 		align (4);
@@ -70,11 +68,8 @@ program HED_MAIN;
 		hexeddll	:dword;		// hex ed dll handle
 		nlastline	:dword;		// check for last line in edit control
 		dummy		:dword;		// dummy var for some windows APIs and temp storage
-		xm_dll		:dword;
 		openfile_s	:string;
-		
-		index		:dword;
-		
+				
 		wc			:w.WNDCLASSEX;
 		msg			:w.MSG;
 		pt			:hide.point_t;
@@ -91,10 +86,8 @@ program HED_MAIN;
 	
 	readonly
 		align(4);
-		sourcemark_find	:zstring := "//bm=";
 
-
-		ClassName	:mzstr ("HIDEClass");
+		ClassName	:mzstr ("HEDClass");
 		szCmntStart	:mzstr ("/*");	//*/
 		szCmntEnd	:mzstr ("*/");
 	
@@ -321,8 +314,6 @@ program HED_MAIN;
 					filesys.extractBase( listeax.id, dest );
 					buf.puts( dest );
 				endif;
-			elseif (bl = 'x') then
-				buf.puts( core.tplpath );
 			elseif( bl = '$') then
 				
 				filesys.gwd( dest );
@@ -1447,21 +1438,8 @@ program HED_MAIN;
 		MakeProc (mrebuildonejob_c, eax, mclear_c);
 		ret();
 	end Menu_MakeReBuildJob;
-	
-	procedure Menu_MakeBuildObjects; @noframe;
-	begin Menu_MakeBuildObjects;
-		mov( curnode, eax );
-		MakeProc( mbuild_c, mobject_c, mclear_c );
-		ret();
-	end Menu_MakeBuildObjects;
 		
 	proc
-		Menu_MakeHla :procedure {@noframe} ;
-		begin Menu_MakeHla;
-			mov( curnode, eax );
-			MakeProc( mhla_c, eax, mclear_c );
-			ret();
-		end Menu_MakeHla;
 		
 		Menu_BuildScript	:procedure;
 			var s	:string;
@@ -1633,22 +1611,7 @@ program HED_MAIN;
 		
 		ret();
 	end Menu_MakeBuildRun;
-	
-	procedure Menu_ToolsDebug;	@noframe;
-	begin Menu_ToolsDebug;
-		
-		launchProgram( "DebugWin", false, false );
-		
-		ret();
-	end Menu_ToolsDebug;
-	
-	procedure Menu_ToolscCalc;	@noframe;
-	begin Menu_ToolscCalc;
-		
-		launchProgram( "cCalc.exe", false, false );
-		
-		ret();
-	end Menu_ToolscCalc;
+
 	
 	procedure Menu_ToolsCalc; @noframe;
 	begin Menu_ToolsCalc;
@@ -1659,69 +1622,6 @@ program HED_MAIN;
 	end Menu_ToolsCalc;
 
 	
-	procedure Menu_ToolsAscii; @noframe;
-	begin Menu_ToolsAscii;
-		
-		launchProgram( "asciitbl.exe", true, true );
-		
-		ret();
-	end Menu_ToolsAscii;
-	
-	procedure Menu_ToolsResed;
-		var
-			s	:string;
-			
-	begin Menu_ToolsResed;
-		mov (str.talloc (pathsize_c), s);
-		// launch resource editor
-		pushabi;
-		mov (curnode, eax);
-		if (eax && listeax.isproject) then
-			if (listeax.ftype = type_rc) then
-			
-				// use this resource
-				mov (eax, ebx);
-				RAEdit_SaveFile ([ebx]);
-				w.GetFullPathName(listebx.relative, @size(buffer), &buffer, dummy);
-				str.put (s, "ResEd """);
-				str.catz (&buffer, s);
-				str.put2 (s, '"');
-			
-			else
-				mov (listeax.job, ecx);
-				fileList.getHead();
-				mov (eax, ebx);
-				while (ebx) do
-					if (listebx.job = ecx && listebx.ftype = type_rc) then
-						RAEdit_SaveFile ([ebx]);
-						w.GetFullPathName(listebx.relative, @size(buffer), &buffer, dummy);
-						str.put (s, "ResEd """);
-						str.catz (&buffer, s);
-						str.put2 (s, '"');
-						break;
-					endif;
-					mov (listebx.next, ebx);
-				welse
-					// no resource found in project
-					jmp _noproj;
-				endwhile;
-				// find 1st resource in this job
-			endif;
-			
-			launchProgram( s, false, true );
-
-		else
-			// just load resed
-			_noproj:
-			toOutput ("Resed launching without selected rc file." nl
-					"Any resource created should be imported if desired" nl);
-			
-			launchProgram( "Resed", false, false );
-
-		endif;
-		popabi;
-	end Menu_ToolsResed;
-		
 	procedure Menu_ToolsConsole;	@noframe;
 	begin Menu_ToolsConsole;
 		
@@ -1848,52 +1748,6 @@ proc
 		ret();
 		
 	end Menu_OptionGeneral;
-
-	Menu_OptionToggleDbg :procedure {@noframe};
-	begin Menu_OptionToggleDbg;
-		pushabi;
-		
-		if( project.isOpen ) then
-			
-			mov( curnode, eax );
-			if( eax ) then
-				
-				mov( listeax.job, ebx );
-				mov( &project.hpr, esi );
-				if( iniesi.readBool( jobebx.id, "debug" )) then
-					
-					iniesi.writeBool( jobebx.id, "debug", false );
-					and( ! opt_usedebuglib, project.options );
-					
-				else
-					
-					iniesi.writeBool( jobebx.id, "debug", true );
-					or( opt_usedebuglib, project.options );
-					
-				endif;
-			
-			else
-				
-				if( bitSet( opt_usedebuglib, settings.options ) )then
-				
-					and( ! opt_usedebuglib, settings.options );
-				
-				else
-				
-					or( opt_usedebuglib, settings.options );
-					
-				endif;
-				
-			endif;
-			
-		endif;
-		
-		w.SendMessage( core.hwnd, HIDE_TOGGLEDEBUG, 0, 0 );
-		
-		popabi;
-		ret();
-	end Menu_OptionToggleDbg;
-
 	
 	procedure Menu_Help_ShowEnv;
 		var
@@ -1906,8 +1760,7 @@ proc
 		toOutput (	"HIDE Environment and Related Macros" nl
 					"===================================" nl
 					"%h home    : ", core.homepath,nl
-					"%p projects: ", core.projectpath,nl
-					"%x templts : ", core.tplpath,nl);
+					"%p projects: ", core.projectpath,nl);
 		if (project.isOpen) then
 			toOutput ( "%c project : ", project.folder, nl); 
 		endif;
@@ -1939,15 +1792,6 @@ proc
 	
 	end Menu_Help_ShowEnv;
 	
-	procedure Menu_Help_ShowFiles; @noframe;
-	begin Menu_Help_ShowFiles;
-	USE( ESI, EDI );
-		fileList.dumpList();
-	ENDUSE;	
-	ret();
-	end Menu_Help_ShowFiles;
-
-	
 	procedure startHelp (src:string);
 		var
 			s	:string;
@@ -1964,79 +1808,6 @@ proc
 				"in the HIDE\Documents folder manually." nl nl);
 		endif;
 	end startHelp;
-
-	
-	procedure Menu_Help_Tutes; @noframe;
-	begin Menu_Help_Tutes;
-		str.put (workpath, core.homepath, dirsep_c, "Documents", dirsep_c, "Tutorials",
-				dirsep_c, "Tutorial.khelp");
-		startHelp (workpath);
-		ret();
-	end Menu_Help_Tutes;
-
-	procedure Menu_Help_Hidelib; @noframe;
-	begin Menu_Help_Hidelib;
-		str.put (workpath, core.homepath, dirsep_c, "Documents", dirsep_c, "hidelib.khelp");
-		startHelp (workpath);
-		ret();
-	end Menu_Help_Hidelib;
-
-	procedure Menu_Help_Hlalib; @noframe;
-	begin Menu_Help_Hlalib;
-		str.put (workpath, core.homepath, dirsep_c, "Documents", dirsep_c, "hlalib.khelp");
-		startHelp (workpath);
-		ret();
-	end Menu_Help_Hlalib;
-
-
-	procedure Menu_Help_Hide; @noframe;
-	begin Menu_Help_Hide;
-		str.put (workpath, core.homepath, dirsep_c, "Documents", dirsep_c, "hide.khelp");
-		startHelp (workpath);
-		ret();
-	end Menu_Help_Hide;
-
-
-	procedure Menu_Help_Tools; @noframe;
-	begin Menu_Help_Tools;
-		str.put (workpath, core.homepath, dirsep_c, "Documents", dirsep_c, "Tools.khelp");
-		startHelp (workpath);
-		ret();
-	end Menu_Help_Tools;
-
-	procedure Menu_Edit_SetSource; @noframe;
-	begin Menu_Edit_SetSource;
-		mov( curnode, eax );
-		test( eax, eax );
-		jz done;
-		str.put (stringbuffer, "Enter a label for bookmark");
-			if (getStringInput (stringbuffer, workpath)) then
-				str.put( stringbuffer, "//bm=", workpath, nl);
-				mov( curnode, ecx );
-				w.SendMessage(listecx.hwnd,w.EM_REPLACESEL,true, stringbuffer);
-				RAEdit_SaveFile (curnode);
-			endif;
-		done:
-		ret();
-	end Menu_Edit_SetSource;
-
-	procedure Menu_Edit_NextSource; @noframe;
-	begin Menu_Edit_NextSource;
-		
-		zstr.cpy( sourcemark_find, &findbuff );
-		find_next();
-		ret();
-	end Menu_Edit_NextSource;
-
-	procedure Menu_Edit_PrevSource; @noframe;
-	begin Menu_Edit_PrevSource;
-		
-		zstr.cpy( sourcemark_find, &findbuff );
-		find_prev();
-		ret();
-		
-	end Menu_Edit_PrevSource;
-
 
 	procedure Menu_ViewStatusbar;	@noframe;
 	begin Menu_ViewStatusbar;
@@ -2530,7 +2301,6 @@ proc
 			dword	w.WM_DESTROY,		&_destroy;
 			dword	w.WM_INITDIALOG,	&init_window;
 			dword	HIDE_TOGGLEOUTPUT,	&_toggleout;
-			dword	HIDE_TOGGLEDEBUG,	&_toggledebug;
 			dword	HIDE_SETSTATUS,		&_setstatus;
 			dword	HIDE_SETINSERTMODE,	&_setinsert;
 			
@@ -2582,9 +2352,6 @@ proc
 			dword	IDM_EDIT_NEXTBOOK,	&_menbook;
 			dword	IDM_EDIT_PREVBOOK,	&_mepbook;
 			dword	IDM_EDIT_CLEARBOOK,	&_mecbook;
-			dword	IDM_EDIT_SETSOURCE, &Menu_Edit_SetSource;
-			dword	IDM_EDIT_NEXTSOURCE,&Menu_Edit_NextSource;
-			dword	IDM_EDIT_PREVSOURCE,&Menu_Edit_PrevSource;
 			
 			dword	IDM_HIDE_EXPANDALL,		&_expandall;	// expand/collapse buttons
 			dword	IDM_HIDE_COLLAPSEALL,	&_collapseall;
@@ -2599,9 +2366,7 @@ proc
 			dword	IDM_MAKE_REBUILD,		&Menu_MakeRebuild;
 			dword	IDM_MAKE_REBUILDONE,	&Menu_MakeBuildOne;
 			dword	IDM_MAKE_REBUILDJOB,	&Menu_MakeReBuildJob;
-			dword	IDM_MAKE_BUILDOBJECTS,	&Menu_MakeBuildObjects;
 			dword	IDM_BUILD_SCRIPT,		&Menu_BuildScript;
-			dword	IDM_MAKE_HLA,			&Menu_MakeHla;
 			dword	IDM_MAKE_RUN,			&Menu_MakeRun;
 			dword	IDM_MAKE_BUILDITRUN,	&Menu_MakeBuildRun;
 			dword	IDM_MAKE_RUNDBG,		&Menu_MakeRunWithDebug;
@@ -2624,23 +2389,14 @@ proc
 			dword	IDM_OPTION_CODEFONT,	&_mocfnt;
 			dword	IDM_OPTION_LINEFONT,	&_molfnt;
 			dword	IDM_OPTION_KEYWORDS,	&_mokwrds;
-			dword	IDM_OPTION_TOGGLEDBG,	&Menu_OptionToggleDbg;
-
 			
-			dword	IDM_TOOLS_DEBUG,		&Menu_ToolsDebug;
-			dword	IDM_TOOLS_RESED,		&Menu_ToolsResed;
-			dword	IDM_TOOLS_CCALC,		&Menu_ToolscCalc;
 			dword	IDM_TOOL_CALC,			&Menu_ToolsCalc;
-			dword	IDM_TOOL_ASCII,		&Menu_ToolsAscii;
 			dword	IDM_TOOL_COLOR,			&Menu_ToolsColor;
 			dword	IDM_TOOL_CONSOLE,		&Menu_ToolsConsole;
 			dword	IDM_TOOL_RUN,			&Menu_ToolsRun;
 			
 			dword	IDM_HELP_ABOUT,			&_mhabt;
-			dword	IDM_HELP_SHOWENV,		&Menu_Help_ShowEnv;
-			dword	IDM_HELP_SHOWFILES,		&Menu_Help_ShowFiles;
-			dword	IDM_HELP_TOOLS, 		&Menu_Help_Tools;
-			
+			dword	IDM_HELP_SHOWENV,		&Menu_Help_ShowEnv;		
 			dword	KEYBOARD_CTRLTAB,		&_ctrltab;
 			
 			// add more commands above here
@@ -2678,57 +2434,7 @@ proc
 			w.SetFocus(core.hwnd);
 			jmp xWndProc;
 	
-	_toggledebug:
-		
-		if( project.isOpen ) then
-			
-			mov( curnode, eax );
-			if( eax ) then
-				
-				mov( listeax.job, eax );
-				if( eax ) then
 
-					mov( &project.hpr, esi );
-					iniesi.readBool( jobeax.id, "debug" );
-					if( eax ) then
-						
-						mov( zDebug, eax );
-						
-					else
-						
-						mov( zRelease, eax );
-	
-					endif;
-					
-				else
-					
-					mov( zRelease, eax );
-					
-				endif;
-				
-			elseif( bitSet( opt_usedebuglib, project.options )) then
-				
-				mov( zDebug, eax );
-				
-			else
-				
-				mov( zRelease, eax );
-				
-			endif;
-			
-		elseif( bitSet( opt_usedebuglib, settings.options ) )then
-			
-			mov( zDebug, eax );
-			
-		else
-			
-			mov( zRelease, eax );
-			
-		endif;
-		
-		w.SendMessage( core.hwnd, HIDE_SETSTATUS, STATUS_DBG, eax );
-		jmp xWndProc;
-	
 	_setinsert:
 		
 		// also updated project status
@@ -2747,18 +2453,6 @@ proc
 					w.SendMessage( core.hwnd, HIDE_SETSTATUS, STATUS_INS, &szOVR );
 				endif;
 			
-				if( listebx.isproject ) then
-					
-					mov( zProject, eax );
-					
-				else
-					
-					mov( zStandard, eax );
-					
-				endif;
-			
-				w.SendMessage( core.hwnd, HIDE_SETSTATUS, STATUS_PROJ, eax );
-				
 			endif;
 
 		endif;
@@ -2947,7 +2641,6 @@ proc
 				
 			endif;
 			w.SendMessage( listebx.hwnd, REM_GETWORD, @size(buffer), &buffer );
-			w.SendMessage( core.hsbr, w.SB_SETTEXT, STATUS_INFO, 0 );
 			updateDisplay (update_selection);
 			
 		elseif (eax = w.TTN_NEEDTEXT) then
@@ -3234,7 +2927,6 @@ proc
 		w.CreateStatusWindow ( w.WS_CHILD, NULL, hwin, IDC_SBR);
 		mov(eax,core.hsbr);
 		w.SendMessage(core.hsbr,w.SB_SETPARTS,STATUS_PARTS,&parts);
-		w.SendMessage(core.hsbr,w.SB_SETTEXT,STATUS_PROJ, zStandard );
 	
 		w.CreateWindowEx (0, w.WC_TABCONTROL, NULL,
 						w.TCS_TABS | w.TCS_SINGLELINE | w.TCS_RIGHTJUSTIFY | w.TCS_TOOLTIPS |
@@ -3323,7 +3015,6 @@ proc
 		w.LoadCursor(core.hinst,val IDC_VSPLITTCUR);
 		mov(eax,core.hVsplitcursor);
 	
-		w.SendMessage(hwin,HIDE_TOGGLEDEBUG,0,0);
 		w.SendMessage(hwin, w.WM_SIZE, 0, 0);
 	
 		if (hed_ini._readString ("HED Settings","LastPath", stringbuffer)) then
@@ -3382,17 +3073,15 @@ proc
 			sub(eax,eax);
 	end		WndProc;
 	
-	procedure initHIDE; @noframe;
-	begin initHIDE;
+	procedure initHED; @noframe;
+	begin initHED;
 	
 		// general settings
 		dbg.put ("Initialize");
 		move( str.alloc (pathsize_c), core.homepath);
-
 		move( str.alloc (pathsize_c), core.configmain);
 		move( str.alloc (worksize_c), workpath);
 		move( str.alloc (pathsize_c), core.projectpath);
-		move( str.alloc (pathsize_c), core.tplpath);
 		move( str.alloc (mastersize_c), stringbuffer);
 	
 		GraphicEx.Init();
@@ -3412,49 +3101,13 @@ proc
 		filesys.cd (core.homepath);		
 		hed_default_ini.create_file ( HED_DEFAULTINI );
 
-		if (hed_default_ini.readInt ("Internal", "iniversion")) then
-			mov (eax, dummy);
-		else
-			error.fatal ("Could not read 'iniversion' from Data\hed_default.ini");
-		endif;
-	
 		if ( filesys.exists (core.configmain)) then
 			
 			hed_ini.create_file(core.configmain);
 			
-			// update HIDE.ini version info
-			hed_ini.readInt ("HED Settings", "iniversion");
-			if (eax < dummy) then
-				if( eax < 9 ) then
-					push( eax );
-					hed_ini.writeString( "HED Settings", "hlaopt", "" );
-					pop( eax );
-				endif;
-				
-				if( eax < 8 ) then
-					push( eax );
-					hed_ini.deleteSection( "KeyWords" );
-					pop( eax );
-				endif;
-				
-				if( eax < 6) then
-					push( eax );
-					hed_ini.deleteKey( "HED Settings", "hlalib" );
-					pop( eax );
-				endif;
-				
-				if (eax < 4) then
-					hed_ini.deleteKey ("HED Settings", "core.homepath");
-				endif;
-				
-				// update the iniversion of HIDE Settings
-				hed_ini.writeInt ("HED Settings", "iniversion", dummy);				
-			endif;	
-		
 		else
 			
 			hed_ini.create();
-			hed_ini.writeInt ("HED Settings", "iniversion", dummy);
 			
 		endif;
 
@@ -3479,26 +3132,6 @@ proc
 			hed_default_ini.readBin( "Default.theme", "usrcol", &usrcol, @size(usrcol) );
 		endif;
 		
-		if (! hed_ini.isSectionDefined ("default libs")) then
-			hed_default_ini.readSection ("default libs", stringbuffer);
-			hed_ini.writeSection ("default libs", stringbuffer);
-			
-			// append the appropriate hlalib to the default libs list
-			// note this is done only if "default libs" is undefined
-			// if the user manually edits "defult libs" section, no changes are made
-			
-			if( testnz( opt_threadsafe, project.options ) ) then
-				hed_ini.insertItem( "default libs", -1, "hlalib_safe.lib" );
-			else
-				hed_ini.insertItem( "default libs", -1, "hlalib.lib" ); 
-			endif;
-		endif;
-		
-		if (! hed_ini.isSectionDefined ("default link")) then
-			hed_default_ini.readSection ("default link", stringbuffer);
-			hed_ini.writeSection ("default link", stringbuffer);
-		endif;
-		
 		hed_ini.readBin ("Colors", "user", &CustColors, @size(CustColors));
 		hed_ini.readInt ("HED Settings", "AutoUntitled");
 		mov (al, autountitled);
@@ -3518,42 +3151,7 @@ proc
 			// default project folder
 			str.put (core.projectpath, core.homepath, dirsep_c, "Projects");
 		endif;
-		
-		if( ! hed_ini._readString( "HED Settings", "hlaopt", stringbuffer)) then
-			hed_default_ini._readString("HED Settings", "hlaopt", stringbuffer);
-			hed_ini.writeString("HED Settings", "hlaopt", stringbuffer );
-		else
-			expandPathMacs( stringbuffer, stringbuffer );
-		endif;
-		
-		env2.put("hlaopt", stringbuffer );
 
-		str.put (workpath, core.homepath, dirsep_c, "hlalib");
-		env2.put ("lib", workpath);
-
-		if (! hed_ini._readString ("HED Settings", "hlalib", stringbuffer)) then
-		
-			// write in default location for hlalib
-			str.put (stringbuffer, "%h", dirsep_c, "hlalib");
-			hed_ini.writeString ("HED Settings", "hlalib", stringbuffer);
-
-		endif;
-		
-		expandPathMacs (stringbuffer, stringbuffer);
-		env2.put ("hlalib", stringbuffer);
-
-		if (! hed_ini._readString ("HED Settings", "hlainc", stringbuffer)) then
-			
-			// write in default location for hlainc
-			str.put (stringbuffer, "%h", dirsep_c, "hlainc");
-			hed_ini.writeString ("HED Settings", "hlainc", stringbuffer);
-		endif;
-		expandPathMacs (stringbuffer, stringbuffer);
-		env2.put ("hlainc", stringbuffer);
-
-		str.put (workpath, core.homepath, dirsep_c, "temp");
-		env2.put ("hlatmp", workpath);
-		
 		// default editor settings		
 		hed_ini.readUns( "HED Settings", "tab" );
 		if( eax ) then
@@ -3566,15 +3164,10 @@ proc
 			hed_ini.readHex( "HED Settings", "options" );
 			mov( eax, settings.options );
 		endif;
-
-		hed_ini.readUns( "HED Settings", "backups" );
-		mov( al, settings.backups );
 		
 		move (settings.options, project.options);
 		mov (settings.tab, al);
 		mov (al, project.tab);
-		mov (settings.backups, al);
-		mov (al, project.backups);
 		move (settings.findflags, project.findflags);
 		move (settings.findscope, project.findscope);
 		project.init();			// initialize default job
@@ -3584,48 +3177,9 @@ proc
 
 		initPrinter();
 
-		dbg.put ("/initHIDE");
+		dbg.put ("/initHED");
 		ret();
-	end initHIDE;
-	
-	procedure processCmdLine; @noframe;
-	begin processCmdLine;
-		//dbg.put ("processCmdLine");
-		mov (0, mode);
-		if (argc = 3) then
-			// check for possible build only switch
-			arg.v (1);
-			mov ([eax], cl);
-			if (cl = '-') then
-				inc (eax);
-				mov ([eax], cl);
-				if (cl = 'b') then
-					mov (mode_build, mode);
-					inc (eax);
-					mov ([eax], cl);
-					if (cl && cl = 'a') then
-						mov (mode_buildall, mode);
-					endif;
-
-					arg.v (2);
-					mov (eax, openfile_s);
-					
-					filesys.extractExt( openfile_s, stringbuffer );
-					if( str.ine( stringbuffer, "hpr" ) ) then
-
-						error.fatal ("Must specify a project for building");
-						mov (mode_gui, mode);	// reset mode for normal operation
-
-					endif;
-				else
-					error.fatal ("unrecognized switch");
-				endif;
-			endif;
-		endif;
-		//dbg.put ("/processCmdLine");
-		ret();
-	end processCmdLine;
-
+	end initHED;
 	
 	//===============================================================
 	// Main program begins here *************************************
@@ -3640,28 +3194,8 @@ proc
 		#endif
 		// initialize
 
-		initHIDE();
-		processCmdLine();		
+		initHED();
 
-		if (mode = mode_gui) then
-			jmp WinMain;
-		endif;
-
-		w.AllocConsole();
-		if (mode > 0) then
-			project.open (openfile_s);
-			if (mode = mode_build) then
-				Menu_MakeBuild();
-			elseif (mode = mode_buildall) then
-				Menu_MakeRebuild();
-			else
-				error.fatal ("Unknown value for 'cmdreturn'"); 
-			endif;
-		endif;
-		toOutput (nl "press enter to exit");
-		stdin.readLn();
-		os.exitProcess (0);
-			
 	/***************************************************************/
 	//			Main Window Setup									//
 	/***************************************************************/

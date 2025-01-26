@@ -318,17 +318,12 @@ end 		Proc_Output;
 procedure WriteOutput ( _msg_:string);
 begin WriteOutput;
 USE (esi, edi, eax, ecx, ebx, edx);
-if (mode=mode_gui) then
-	// activate OUTPUT window if not visible.
 
 	if (testz (OUTPUT, settings.winview)) then
 		w.SendMessage( core.hwnd, HIDE_TOGGLEOUTPUT,0,5000);
 	endif;
 	SendStr	(core.houtedt, w.EM_REPLACESEL, false, _msg_ );
 
-else
-	stdout.put (_msg_, nl);
-endif;
 ENDUSE;
 end WriteOutput;
 

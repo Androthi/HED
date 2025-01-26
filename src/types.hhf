@@ -152,17 +152,15 @@ type
 
 			// string data
 			projectpath		:string;
-			tplpath			:string;
 			configmain		:string;
 			homepath		:string;
-
 
 		endrecord;
 	
 
 	WINPOS:	//window position
 		record
-			fmax	:dword;	// maximized state for windows; current distence from mainwindow edge for bars.
+			fmax	:dword;	// maximized state for windows; current distance from mainwindow edge for bars.
 			x		:dword;
 			y		:dword;
 			wt		:dword;
@@ -184,7 +182,6 @@ type
 			findscope	:dword;		// where to search
 			findflags	:dword;		// determines direction, flags
 			tab			:uns8;
-			backups		:uns8;		// number of backups to created, as requested by user
 		endrecord;
 	
 		jList	:class inherits( tBaseList );

@@ -248,12 +248,9 @@ begin RAEdit_openNew;
 	
 			fileList.append ([ebx]);
 	
-			//dbg.put ("open : ", s);
-			if (mode = mode_gui) then
-				RAEdit_new ([ebx]);
-				updateAction([ebx]);
-				RAEdit_loadFile ([ebx], s);
-			endif;
+			RAEdit_new ([ebx]);
+			updateAction([ebx]);
+			RAEdit_loadFile ([ebx], s);
 		else
 			xor (ebx, ebx);
 		endif;
@@ -339,11 +336,8 @@ USE (EBX, ESI, EDI);
 		
 		fileList.append ([ebx]);
 
-		//dbg.put ("open : ", s);
-		if (mode = mode_gui) then
-			RAHexed_new ([ebx]);
-			RAEdit_loadFile ([ebx], s);
-		endif;
+		RAHexed_new ([ebx]);
+		RAEdit_loadFile ([ebx], s);
 
 	else
 		xor (ebx, ebx);

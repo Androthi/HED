@@ -129,10 +129,7 @@ proc
 			
 			hed_ini.readInt( "HED Settings", "Auto Parenthesis" );
 			w.CheckDlgButton( hwin, IDC_MANAGERGEN_PAREN, eax );
-			
-			hed_ini.readInt( "HED Settings", "Keep Temp" );
-			w.CheckDlgButton( hwin, IDC_MANAGERGEN_KEEPTEMP, eax );
-			
+
 			or( 1, eax );
 			
 		elseif( eax = w.WM_COMMAND ) then
@@ -203,27 +200,6 @@ proc
 			
 			endif;
 	
-			if( hed_ini._readString( "HED Settings", "debugger", in_str) ) then
-		
-				w.SetDlgItemText( hwin, IDC_MANAGERENV_DEBUG, in_str );	
-			
-			endif;
-	
-			if( hed_ini._readString( "Help", "1", in_str) ) then
-				
-				w.SetDlgItemText( hwin, IDC_MANAGERENV_HELP, in_str );		
-			
-			endif;
-	
-			hed_ini._readString( "HED Settings", "hlalib", in_str );
-			w.SetDlgItemText( hwin, IDC_MANAGERENV_HLALIB, in_str );
-	
-			hed_ini._readString( "HED Settings", "hlainc", in_str );
-			w.SetDlgItemText( hwin, IDC_MANAGERENV_HLAINC, in_str );
-	
-			hed_ini._readString( "HED Settings", "hlaopt", in_str );
-			w.SetDlgItemText( hwin, IDC_MANAGERENV_HLAOPT, in_str );
-		
 			or( 1, eax );
 			
 		else
@@ -235,41 +211,6 @@ proc
 		popabi;
 	end Proc_ManagerEnv;
 
-
-	updateSettingsLinks	:procedure;
-	
-		var in_str	:string;			
-	
-	begin updateSettingsLinks;
-
-		mov( str.talloc(2000), in_str );
-		pushad();
-		w.SendDlgItemMessage( optSettings, IDC_MANAGERSET_LIST, w.LB_RESETCONTENT, 0, 0 );
-
-		hed_ini.getItemCount( "default libs" );
-		mov( eax, ebx );
-		xor( ecx, ecx );
-		while( ecx < ebx ) do
-			
-			iniesi.readItem( "default libs", ecx, in_str );
-			push( ecx );
-			w.SendDlgItemMessage( optSettings, IDC_MANAGERSET_LIST, w.LB_ADDSTRING, 0, in_str );
-		
-			w.GetDlgItem( optSettings, ID_HIDE_THREADSAFE );
-			mov( eax, edx );
-			
-			if( str.ieq( in_str, "hlalib.lib" )) then
-				w.EnableWindow( edx, true );
-			elseif( str.ieq( in_str, "hlalib_safe.lib" ) ) then
-				w.EnableWindow( edx, true );
-				w.CheckDlgButton( optSettings, ID_HIDE_THREADSAFE, w.BST_CHECKED );
-			endif;
-			pop( ecx );
-			inc( ecx );
-		endwhile;
-		popad();
-	end updateSettingsLinks;
-		
 
 	Proc_ManagerSettings	:procedure( lparam:dword; wparam:dword; umsg:uns32; hwin:dword );
 	
@@ -283,90 +224,7 @@ proc
 		pushabi;
 		mov( umsg, eax );
 		
-		if( eax = w.WM_COMMAND ) then
-			
-			mov( wparam, eax );
-			mov( eax, edx );
-			shr( 16, edx );
-			and( $0ffff, eax );
-			if( edx = w.BN_CLICKED ) then
-				
-				mov( true, settingsChanged );
-				if( eax = ID_HIDE_GLOBALLINK ) then
-					
-					
-					saveAll();
-					w.DialogBoxParam( core.hinst, val ID_ADVANCEDLINK, hwin, &Proc_AdvancedLink, 0 );
-					
-					or( 1, eax );
-				
-				elseif( eax = ID_HIDE_THREADSAFE ) then
-				
-					// see if button is selected to safe or normal
-					// change to appropriate hlalib file in:
-					// joblist, project file and update link list
-							
-					if( w.IsDlgButtonChecked( hwin, ID_HIDE_THREADSAFE ) = w.BST_CHECKED ) then
-					
-						str.put( sbuffer, "hlalib.lib" );
-						str.put( workpath, "hlalib_safe.lib" );
-						
-					else
-
-						str.put( sbuffer, "hlalib_safe.lib" );
-						str.put( workpath, "hlalib.lib" );
-					
-						
-					endif;
-	
-					w.SendDlgItemMessage( hwin, IDC_MANAGERSET_LIST, w.LB_FINDSTRINGEXACT, -1, sbuffer );
-					w.SendDlgItemMessage( hwin, IDC_MANAGERSET_LIST, w.LB_DELETESTRING, eax, 0 );
-					w.SendDlgItemMessage( hwin, IDC_MANAGERSET_LIST, w.LB_ADDSTRING, 0, workpath );
-					
-					mov( true, linksChanged );
-					
-				elseif( eax = IDC_MANAGERSET_ADDLINK ) then
-
-					InitOF( "Add a library or object for linking", "lib", type_lib );
-					if( GetOpenName() ) then
-						mov( eax, ebx );	// hla string on heap
-						filesys.extractFilename( ebx, ebx );
-						
-						w.SendDlgItemMessage( hwin, IDC_MANAGERSET_LIST, w.LB_FINDSTRINGEXACT, -1, ebx );
-						if( eax = w.LB_ERR ) then
-
-							w.SendDlgItemMessage( hwin, IDC_MANAGERSET_LIST, w.LB_ADDSTRING, 0, ebx );
-							mov( true, linksChanged );
-
-						endif;
-						
-						str.free( ebx );
-						
-					endif;
-					
-				elseif( eax = IDC_MANAGERSET_REMOVE ) then
-					
-					w.SendDlgItemMessage( hwin, IDC_MANAGERSET_LIST, w.LB_GETCURSEL, 0, 0 );
-					if( eax != w.LB_ERR ) then
-						
-						w.SendDlgItemMessage( hwin, IDC_MANAGERSET_LIST, w.LB_DELETESTRING, eax, 0 );
-						mov( true, linksChanged );
-
-					endif;
-					
-				else
-					
-					xor( eax, eax );
-					
-				endif;
-			
-			else
-				
-				xor( eax, eax );
-				
-			endif;
-			
-		elseif( eax = w.WM_NOTIFY ) then
+		if( eax = w.WM_NOTIFY ) then
 			
 			mov( true, settingsChanged );
 			
@@ -380,8 +238,7 @@ proc
 			movzx( settings.tab, eax );
 			w.SendDlgItemMessage( hwin, ID_HIDE_SPNTAB, w.UDM_SETPOS, 0, eax );
 			w.SendDlgItemMessage( hwin, ID_HIDE_SPNBACK, w.UDM_SETRANGE, 0, $0000_000A );
-			movzx( settings.backups, eax );
-			w.SendDlgItemMessage( hwin, ID_HIDE_SPNBACK, w.UDM_SETPOS, 0, eax );
+
 			
 			if ( testnz (opt_exptabs, settings.options)) then
 				mov (true, eax);
@@ -405,34 +262,12 @@ proc
 			endif;
 			w.CheckDlgButton(hwin,ID_HIDE_CONSOLE2OUT, eax);
 		
-		
-			if (testnz (opt_usedebuglib, settings.options)) then
-				mov (true, eax);
-			else
-				mov (false, eax);
-			endif;
-			w.CheckDlgButton (hwin, ID_HIDE_USEDEBUG, eax);
-			
 			if (testnz (opt_windows, settings.options)) then
 				mov (true, eax);
 			else
 				mov (false, eax);
 			endif;
 			w.CheckDlgButton (hwin, ID_HIDE_W, eax);
-			
-			if ( testnz (opt_threadsafe, settings.options)) then
-				mov (true, eax);
-			else
-				mov (false, eax);
-			endif;
-			w.CheckDlgButton( hwin, ID_HIDE_THREADSAFE, eax );	
-		
-			hed_ini.readInt ("HED Settings", "HLA Level");
-			add (IDC_RBN_HIGH, eax);
-			w.CheckDlgButton( hwin, eax, true );
-			
-			updateSettingsLinks();
-			
 			or( 1, eax );
 			
 		else
@@ -581,132 +416,6 @@ proc
 						writeMessage( "Unable to delete folder, make sure it's empty" );
 						
 					endif;
-					
-				elseif( eax = IDC_MANAGERPROJ_USETEMP ) then
-					
-					mov( &project.hpr, esi );
-					if( w.IsDlgButtonChecked( hwin, IDC_MANAGERPROJ_USETEMP ) ) then
-						iniesi.writeBool( "HPR Settings", "usetemp", true );
-						if( ! filesys.exists( "temp" ) ) then
-							
-							filesys.mkdir( "temp" );
-							
-						endif; 
-						
-						if( iniesi.findItem( "HPR Folders", "temp" ) = -1 ) then
-						
-							iniesi.writeItem( "HPR Folders", -1, "temp" );
-						
-						endif;
-						
-						str.put( workpath, project.folder, dirsep_c, "temp" );
-						env2.put( "hlatmp", workpath );
-
-					else
-							
-						iniesi.writeBool( "HPR Settings", "usetemp", false );
-						str.put( workpath, core.homepath, dirsep_c, "temp" );
-						env2.put( "hlatmp", workpath );
-						
-
-						// try to remove temp folder						
-						if( w.RemoveDirectory( "temp" ) ) then
-							
-							if( iniesi.findItem( "HPR Folders", "temp" ) != -1 ) then
-						
-								iniesi.deleteItem( "HPR Folders", eax );
-								
-							endif;
-							
-						else
-							
-							writeMessage( "Unable to remove temp folder, make sure it's empty" );
-							
-						endif;
-
-						
-					endif;
-					
-					updateFolders();
-					
-				elseif( eax = IDC_MANAGERPROJ_USEUNIT ) then
-
-					mov( &project.hpr, esi );
-					if( w.IsDlgButtonChecked( hwin, IDC_MANAGERPROJ_USEUNIT ) ) then
-
-						iniesi.writeBool( "HPR Settings", "useunits", true );						
-						if( ! filesys.exists( "units" ) ) then
-							filesys.mkdir( "units" );
-						endif;
-						
-						if( iniesi.findItem( "HPR Folders", "units" ) = -1 ) then
-
-							iniesi.writeItem( "HPR Folders", -1, "units" );
-							
-						endif;
-
-					else
-	
-						iniesi.writeBool( "HPR Settings", "useunits", false );
-
-						// try to remove units folder						
-						if( w.RemoveDirectory( "units" ) ) then
-							
-							if( iniesi.findItem( "HPR Folders", "units" ) != -1 ) then
-						
-								iniesi.deleteItem( "HPR Folders", eax );
-								
-							endif;
-							
-						else
-							
-							writeMessage( "Unable to remove units folder, make sure it's empty" );
-							
-						endif;
-							
-					endif;
-					
-					updateFolders();
-					
-				elseif( eax = IDC_MANAGERPROJ_USEBAK ) then
-					
-					mov( &project.hpr, esi );
-					if( w.IsDlgButtonChecked( hwin, IDC_MANAGERPROJ_USEBAK ) ) then
-
-						iniesi.writeBool( "HPR Settings", "useback", true );						
-						if( ! filesys.exists( "bak" ) ) then
-							filesys.mkdir( "bak" );
-						endif;
-						
-						if( iniesi.findItem( "HPR Folders", "bak" ) = -1 ) then
-
-							iniesi.writeItem( "HPR Folders", -1, "bak" );
-							
-						endif;
-
-					else
-	
-						iniesi.writeBool( "HPR Settings", "useback", false );
-
-						// try to remove units folder						
-						if( w.RemoveDirectory( "bak" ) ) then
-							
-							if( iniesi.findItem( "HPR Folders", "bak" ) != -1 ) then
-						
-								iniesi.deleteItem( "HPR Folders", eax );
-								
-							endif;
-							
-						else
-							
-							writeMessage( "Unable to remove bak folder, make sure it's empty" );
-							
-						endif;
-							
-					endif;
-					
-					updateFolders();
-					
 				endif;
 			
 			elseif( edx = w.LBN_SELCHANGE ) then
@@ -745,9 +454,6 @@ proc
 			w.SendDlgItemMessage( hwin, IDC_MANAGERPROJ_UDTABS, w.UDM_SETRANGE, 0, $0001_000E );
 			movzx( project.tab, eax );
 			w.SendDlgItemMessage( hwin, IDC_MANAGERPROJ_UDTABS, w.UDM_SETPOS, 0, eax );
-			w.SendDlgItemMessage( hwin, IDC_MANAGERPROJ_UDBAKS, w.UDM_SETRANGE, 0, $0000_000A );
-			movzx( project.backups, eax );
-			w.SendDlgItemMessage( hwin, IDC_MANAGERPROJ_UDBAKS, w.UDM_SETPOS, 0, eax );
 			
 			if( bitSet( opt_exptabs, project.options )) then
 				mov( true, eax );
@@ -762,19 +468,6 @@ proc
 				mov( false, eax );
 			endif;
 			w.CheckDlgButton( hwin, IDC_MANAGERPROJ_AUTOIND, eax );
-
-			mov( &project.hpr, esi );	
-			if( iniesi.readBool( "HPR Settings", "usetemp") ) then
-				w.CheckDlgButton( hwin, IDC_MANAGERPROJ_USETEMP, true );
-			endif;
-			
-			if( iniesi.readBool( "HPR Settings", "useunits") ) then
-				w.CheckDlgButton( hwin, IDC_MANAGERPROJ_USEUNIT, true );
-			endif;
-			
-			if( iniesi.readBool( "HPR Settings", "useback" ) ) then
-				w.CheckDlgButton( hwin, IDC_MANAGERPROJ_USEBAK, true );
-			endif;
 
 			updateFolders();
 	
@@ -827,9 +520,6 @@ proc
 		
 		w.IsDlgButtonChecked( optGeneral, IDC_MANAGERGEN_PAREN );
 		hed_ini.writeInt( "HED Settings", "Auto Parenthesis", eax );
-		
-		w.IsDlgButtonChecked( optGeneral, IDC_MANAGERGEN_KEEPTEMP );
-		hed_ini.writeInt( "HED Settings", "Keep Temp", eax );
 		
 		if( newCodeFont ) then
 			
@@ -906,64 +596,6 @@ proc
 
 		endif;
 
-		if( w.GetDlgItemTextA( optEnv, IDC_MANAGERENV_DEBUG, &buffer, @size(buffer) )) then
-
-			str.cpyz( &buffer, stringbuffer );
-			hed_ini.writeString( "HED Settings", "debugger", stringbuffer );
-
-		else
-			
-			hed_ini.deleteKey( "HED Settings", "debugger" );
-			
-		endif;
-
-		if( w.GetDlgItemTextA( optEnv, IDC_MANAGERENV_HELP, &buffer, @size(buffer) )) then
-
-			str.cpyz( &buffer, stringbuffer );
-			hed_ini.writeString( "Help", "1", stringbuffer );
-
-		else
-			
-			hed_ini.writeString( "Help", "1", "" );
-			
-		endif;
-			
-		if( w.GetDlgItemTextA( optEnv, IDC_MANAGERENV_HLALIB, &buffer, @size(buffer) )) then
-
-			str.cpyz( &buffer, stringbuffer );
-			hed_ini.writeString( "HED Settings", "hlalib", stringbuffer );
-			expandPathMacs( stringbuffer, stringbuffer );
-			env2.put( "hlalib", stringbuffer );
-			
-		else
-			
-			str.put( stringbuffer, core.homepath, dirsep_c, "hlalib" );
-			hed_ini.writeString( "HED Settings", "hlalib", stringbuffer );
-			env2.put( "hlalib", stringbuffer );
-			
-		endif;
-
-		if( w.GetDlgItemTextA ( optEnv, IDC_MANAGERENV_HLAINC, &buffer, @size(buffer) )) then
-
-			str.cpyz( &buffer, stringbuffer );
-			hed_ini.writeString( "HED Settings", "hlainc", stringbuffer );
-			expandPathMacs( stringbuffer, stringbuffer );
-			env2.put( "hlainc", stringbuffer );
-		
-		else
-			
-			str.put( stringbuffer, core.homepath, dirsep_c, "hlainc" );
-			hed_ini.writeString( "HED Settings", "hlainc", stringbuffer );
-			env2.put( "hlainc", stringbuffer );
-		
-		endif;
-		
- 		w.GetDlgItemTextA( optEnv, IDC_MANAGERENV_HLAOPT, &buffer, @size(buffer) );
-		str.cpyz( &buffer, stringbuffer );
-		hed_ini.writeString( "HED Settings", "hlaopt", stringbuffer );
-		expandPathMacs( stringbuffer, stringbuffer );
-		env2.put( "hlaopt", stringbuffer );
-
 		
 		//==========================================================
 		// save colors and themes settings
@@ -982,9 +614,6 @@ proc
 
 			w.GetDlgItemInt( optProject, IDC_MANAGERPROJ_TABS, null, false );
 			mov( al, project.tab );
-			
-			w.GetDlgItemInt( optProject, IDC_MANAGERPROJ_BAKS, null, false );
-			mov( al, project.backups );
 			
 			if( w.IsDlgButtonChecked( optProject, IDC_MANAGERPROJ_EXPTABS ) ) then
 				or( opt_exptabs, project.options );
@@ -1014,9 +643,6 @@ proc
 			w.GetDlgItemInt( optSettings, ID_HIDE_TABSIZE, null, false );
 			mov( al, settings.tab );
 			
-			w.GetDlgItemInt( optSettings, ID_HIDE_BACKUPS, null, false );
-			mov( al, settings.backups );
-			
 			if( w.IsDlgButtonChecked( optSettings, ID_HIDE_EXPTAB ) ) then
 				or( opt_exptabs, settings.options );
 			endif;
@@ -1029,63 +655,18 @@ proc
 				or( opt_console, settings.options );
 			endif;
 	
-			if( w.IsDlgButtonChecked( optSettings, ID_HIDE_USEDEBUG ) ) then
-				or( opt_usedebuglib, settings.options );
-			endif;
-	
 			if( w.IsDlgButtonChecked( optSettings, ID_HIDE_W ) ) then
 				or( opt_windows, settings.options );
 			endif;
 			
-			if( w.IsDlgButtonChecked( optSettings, IDC_RBN_HIGH) ) then
-				mov( level_high, eax );
-			elseif( w.IsDlgButtonChecked( optSettings, IDC_RBN_MEDIUM ) ) then
-				mov( level_medium, eax );
-			elseif( w.IsDlgButtonChecked( optSettings, IDC_RBN_LOW ) ) then
-				mov( level_low, eax );
-			elseif( w.IsDlgButtonChecked( optSettings, IDC_RBN_MACHINE ) ) then
-				mov( level_machine, eax );
-			endif;
-			hed_ini.writeInt( "HED Settings", "HLA Level", eax );
-			
-			if( w.IsDlgButtonChecked( optSettings, ID_HIDE_THREADSAFE ) ) then
-				or( opt_threadsafe, settings.options );
-			endif;
-			
-			if( linksChanged ) then
-				
-				optBuffer.create();
-				w.SendDlgItemMessage( optSettings, IDC_MANAGERSET_LIST, w.LB_GETCOUNT, 0, 0 );
-				mov( eax, ebx );
-				xor( ecx, ecx );
-				while( ecx < ebx ) do
-					
-					push( ecx );
-					w.SendDlgItemMessage( optSettings, IDC_MANAGERSET_LIST, w.LB_GETTEXT, ecx, stringbuffer );
-					mov( stringbuffer, ecx );
-					mov( eax, (type str.strRec[ecx]).length );
-					pop( ecx );
-					optBuffer.insert( stringbuffer, nl );
-					inc( ecx );
-					
-				endwhile;
-				
-				hed_ini.writeBufSection( "default libs", optBuffer );
-				optBuffer.destroy();
-				 
-			endif;
 			movzx( settings.tab, eax );
 			hed_ini.writeUns( "HED Settings", "tab", eax );
-			movzx( settings.backups, eax );
-			hed_ini.writeUns( "HED Settings", "backups", eax );
 			hed_ini.writeHex( "HED Settings", "options", settings.options );
 			
 			
 		endif;
 		
 		hed_ini.writeFileName( core.configmain );		
-		
-		w.SendMessage( core.hwnd, HIDE_TOGGLEDEBUG, 0, 0 );		
 		setFormatAll();
 		
 		popad();

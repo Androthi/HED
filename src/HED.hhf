@@ -1,7 +1,6 @@
 const
 
-	hide_version	:string := "HIDE 1.7.31";
-	hlaversion :string := "hla 2.16/stdlib 8.0";
+	hed_version	:string := "HED 0.0.10";
 
 	#includeonce	("os.hhf")
 	#includeonce	("src/win_inc.hhf")
@@ -91,13 +90,9 @@ const
 		
 		
 	// used for status window messages
-	STATUS_PARTS		:=5;
+	STATUS_PARTS		:=3;
 	STATUS_POSITION		:=0;
 	STATUS_INS			:=STATUS_POSITION+1;
-	STATUS_PROJ			:=STATUS_INS+1;
-	STATUS_DBG			:=STATUS_PROJ+1;
-	STATUS_INFO			:=STATUS_DBG+1;
-
 	
 	// used in updateDisplay procedure
 	update_general	:= 0;
@@ -122,19 +117,10 @@ const
 	mbuildonejob_c	:= 3;
 	mrebuildonejob_c:= 4;	// send a rebuild currend job command
 	mtestbuild_c	:= 5;	// send test build command
-	mobject_c		:= 6;	// compile to object files only
-	mhla_c			:= 7;	// compile useing hla
 	
 	// link - used in MakeProc
 	mnforce_c	:= 0;
 	mforce_c	:= 1;
-
-	// used for converting hla to source formats.	
-	mhlabe_c	:= 0;
-	mmasm_c		:= 1;
-	mfasm_c		:= 2;
-	mnasm_c		:= 3;
-	mgas_c		:= 4;
 	
 	// hla levels - used for builds, corresponds with strings
 	level_high		:= 0;
@@ -150,7 +136,7 @@ const
 	NOTES_A	:= @{3};	// depricated  -- change to scripts window in the future
 	PROP_A	:= @{4};	// depricated
 	VSPLIT	:= @{5};
-	EXPLORER_D	:= @{6};	// depricated  -- change to scripts window in the future
+	EXPLORER_D	:= @{6};
 	HSPLIT	:= @{7};
 	OUTPUT_D:= @{8};
 	TREE_D	:= @{9};
@@ -173,9 +159,8 @@ const
 	// Private messages
 	HIDE_BASE			:=w.WM_USER+2000;
 	HIDE_TOGGLEOUTPUT	:=HIDE_BASE+1;		// wParam=0, lParam=n	0 > n = start close output delay timer 
-	HIDE_TOGGLEDEBUG	:=HIDE_BASE+2;		// wParam=0, lParam=0
-	HIDE_SETSTATUS		:=HIDE_BASE+3;		// wParam=item index,	lParam=pointer to string
-	HIDE_SETINSERTMODE	:=HIDE_BASE+4;		// wParam=0, lParam=0   updates status bar INS/OVR display based on edit setting
+	HIDE_SETSTATUS		:=HIDE_BASE+2;		// wParam=item index,	lParam=pointer to string
+	HIDE_SETINSERTMODE	:=HIDE_BASE+3;		// wParam=0, lParam=0   updates status bar INS/OVR display based on edit setting
 	
 	// some general string sized
 	pathsize_c		:= 400;
@@ -185,12 +170,10 @@ const
 	obj_c			:= ".obj";
 	lib_c			:= ".lib";
 	exe_c			:= ".exe";
-	dll_c			:= ".dll";
 	
 	// relates to string array
 		jobtype_hlaprogram	:= 0;
 		jobtype_target		:= 1;
-		jobtype_dll			:= 2;
 		jobtype_library		:= 3;
 		jobtype_misc		:= 4;
 		jobtype_odin		:= 5;
@@ -234,7 +217,7 @@ const
 	opt_divideline	:= @{4};	// divider line -- moved
 	opt_exptabs		:= @{5};	// expand tabs
 	opt_indent		:= @{6};	// auto indent
-	opt_usestdtpl	:= @{7};	// use standard templates -- moved
+	opt_usestdtpl	:= @{7};	// use standard templates -- moved - depricated
 	opt_showlines	:= @{8};	// activate line number panel -- moved
 	opt_autoparen	:= @{9};	// auto parenthesis complete -- moved
 	opt_keeptemp	:= @{10};	// keep temporary files -- moved
@@ -243,11 +226,7 @@ const
 	opt_windows		:= @{13};	// compile to windows GUI PE
 	opt_autodep		:= @{14};	// automatically check dependencies -- moved
 	opt_extfasm		:= @{15};	// depricated -- free space
-	opt_scanprops	:= @{16};	// used to scan or skip scan properties list -- moved
+	opt_scanprops	:= @{16};	// used to scan or skip scan properties list -- moved --depricatd
 	opt_threadsafe	:= @{17};	// used to link in thread safe standard library
 
-	// hide modes
-	mode_gui		:= 0;		// normal operation
-	mode_build		:= 1;		// no gui - just build project
-	mode_buildall	:= 2;		// no gui - just build all project	
 

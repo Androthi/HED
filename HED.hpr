@@ -58,7 +58,6 @@ data.hla,src,hlaunit
 filelist.hla,src,hlaunit
 RAHexEd.hhf,src,include
 manager.hla,src,hlaunit
-Tools.khelp,Docs,khelp
 README.md,,misc
 Explorer.hla,src,hlaunit
 
