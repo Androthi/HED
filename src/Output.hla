@@ -137,12 +137,7 @@ xProc_Output:
 		
 // local procs
 _savepos:
-		w.GetWindowLong(hwin,w.GWL_STYLE);
-		test(w.WS_MAXIMIZE,eax);
-		jnz _setmax;
-		test(w.WS_MINIMIZE,eax);
-		jnz _retsavepos;
-		mov(false,settings.outwin.fmax);
+	
 		w.GetWindowRect(hwin,&rect);
 		mov(rect.left,settings.outwin.x);
 		mov(rect.top,settings.outwin.y);
@@ -152,11 +147,6 @@ _savepos:
 		mov(rect.bottom,eax);
 		sub(rect.top,eax);
 		mov(eax,settings.outwin.ht);
-		ret();
-	
-_setmax:	
-		mov(true,settings.outwin.fmax);
-_retsavepos:
 		ret();
 
 end 		Proc_Output;

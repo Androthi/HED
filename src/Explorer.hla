@@ -220,7 +220,6 @@ _GetItem:
 
 _savepos:
 
-		mov(false,settings.explorerwin.fmax);
 		w.GetWindowRect(hwin,&rect);
 		mov(rect.left,settings.explorerwin.x);
 		mov(rect.top,settings.explorerwin.y);
