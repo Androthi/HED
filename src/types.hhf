@@ -24,46 +24,46 @@
 			hla.endoverload;
 		}, "EAX")
 	#endmacro
-
-#macro strToBA( _theStr_, _bufSize_ ): _i_, _ch_;
- 
- #if( @length( _theStr_ ) <= _bufSize_ )
- 
-  ?_i_ := 0;
-  [
-   #for( _ch_ in _theStr_ )
- 
-    @byte( _ch_ )
-    #if( _i_ < (_bufSize_-1) )
-     ,
-    #endif
-    ?_i_ += 1;
- 
-   #endfor
-  
-   #while( _i_ < (_bufSize_-1) )
-    0,
-    ?_i_ += 1;
-   #endwhile
- 
-   #if( @length( _theStr_ ) < _bufSize_ )
-    0
-   #endif
-  ]
- 
- #else
- 
-  #error
-  (
-   "String constant must be less than ",
-   _bufSize_,
-   " chars long"
-  )
-  [ _bufSize_ dup [0]]
- 
- #endif
- 
-#endmacro
+	
+	#macro strToBA( _theStr_, _bufSize_ ): _i_, _ch_;
+	 
+	 #if( @length( _theStr_ ) <= _bufSize_ )
+	 
+	  ?_i_ := 0;
+	  [
+	   #for( _ch_ in _theStr_ )
+	 
+	    @byte( _ch_ )
+	    #if( _i_ < (_bufSize_-1) )
+	     ,
+	    #endif
+	    ?_i_ += 1;
+	 
+	   #endfor
+	  
+	   #while( _i_ < (_bufSize_-1) )
+	    0,
+	    ?_i_ += 1;
+	   #endwhile
+	 
+	   #if( @length( _theStr_ ) < _bufSize_ )
+	    0
+	   #endif
+	  ]
+	 
+	 #else
+	 
+	  #error
+	  (
+	   "String constant must be less than ",
+	   _bufSize_,
+	   " chars long"
+	  )
+	  [ _bufSize_ dup [0]]
+	 
+	 #endif
+	 
+	#endmacro
 
 const
 
@@ -77,27 +77,7 @@ const
 	listeax	:text := "(type fList.fnode[eax])";
 	listecx	:text := "(type fList.fnode[ecx])";
 	listesi	:text := "(type fList.fnode[esi])";
-
-
-	tableesi	:text	:= "(type table[esi])";
-	tableeax	:text	:= "(type table[eax])";
-
-	tablenodeeax:text	:= "(type tableNode[eax])";
-	tablenodeebx:text	:= "(type tableNode[ebx])";
-	tablenodeecx:text	:= "(type tableNode[ecx])";
-	tablenodeedx:text	:= "(type tableNode[edx])";
-	tablenodeesi:text	:= "(type tableNode[esi])";
 	
-type
-
-	BOOL		:dword;
-	save_t:
-		record
-			cursor	:dword;
-			line	:uns32;
-		endrecord;
-const
-		
 type
 
 	tCORE:
@@ -115,7 +95,7 @@ type
 			hmainfont		:dword;
 			hitalic			:dword;		
 			hdialogfont		:dword;
-			htreeview		:dword;
+			h_explorer_tree	:dword;
 			htree			:dword;
 			hexplorer		:dword;
 			hexplorertree	:dword;

@@ -23,7 +23,7 @@ storage
 
 const
 	PIPE_MEM	:= $100000;
-	BUF_SIZE		:=2000;		// buffer for output window
+	BUF_SIZE	:=2000;		// buffer for output window
 
 proc
 

@@ -206,19 +206,11 @@ begin	Proc_Explorer;
 				move( &treebuffer ,tvi.pszText);
 				mov(@size(treebuffer),tvi.cchTextMax);
 				
-				w.SendMessage(core.htreeview,w.TVM_SELECTITEM,w.TVGN_CARET,tvi.hItem);
-				w.SendMessage(core.htreeview,w.TVM_GETITEM,0,&tvi);
+				w.SendMessage(core.h_explorer_tree,w.TVM_SELECTITEM,w.TVGN_CARET,tvi.hItem);
+				w.SendMessage(core.h_explorer_tree,w.TVM_GETITEM,0,&tvi);
 				
 				str.cpyz (&treebuffer, sbuffer);
 				hed_openFile (sbuffer);
-				//toOutput(sbuffer);
-//				mov (tvi.lParam, eax);
-//				if (eax) then
-//					mov (eax, eview_curSel);
-//					buildProjectViewMenu ([eax]);
-//					w.GetCursorPos(&pt);
-//					w.TrackPopupMenu (eviewmenu, w.TPM_LEFTALIGN | w.TPM_RIGHTBUTTON, pt.x, pt.y, 0, core.hwnd, NULL);
-//				endif; 
 
 			_exitrightclick:
 				jmp xProc_Explorer;
@@ -245,7 +237,7 @@ begin	Proc_Explorer;
 //		w.DeleteObject(hbmp);
 		w.GetDlgItem(hwin,ID_EXPLORER_TREE);
 		mov(eax,core.hexplorertree);
-//		w.SendMessage(core.htreeview,w.TVM_SETIMAGELIST,0,himl);
+//		w.SendMessage(core.h_explorer_tree,w.TVM_SETIMAGELIST,0,himl);
 		if (testnz (EXPLORER_D, settings.winview)) then
 			Explorer_View (DOCK_YES);
 		endif;
@@ -282,7 +274,7 @@ _GetItem:
 //		mov(eax,(type w.TV_ITEM[edx]).pszText);
 //		mov(@size(buffer),(type w.TV_ITEM [edx]).cchTextMax);
 //		push(edx);
-//		w.SendMessage(core.htreeview,w.TVM_GETITEM,0,edx);
+//		w.SendMessage(core.h_explorer_tree,w.TVM_GETITEM,0,edx);
 //		pop(edx);
 		ret();
 
