@@ -167,7 +167,7 @@ USE (ESI, ECX, EDI, EBX, EDX);
 		w.ShowWindow (listebx.hwnd, w.SW_SHOW);		
 	endif;
 	w.SendMessage (core.hwnd, w.WM_SIZE, 0, 0);
-	w.SendMessage(core.hwnd,HIDE_SETINSERTMODE,0,0);
+	w.SendMessage(core.hwnd,HED_SETINSERTMODE,0,0);
 	updateDisplay (update_general);
 	dbg.put ("/tabtool_add");
 ENDUSE;
@@ -256,7 +256,7 @@ USE(ebx,edx,esi,edi);
 		SetWindowCaption();
 		w.SetFocus (core.hwnd);
 		w.SendMessage(core.hwnd, w.WM_SIZE,0,0);
-		w.SendMessage(core.hwnd,HIDE_SETINSERTMODE,0,0);
+		w.SendMessage(core.hwnd,HED_SETINSERTMODE,0,0);
 	else
 		// no tab windows left open
 		mov (NULL, curnode);

@@ -38,8 +38,8 @@ program HED_MAIN;
 		// increase this when a new Panel window is added, "Fold" is Window #0
 		nPanelWindows			:= 2;
 
-		IDM_HIDE_COLLAPSEALL	:= $0fffC;
-		IDM_HIDE_EXPANDALL		:= $0FFFD;
+		IDM_HED_COLLAPSEALL	:= $0fffC;
+		IDM_HED_EXPANDALL		:= $0FFFD;
 
 		HED_DEFAULTINI			:="Data" + dirsep_c + "hed_default.ini";
 		HED_INI_FILE			:="Data" + dirsep_c + "HED.ini";
@@ -549,7 +549,7 @@ program HED_MAIN;
 			w.CallWindowProc ( listebx.oldhwnd, hwin, umsg, wparam, lparam);
 			if (updateIns) then
 				mov (false, updateIns);
-				w.SendMessage(core.hwnd,HIDE_SETINSERTMODE,0,0);
+				w.SendMessage(core.hwnd,HED_SETINSERTMODE,0,0);
 			endif;
 		_exitnocall:
 	ENDUSE;
@@ -794,8 +794,8 @@ program HED_MAIN;
 		dbg.put ("/hed_openFile");
 	end hed_openFile;
 
-	procedure hide_openNode ( var node:fList.fnode );
-	begin hide_openNode;
+	procedure HED_openNode ( var node:fList.fnode );
+	begin HED_openNode;
 	
 	USE( EBX );
 		mov( node, ebx );
@@ -819,11 +819,11 @@ program HED_MAIN;
 		
 		already_open:
 	ENDUSE;
-	//dbg.put("/hide_openNode");
-	end hide_openNode;
+	//dbg.put("/HED_openNode");
+	end HED_openNode;
  
- 	procedure hide_selectNode( var node:fList.fnode );
- 	begin hide_selectNode;
+ 	procedure HED_selectNode( var node:fList.fnode );
+ 	begin HED_selectNode;
  		
  		// node already created and hwnd opened but invisible
  		// make if visible and update properties, create and attach
@@ -837,11 +837,11 @@ program HED_MAIN;
 		tabtool_add( [ebx] );
  		ENDUSE;
  		
- 	end hide_selectNode;
+ 	end HED_selectNode;
 
  
- 	procedure hide_closeNode ( var node:fList.fnode );
- 	begin hide_closeNode;
+ 	procedure HED_closeNode ( var node:fList.fnode );
+ 	begin HED_closeNode;
 		USE( EBX );
 		mov( node, ebx );
 		cmp( listebx.hwnd, 0 );	je already_closed;
@@ -850,7 +850,7 @@ program HED_MAIN;
 		mov( 0, listebx.hwnd );
 		already_closed:
 		ENDUSE;
- 	end hide_closeNode;
+ 	end HED_closeNode;
 
 	procedure Menu_NewFile; @noframe;
 	begin Menu_NewFile;
@@ -954,21 +954,7 @@ program HED_MAIN;
 			WriteToFile (listebx.hwnd, s);
 
 			// if this is project file, open it as a new RAEdit window
-			if (listebx.job) then
-				if (selectOpen (s)) then
 
-					mov (eax, ebx);
-					w.SendMessage (listebx.hwnd, w.EM_SETSEL, 0, -1);
-					w.SendMessage(listebx.hwnd, w.WM_CLEAR,0,0);
-					RAEdit_loadFile ([ebx], s);
-
-				else
-					hed_openFile (s);
-					Recent_Insert( s );
-					UpdateMenu();
-				endif;
-				
-			else
 				// just update curnode without creating a new node
 				str.free (listebx.fullname);
 				str.free (listebx.id);
@@ -985,7 +971,6 @@ program HED_MAIN;
 			setupFind();
 			GetFileTime (listebx.relative, listebx.writetime);
 			tabtool_activate();
-		endif;
 		popabi;
 	end Menu_SaveAs;
 		
@@ -1003,14 +988,11 @@ program HED_MAIN;
 		mov (curnode, ebx);
 		if (ebx) then
 			if (! querySave ([ebx])) then
-				hide_closeNode( [ebx] );
-				
-				if (! listebx.job) then
+				HED_closeNode( [ebx] );
 				
 					// orphaned file...
 					// also remove from list and update treeview.
 					fileList.remove ([ebx]);
-				endif;
 			endif;
 		endif;
 		updateDisplay (update_general);
@@ -1754,7 +1736,7 @@ proc
 		inc( Line );
 		inc( nLines );
 		str.put( stringbuffer, "Line: ", Line, "        Lines: ", nLines );
-		w.SendMessage( core.hwnd, HIDE_SETSTATUS, STATUS_POSITION, stringbuffer );
+		w.SendMessage( core.hwnd, HED_SETSTATUS, STATUS_POSITION, stringbuffer );
 	
 	end ShowPos;
 	
@@ -1781,9 +1763,9 @@ proc
 			dword	w.WM_CLOSE,			&_close;
 			dword	w.WM_DESTROY,		&_destroy;
 			dword	w.WM_INITDIALOG,	&init_window;
-			dword	HIDE_TOGGLEOUTPUT,	&_toggleout;
-			dword	HIDE_SETSTATUS,		&_setstatus;
-			dword	HIDE_SETINSERTMODE,	&_setinsert;
+			dword	HED_TOGGLEOUTPUT,	&_toggleout;
+			dword	HED_SETSTATUS,		&_setstatus;
+			dword	HED_SETINSERTMODE,	&_setinsert;
 			
 			// add more messages above here
 			dword	0,					NULL;
@@ -1833,8 +1815,8 @@ proc
 			dword	IDM_EDIT_PREVBOOK,	&_mepbook;
 			dword	IDM_EDIT_CLEARBOOK,	&_mecbook;
 			
-			dword	IDM_HIDE_EXPANDALL,		&_expandall;	// expand/collapse buttons
-			dword	IDM_HIDE_COLLAPSEALL,	&_collapseall;
+			dword	IDM_HED_EXPANDALL,		&_expandall;	// expand/collapse buttons
+			dword	IDM_HED_COLLAPSEALL,	&_collapseall;
 			
 			dword	IDM_MAKE_BUILDIT,		&Menu_MakeBuild;
 			dword	IDM_MAKE_REBUILD,		&Menu_MakeRebuild;
@@ -1904,9 +1886,9 @@ proc
 				w.GetWindowLong( listebx.hwnd, 0 );
 				cmp( (type EDIT_CLASS[eax]).fOvr, 0 );
 				if( @e ) then
-					w.SendMessage( core.hwnd, HIDE_SETSTATUS, STATUS_INS, &szINS );
+					w.SendMessage( core.hwnd, HED_SETSTATUS, STATUS_INS, &szINS );
 				else
-					w.SendMessage( core.hwnd, HIDE_SETSTATUS, STATUS_INS, &szOVR );
+					w.SendMessage( core.hwnd, HED_SETSTATUS, STATUS_INS, &szOVR );
 				endif;
 			
 			endif;

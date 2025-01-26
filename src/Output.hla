@@ -156,13 +156,13 @@ begin Proc_OutputEdit;
 					if  ( fileList.findFullname(_extFileName)) then
 						mov (eax, ebx);
 						if (! selectOpenMem ([ebx])) then
-							hide_openNode( [ebx] );
+							HED_openNode( [ebx] );
 						endif;
 
 					elseif (fileList.findID (_extFileName)) then
 						mov (eax, ebx);
 						if (! selectOpenMem ([ebx])) then
-							hide_openNode( [ebx] );
+							HED_openNode( [ebx] );
 						endif;
 						
 					else
@@ -320,7 +320,7 @@ begin WriteOutput;
 USE (esi, edi, eax, ecx, ebx, edx);
 
 	if (testz (OUTPUT, settings.winview)) then
-		w.SendMessage( core.hwnd, HIDE_TOGGLEOUTPUT,0,5000);
+		w.SendMessage( core.hwnd, HED_TOGGLEOUTPUT,0,5000);
 	endif;
 	SendStr	(core.houtedt, w.EM_REPLACESEL, false, _msg_ );
 

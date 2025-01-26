@@ -1,4 +1,4 @@
-unit HIDE_procs;
+unit HED_procs;
 
 	#includeonce ("HED.hhf")
 	#includeonce ("memory.hhf")
@@ -787,4 +787,4 @@ begin getStringInput3;
 end getStringInput3;
 
 
-end HIDE_procs;
+end HED_procs;

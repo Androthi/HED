@@ -5,9 +5,9 @@ proc
 	expandPathMacs			:procedure( source:string; dest:string ); @external;
 	UpdateMenu				:procedure; @external;
 	Menu_CloseFile			:procedure; @external;
-	hide_openNode			:procedure( var node:fList.fnode ); @external;
-	hide_closeNode			:procedure( var node:fList.fnode ); @external;
-	hide_selectNode			:procedure( var node:fList.fnode ); @external;
+	HED_openNode			:procedure( var node:fList.fnode ); @external;
+	HED_closeNode			:procedure( var node:fList.fnode ); @external;
+	HED_selectNode			:procedure( var node:fList.fnode ); @external;
 	updateDisplay			:procedure( toupdate:dword ); @external;
 
 	keywordsUpdate	:procedure( hwin:dword ); external;
@@ -20,9 +20,6 @@ proc
 
 procedure hed_openFile( fname:string ); @returns ("EAX"); @external;
 
-// project
-procedure Proc_JobsManager (lparam:dword; wparam:dword; umsg:uns32; hwin:dword);	@external;
-procedure Proc_NewProject  (lparam:dword; wparam:dword; umsg:uns32; hwin:dword); @external;
 
 // keywords
 procedure Proc_KeyWords (lparam:dword; wparam:dword; umsg:uns32; hwin:dword);	@external;
@@ -118,7 +115,7 @@ procedure PageSetup; 	@external;
 procedure PrintDoc;		@external;
 procedure initPrinter; @external;
 
-// HIDE_procs
+// HED_procs
 procedure Proc_HSplit(lparam:dword; wparam:dword; umsg:uns32; hwin:dword); @external;
 procedure Proc_VSplit(lparam:dword; wparam:dword; umsg:uns32; hwin:dword); @external;
 
@@ -146,7 +143,7 @@ static	// externals
 		mainfont			:w.LOGFONT;				@external;
 		dialogfont			:w.LOGFONT;				@external;
 
-		buffer				:byte[300];				@external ("hide_private_buffer");		// general buffer	
+		buffer				:byte[300];				@external ("HED_private_buffer");		// general buffer	
 		findbuff			:byte[300];				@external;		// buffer for find dialog
 		replacebuf			:byte[300];				@external;		// buffer for replace dialog
 		CustColors			:dword[16];				@external;		// storage for custom colors
@@ -175,24 +172,7 @@ static	// externals
 	
 	fileList	:fList; @external;
 	curnode		:pointer to fList.fnode; @external;
-	jobList		:jList; @external;
 	pview_curSel	:dword; @external;
 	RAEditClassName		:string; @external;
 	commaDelimcst	:cset; @external;
-	
-	
-	//========================================
 	AppName		:zstring; @external; 
-
-	zDebug		:zstring; @external;
-	zProject	:zstring; @external;
-	zJobs		:zstring; @external;
-	zFiles		:zstring; @external;
-	zFolder		:zstring; @external;
-	zType		:zstring; @external;
-	zGeneral	:zstring; @external;
-	zEnvironment:zstring; @external;
-	zSettings	:zstring; @external;
-	zSeperator	:zstring; @external;
-	
-	id_strings :zstring[ 20 ]; @external;

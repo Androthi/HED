@@ -12,7 +12,7 @@ storage
 	core			:tCORE;		// HIDE global state
 
 	hed_ini			:tConfig;	// HIDE.ini configuration file in memory
-	hed_default_ini		:tConfig;	// hed_default.ini configuration file in memory
+	hed_default_ini	:tConfig;	// hed_default.ini configuration file in memory
 	
 	workpath		:string;	// a string buffer for working paths, scratch path buffer  ** use with caution, should be depricated eventually
 	stringbuffer	:string;	// scratch string buffer ** use with caution, do not expect contents to be preserved across funtion calls
@@ -48,55 +48,11 @@ static
 	align(4);
 	fileList	:fList;
 	curnode		:pointer to fList.fnode;
-	jobList		:jList;
-	align(4);
 
 readonly
 	
 	AppName		:zstring := "HED";
-	zProject	:zstring := "Project";
-	zJobs		:zstring := "Jobs";
-	zFiles		:zstring := "Files";
-	zFolder		:zstring := "Folder";
-	zType		:zstring := "Type";
-	zGeneral	:zstring := "General";
-	zEnvironment:zstring := "Environment";
-	zSettings	:zstring := "Settings";
-	zSeperator	:zstring := "=====================================";
-	
-	
-	// as per enum id_types; must match correctly
-	id_strings	:zstring[ 20 ] := 
-	[
-		"main",
-		"type",
-		"static",
-		"readonly",
-		"val",
-		"var",
-		"const",
-		"storage",
-		"method",
-		"procedure",
-		"class",
-		"iterator",
-		"macro",
-		"label",
-		"bookmark",
-		"external",
-		"begin",
-		"end",
-		"record",
-		"endrecord"
-		
-	];
-	
-
-//========================================
-
 	RAEditClassName		:string := "RAEDIT";
-
-//========================================
 
 	commaDelimcst	:cset; @nostorage;
 		cset { ',' };

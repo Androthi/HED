@@ -127,7 +127,7 @@ begin RAEdit_loadFileLight;
 	// node already taken care of, need to create a RAEdit and load the file
 	// make it quick since this could be temporary.
 	// to make it permanent and visible with a tab tool, send this node to
-	// hide_selectNode()
+	// HED_selectNode()
 	
 	USE( EBX );
 	mov( node, ebx );
@@ -264,7 +264,7 @@ proc
 			mov (15, group);
 			w.SendMessage(listebx.hwnd,REM_SETWORDGROUP,0, group);
 			w.SendMessage(listebx.hwnd,REM_SETCOLOR,0,&core.col);
-			w.SendMessage(core.hwnd,HIDE_SETINSERTMODE,0,0);
+			w.SendMessage(core.hwnd,HED_SETINSERTMODE,0,0);
 			w.SetWindowLong(listebx.hwnd,w.GWL_STYLE, gwstyle);
 
 		ENDUSE;	
@@ -320,13 +320,6 @@ USE (ebx, esi, edi, ecx, edx);
 	cmp( listebx.hwnd, 0 );	je no_node;
 	
 	mov (false, saveAsed);
-
-	if (! listebx.job) then
-		if (str.eq (listebx.id, "Untitled")) then
-			saveFileAs ([ebx]);
-			mov (true, saveAsed);
-		endif;
-	endif;
 		
 	if (! saveAsed) then
 		WriteToFile (listebx.hwnd, listebx.fullname);
@@ -546,13 +539,10 @@ begin closeAll;
 			// if this is a project file, hide the window, else destroy the window .
 			w.DestroyWindow (listebx.hwnd);
 			
-			if (listebx.job) then
-				mov( 0, listebx.hwnd );
-				
-			else
+
 				// also remove from list
 				fileList.remove ([ebx]);
-			endif;
+
 		endwhile;
 	else
 		xor (eax, eax);

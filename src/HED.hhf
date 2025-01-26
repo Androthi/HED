@@ -118,50 +118,20 @@ const
 	);
 
 	// Private messages
-	HIDE_BASE			:=w.WM_USER+2000;
-	HIDE_TOGGLEOUTPUT	:=HIDE_BASE+1;		// wParam=0, lParam=n	0 > n = start close output delay timer 
-	HIDE_SETSTATUS		:=HIDE_BASE+2;		// wParam=item index,	lParam=pointer to string
-	HIDE_SETINSERTMODE	:=HIDE_BASE+3;		// wParam=0, lParam=0   updates status bar INS/OVR display based on edit setting
+	HED_BASE			:=w.WM_USER+2000;
+	HED_TOGGLEOUTPUT	:=HED_BASE+1;		// wParam=0, lParam=n	0 > n = start close output delay timer 
+	HED_SETSTATUS		:=HED_BASE+2;		// wParam=item index,	lParam=pointer to string
+	HED_SETINSERTMODE	:=HED_BASE+3;		// wParam=0, lParam=0   updates status bar INS/OVR display based on edit setting
 	
 	// some general string sized
 	pathsize_c		:= 400;
 	worksize_c		:= 4096;
 	mastersize_c	:= $10000;
 	dirsep_c		:= '\';
-	obj_c			:= ".obj";
-	lib_c			:= ".lib";
-	exe_c			:= ".exe";
-	
-	
-	// HIDE manager init values
-	manager_general		:= 0;
-	manager_env			:= 1;
-	manager_settings	:= 2;
-	manager_themes		:= 3;
-	manager_project		:= manager_themes+1;
-	manager_jobs		:= manager_project+1;
 
 
-	// various options
-	// deprications and 'moved' are
-	// free spaces
 	opt_console		:= @{0};	// console to output
-	opt_auto		:= @{1};	// auto structure complete -- moved
-	opt_hiliteline	:= @{2};	// hilite carot line -- moved
-	opt_hilitecmnts	:= @{3};	// hilite comments -- moved
-	opt_divideline	:= @{4};	// divider line -- moved
-	opt_exptabs		:= @{5};	// expand tabs
-	opt_indent		:= @{6};	// auto indent
-	opt_usestdtpl	:= @{7};	// use standard templates -- moved - depricated
-	opt_showlines	:= @{8};	// activate line number panel -- moved
-	opt_autoparen	:= @{9};	// auto parenthesis complete -- moved
-	opt_keeptemp	:= @{10};	// keep temporary files -- moved
-	opt_usedebuglib	:= @{11};	// link in debuglib.lib
-	opt_verbose		:= @{12};	// verbose output -- moved
-	opt_windows		:= @{13};	// compile to windows GUI PE
-	opt_autodep		:= @{14};	// automatically check dependencies -- moved
-	opt_extfasm		:= @{15};	// depricated -- free space
-	opt_scanprops	:= @{16};	// used to scan or skip scan properties list -- moved --depricatd
-	opt_threadsafe	:= @{17};	// used to link in thread safe standard library
+	opt_exptabs		:= @{1};	// expand tabs
+	opt_indent		:= @{2};	// auto indent
 
 

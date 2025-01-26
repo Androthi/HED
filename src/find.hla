@@ -10,7 +10,6 @@ storage
 	align(4);
 
 	start_file		:pointer to fList.fnode;
-	start_job		:dword;
 	current_pos		:uns32;
 	endsel			:uns32;
 	ft				:w.FINDTEXTEX;
@@ -45,9 +44,6 @@ begin resetFind;
 //	dbg.put ("resetFind");
 	mov (curnode, eax);
 	mov (eax, start_file);
-	if (eax) then
-		move (listeax.job, start_job);
-	endif;
 	
 	if (testnz (w.FR_DOWN, settings.findflags)) then
 		mov (0, ft.chrg.cpMin);
@@ -210,7 +206,7 @@ begin find_next;
 			mov (true, isFound);
 			
 			if (! tabtool_isOpen ([ebx]) ) then
-				hide_selectNode( [ebx] );
+				HED_selectNode( [ebx] );
 			elseif( ebx != curnode ) then
 				selectOpenMem( [ebx] );
 			endif;
@@ -295,7 +291,7 @@ begin find_prev;
 			mov (true, isFound);
 
 			if (! tabtool_isOpen ([ebx]) ) then
-				hide_selectNode( [ebx] );
+				HED_selectNode( [ebx] );
 			elseif( ebx != curnode ) then
 				selectOpenMem( [ebx] );
 			endif;
@@ -356,7 +352,7 @@ procedure find_replaceAll;
 			dbg.put ("cleanup = ", cleanup );
 			if( cleanup ) then
 				mov( false, cleanup );
-				hide_selectNode( [ebx] );
+				HED_selectNode( [ebx] );
 			endif;
 			
 			w.SendMessage( listebx.hwnd, w.EM_EXSETSEL, 0, &ft.chrgText);

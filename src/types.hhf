@@ -78,11 +78,6 @@ const
 	listecx	:text := "(type fList.fnode[ecx])";
 	listesi	:text := "(type fList.fnode[esi])";
 
-	jobebx		:text := "(type jList.jnode[ebx])";
-	jobeax		:text := "(type jList.jnode[eax])";
-	jobecx		:text := "(type jList.jnode[ecx])";
-	jobedx		:text := "(type jList.jnode[edx])";
-	jobedi		:text := "(type jList.jnode[edi])";
 
 	tableesi	:text	:= "(type table[esi])";
 	tableeax	:text	:= "(type table[eax])";
@@ -102,20 +97,8 @@ type
 			line	:uns32;
 		endrecord;
 const
-
-	fnode_id	:= 0;
-	jnode_id	:= 1;
 		
 type
-
-	fd_keys	:enum
-		{
-			f2,
-			sft_f2,
-			ctl_f2,
-			alt_f2,
-			mouse
-		};
 
 	tCORE:
 		record
@@ -173,7 +156,6 @@ type
 			winview		:dword;		// keeps track of which windows are visible and/or docked
 			edtwin		:WINPOS;	// saves position of main window
 			outwin		:WINPOS;	// saves position of undocked output window
-			treewin		:WINPOS;	// saves position of undocked treeview window
 			explorerwin	:WINPOS;
 			hsplitbar	:WINPOS;	// saves position of long horizontal split bar
 			vsplitbar	:WINPOS;	// saves position of long vertical split bar
@@ -183,26 +165,6 @@ type
 			findflags	:dword;		// determines direction, flags
 			tab			:uns8;
 		endrecord;
-	
-		jList	:class inherits( tBaseList );
-			
-			type
-				jnode :record inherits( baseNode_t );
-					id			:string;	// name of job
-					job_type	:dword;		// type number of job
-					inQueue		:BOOL;		// job is in active queue or Held
-					treenode	:dword;		// this objects node handle in Project View
-					align(4);
-				endrecord;
-
-			override procedure create; @external;
-			override method destroy; @external;
-			override method remove; @external;
-			
-			method newNode; @returns ("EAX"); @external;
-			method appendJob (id:string); @returns ("EAX"); @external;
-			method findID (id:string); @returns ("EAX"); @external;
-		endclass;
 	
 		fList	:class inherits (tBaseList);
 			
@@ -215,15 +177,9 @@ type
 						relative	:string;		// path releative to project folder for project files
 					endunion;
 					
-					ftype		:dword;				// determines what HIDE will do with this file
 					hwnd		:dword;				// attached handle for RAEDIT window
 					oldhwnd		:dword;				// subclassed proc
-					union
-						job			:dword;			// points to job structure,
-						isproject	:BOOL;			// or NULL if this is not a project file
-					endunion;
 					writetime	:qword;		
-					treenode	:dword;			// objects node handle in the Project view
 					align(4);
 				endrecord;
 				
@@ -235,8 +191,6 @@ type
 			method appendFile (id:string); @returns ("EAX"); @external;
 			method findFullname (id:string); @returns ("EAX"); @external;
 			method findID (id:string); @returns ("EAX"); @external;
-			method findJobID (var job:jList.jnode; id:string); @returns ("EAX"); @external;
-			method findJobRelative (var job:jList.jnode; id:string); @returns ("EAX"); @external;
 			method dumpList; @external;
 		endclass;
 		

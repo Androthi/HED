@@ -150,7 +150,7 @@ proc
 			// open the output window and mark is as changed
 			// to toggle it back later.
 			mov( true, outputchanged );
-			w.SendMessage( core.hwnd, HIDE_TOGGLEOUTPUT, 0, 0 );
+			w.SendMessage( core.hwnd, HED_TOGGLEOUTPUT, 0, 0 );
 			
 		else
 			

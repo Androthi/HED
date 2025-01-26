@@ -12,14 +12,12 @@ storage	// internal variables
 	selType			:dword;
 	oldhtree		:dword;
 	selMem			:pointer to fList.fnode;
-	eview_curSel	:dword;
 
 	tvins	:w.TV_INSERTSTRUCT;
 	tvhtst	:w.TV_HITTESTINFO;
 	tvi		:w.TV_ITEM;
 	pt		:hide.point_t;
 	treebuffer	:byte[w.MAX_PATH];
-	//pviewmenu	:dword;
 	align(4);	
 
 procedure Explorer_View (message:dword);
@@ -168,7 +166,7 @@ begin	Proc_Explorer;
 //				mov(selType,eax);
 //				if (eax = IMG_FILE || eax = IMG_RC || eax = IMG_PROGRAM || eax = IMG_UNIT || eax = IMG_BINARY) then
 //					if (! selectOpenMem (selMem)) then
-//						hide_openNode( selMem );
+//						HED_openNode( selMem );
 //					endif;
 //
 //				elseif (eax = IMG_TARGET || eax = IMG_NOTARGET) then
@@ -177,7 +175,7 @@ begin	Proc_Explorer;
 //						toOutput ("No target file selected, add one using Project Manager" nl);
 //					else
 //						if (! selectOpenMem (selMem)) then
-//							hide_openNode( selMem );
+//							HED_openNode( selMem );
 //						endif;
 //					endif;
 //				endif;
