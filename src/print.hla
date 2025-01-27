@@ -44,8 +44,8 @@ end GetPrnCaps;
 procedure initPrinter; @noframe;
 begin initPrinter;
 
-	if (hed_ini.isKeyDefined ("HED Settings", "printer")) then
-		hed_ini.readBin ("HED Settings", "printer", &ppos, @size(PrnPos_t));
+	if (hed_ini.isKeyDefined ("HED", "printer")) then
+		hed_ini.readBin ("HED", "printer", &ppos, @size(PrnPos_t));
 	endif;
 
 	move (ppos.margins.left, psd.rtMargin.left);
@@ -81,7 +81,7 @@ begin PageSetup;
 		move (psd.rtMargin.bottom, ppos.margins.bottom);
 		move (psd.ptPaperSize.x, ppos.pagesize.x);
 		move (psd.ptPaperSize.y, ppos.pagesize.y);
-		hed_ini.writeBin ("HED Settings", "printer", &ppos, @size (PrnPos_t) );
+		hed_ini.writeBin ("HED", "printer", &ppos, @size (PrnPos_t) );
 	endif;
 
 

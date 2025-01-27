@@ -1,6 +1,6 @@
 const
 
-	hed_version	:string := "HED 0.0.10";
+	hed_version	:string := "HED 0.0.16";
 
 	#includeonce	("os.hhf")
 	#includeonce	("src/win_inc.hhf")
@@ -12,7 +12,7 @@ const
 
 const
 	nUserColors		:= 6;
-
+ 
 namespace hide;
 	type
 		point_t:

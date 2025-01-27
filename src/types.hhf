@@ -1,4 +1,4 @@
-// HIDE types and macros
+// HED types and macros
 		
 	#macro toOutput ( _parms_[]): __parms, __counter, __buildstr;
 		?__parms := @elements( _parms_);
@@ -131,7 +131,7 @@ type
 	
 	EDITOPTS:
 		record
-			options		:dword;		// bit-set options for various HIDE features
+			options		:dword;		// bit-set options for various HED features
 			winview		:dword;		// keeps track of which windows are visible and/or docked
 			edtwin		:WINPOS;	// saves position of main window
 			outwin		:WINPOS;	// saves position of undocked output window
@@ -146,14 +146,13 @@ type
 		endrecord;
 	
 		fList	:class inherits (tBaseList);
-			
 			type
 				fnode :record inherits( baseNode_t );
 			
 					id			:string;			// name + extension of file
 					union
 						fullname	:string;		// full path for orphan files or
-						relative	:string;		// path releative to project folder for project files
+						relative	:string;		// path releative to  for project files
 					endunion;
 					
 					hwnd		:dword;				// attached handle for RAEDIT window
@@ -209,7 +208,7 @@ type
 			line		:dword;		//Linenumber
 			cpLine		:dword;		//Character position for start of line
 		
-			rc			:hide.rect_t;		//Main rect
+			rc			:hide.rect_t;//Main rect
 			selbarwt	:dword;		//Width of selection bar
 			nlinenrwt	:dword;		//Initial width of linenumber bar
 			linenrwt	:dword;		//Width of linenumber bar
@@ -221,9 +220,9 @@ type
 			nHidden		:dword;		//Number of hidden lines
 			cpx			:dword;		//Scroll position
 			focus		:dword;		//Handle of edit having focus
-			fCaretHide	:dword;		//Caret is hidden
+			fCaretHED	:dword;		//Caret is hidden
 			fChanged	:dword;		//Content changed
-			fHideSel	:dword;		//Hide selection
+			fHEDSel	:dword;		//HED selection
 			fIndent		:dword;		//Auto indent
 			clr			:RACOLOR;
 			br			:dword[7];	//RABRUSH <?>

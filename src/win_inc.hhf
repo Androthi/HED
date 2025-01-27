@@ -564,7 +564,7 @@ const
 	PHYSICALHEIGHT                 := 111;
 	PHYSICALOFFSETX                := 112;
 	PHYSICALOFFSETY                := 113;
-	SW_HIDE                        := 0;
+	SW_HED                        := 0;
 	SW_SHOWNORMAL                  := 1;
 	SW_MAXIMIZE                    := 3;
 	SW_SHOW                        := 5;
@@ -884,7 +884,7 @@ const
 	PD_NOPAGENUMS                  := $00000008;
 	PD_RETURNDC                    := $00000100;
 	OFN_FILEMUSTEXIST              := $00001000;
-	OFN_HIDEREADONLY               := $00000004;
+	OFN_HEDREADONLY               := $00000004;
 	OFN_NOCHANGEDIR                := $00000008;
 	OFN_OVERWRITEPROMPT            := $00000002;
 	OFN_PATHMUSTEXIST              := $00000800;
@@ -893,7 +893,7 @@ const
 	EM_EXLINEFROMCHAR              :=  WM_USER + 54;
 	EM_EXSETSEL                    :=  WM_USER + 55;
 	EM_GETSELTEXT                  :=  WM_USER + 62;
-	EM_HIDESELECTION               :=  WM_USER + 63;
+	EM_HEDSELECTION               :=  WM_USER + 63;
 	EM_STREAMIN                    :=  WM_USER + 73;
 	EM_STREAMOUT                   :=  WM_USER + 74;
 	EM_FINDWORDBREAK               :=  WM_USER + 76;

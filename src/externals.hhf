@@ -1,6 +1,6 @@
 
 proc
-	//hide.hla
+	//HED.hla
 	Proc_SubclassedEdit		:procedure( lparam:dword; wparam:dword; umsg:uns32; hwin:dword ); @external;
 	expandPathMacs			:procedure( source:string; dest:string ); @external;
 	UpdateMenu				:procedure; @external;
@@ -81,7 +81,7 @@ procedure PanelExplorer; @external;
 procedure PanelViewWin; @external;
 procedure PanelViewActive; @external;
 procedure PanelActivate; @external;
-procedure Panel_HideClosed; @external;
+procedure Panel_HEDClosed; @external;
 procedure panel_setfrom; @external;
 
 // output
@@ -148,7 +148,7 @@ static	// externals
 		workpath			:string;				@external;	// a string buffer for working paths
 		stringbuffer				:string;				@external;	// scratch static string
 
-		core				:tCORE;					@external;	// HIDE global state
+		core				:tCORE;					@external;	// HED global state
 		htimer				:dword; @external;  // 0 = output timer off,  >0 = output timer on
 	
 

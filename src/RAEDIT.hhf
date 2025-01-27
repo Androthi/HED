@@ -60,7 +60,7 @@ REM_EXPAND				:= REM_BASE+18;		//wParam=Line, lParam=0
 REM_EXPANDALL			:= REM_BASE+19;		//wParam=0, lParam=0
 REM_LOCKLINE			:= REM_BASE+20;		//wParam=Line, lParam=TRUE/FALSE
 REM_ISLINELOCKED		:= REM_BASE+21;		//wParam=Line, lParam=0
-REM_HIDELINE			:= REM_BASE+22;		//wParam=Line, lParam=TRUE/FALSE
+REM_HEDLINE			:= REM_BASE+22;		//wParam=Line, lParam=TRUE/FALSE
 REM_ISLINEHIDDEN		:= REM_BASE+23;		//wParam=Line, lParam=0
 REM_AUTOINDENT			:= REM_BASE+24;		//wParam=0, lParam=TRUE/FALSE
 REM_TABWIDTH			:= REM_BASE+25;		//wParam=nChars, lParam=TRUE/FALSE (Expand tabs)
@@ -85,7 +85,7 @@ REM_GETWORDGROUP		:= REM_BASE+43;		//wParam=0, lParam=0
 REM_SETBMID				:= REM_BASE+44;		//wParam=nLine, lParam=nBmID
 REM_GETBMID				:= REM_BASE+45;		//wParam=nLine, lParam=0
 REM_ISCHARPOS			:= REM_BASE+46;		//wParam=CP, lParam=0, returns 1 if comment block, 2 if comment, 3 if string
-REM_HIDELINES			:= REM_BASE+47;		//wParam=nLine, lParam=nLines
+REM_HEDLINES			:= REM_BASE+47;		//wParam=nLine, lParam=nLines
 REM_SETDIVIDERLINE		:= REM_BASE+48;		//wParam=nLine, lParam=TRUE/FALSE
 REM_ISINBLOCK			:= REM_BASE+49;		//wParam=nLine, lParam=lpRABLOCKDEF
 REM_TRIMSPACE			:= REM_BASE+50;		//wParam=nLine, lParam=fLeft
@@ -204,8 +204,8 @@ type
 RABLOCKDEF: record
 	lpszStart	:dword;				//Block start
 	lpszEnd		:dword;				//Block end
-	lpszNot1	:dword;				//Dont hide line containing this or set to NULL
-	lpszNot2	:dword;				//Dont hide line containing this or set to NULL
+	lpszNot1	:dword;				//Dont HED line containing this or set to NULL
+	lpszNot2	:dword;				//Dont HED line containing this or set to NULL
 	flag		:dword;					
 endrecord;
 
@@ -251,7 +251,7 @@ Features:
   time to get these things.
 - Button in upper right corner is a splitter bar.
 - Buttons in lower left corner:
-   1. Show/hide line numbers.
+   1. Show/HED line numbers.
    2. Collapse all blocks
    3. Expand all blocks
 
@@ -374,7 +374,7 @@ REM_ISLINELOCKED
 wParam=Line
 lParam=0
 
-REM_HIDELINE
+REM_HEDLINE
 wParam=Line
 lParam=TRUE/FALSE
 
@@ -479,7 +479,7 @@ returns:
 2 if comment
 3 if string
 
-REM_HIDELINES
+REM_HEDLINES
 wParam=nLine
 lParam=nLines
 
@@ -543,7 +543,7 @@ EM_REDO
 wParam=0
 lParam=0
 
-EM_HIDESELECTION
+EM_HEDSELECTION
 wParam=TRUE/FALSE
 lParam=0
 
@@ -720,9 +720,9 @@ KetilO
 //		nHidden		:dword;		//Number of hidden lines
 //		cpx			:dword;		//Scroll position
 //		focus		:dword;		//Handle of edit having focus
-//		fCaretHide	:dword;		//Caret is hidden
+//		fCaretHED	:dword;		//Caret is hidden
 //		fChanged	:dword;		//Content changed
-//		fHideSel	:dword;		//Hide selection
+//		fHEDSel	:dword;		//HED selection
 //		fIndent		:dword;		//Auto indent
 //		clr			:RACOLOR;
 //		br			:dword[7];	//RABRUSH <?>

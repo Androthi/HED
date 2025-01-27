@@ -61,7 +61,7 @@ begin SetWindowCaption;
 			str.put2 (workpath, '*');
 			toOutput (nl nl "Warning: File has been modified externally" nl);
 		endif;
-		str.put2 (workpath, listebx.relative, "   HIDE");
+		str.put2 (workpath, listebx.relative, "   HED");
 	else
 		str.cpy( &AppName, workpath );
 	endif;
@@ -241,7 +241,7 @@ proc
 			
 			w.SendMessage(listebx.hwnd,REM_TABWIDTH, edx, eax);
 			
-			hed_ini.readInt( "HED Settings", "Show Line Numbers" );
+			hed_ini.readInt( "HED", "Show Line Numbers" );
 			if( eax ) then
 				w.CheckDlgButton (listebx.hwnd, -2, true);
 				w.SendMessage (listebx.hwnd, w.WM_COMMAND, -2, 0);
@@ -421,7 +421,7 @@ begin InitOF;
 	mov(eax,of.lpstrFilter);
 	
 	mov	(	w.OFN_PATHMUSTEXIST | w.OFN_NOCHANGEDIR | w.OFN_FILEMUSTEXIST |
-			w.OFN_HIDEREADONLY | w.OFN_OVERWRITEPROMPT,of.Flags);
+			w.OFN_HEDREADONLY | w.OFN_OVERWRITEPROMPT,of.Flags);
 
 	popabi;
 end InitOF;
@@ -536,7 +536,7 @@ begin closeAll;
 			breakif (querySave ([ebx]));
 			w.SendMessage (core.htab, w.TCM_DELETEITEM, count,0);
 			
-			// if this is a project file, hide the window, else destroy the window .
+			// if this is a project file, HED the window, else destroy the window .
 			w.DestroyWindow (listebx.hwnd);
 			
 
@@ -627,7 +627,7 @@ begin IndentComment;
 	endif;
 	w.SendMessage(listebx.hwnd, w.EM_EXGETSEL,0, &ochr);
 	w.SendMessage(listebx.hwnd, w.EM_EXGETSEL,0, &chr);
-	w.SendMessage(listebx.hwnd, w.EM_HIDESELECTION,true,0);
+	w.SendMessage(listebx.hwnd, w.EM_HEDSELECTION,true,0);
 	w.SendMessage(listebx.hwnd, w.EM_EXLINEFROMCHAR,0,chr.cpMin);
 	mov	(eax, LnSt);
 	mov	(chr.cpMax, eax);
@@ -694,7 +694,7 @@ begin IndentComment;
 		endif;
 	endif;
 	w.SendMessage(listebx.hwnd, w.EM_EXSETSEL,0, &ochr);
-	w.SendMessage(listebx.hwnd, w.EM_HIDESELECTION,false, 0);
+	w.SendMessage(listebx.hwnd, w.EM_HEDSELECTION,false, 0);
 	w.SendMessage(listebx.hwnd, w.EM_SCROLLCARET,0,0);
 	w.SendMessage(listebx.hwnd, w.WM_SETREDRAW,true,0);
 	w.SendMessage(listebx.hwnd, REM_REPAINT,0,0);

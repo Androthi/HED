@@ -90,7 +90,7 @@ proc
 			mov(eax,startinfo.hStdOutput);
 			mov(eax,startinfo.hStdError);
 			mov(w.STARTF_USESHOWWINDOW | w.STARTF_USESTDHANDLES,startinfo.dwFlags);
-			mov(w.SW_HIDE,startinfo.wShowWindow);
+			mov(w.SW_HED,startinfo.wShowWindow);
 			
 			filesys.gwd( stringbuffer );
 			dbg.put(" PIPE path :", stringbuffer, nl, "source :", source );

@@ -144,7 +144,7 @@ program HED_MAIN;
 				ENDUSE;
 				
 			else
-				error.warning ("'Recent Files' list in Data\Hide.ini is corrupt");
+				error.warning ("'Recent Files' list in Data\HED.ini is corrupt");
 				break;
 			endif;
 			
@@ -170,7 +170,7 @@ program HED_MAIN;
 			usermenu	:dword;
 		
 		readonly
-			szUser	:zstring := "User";
+			szUser	:zstring := "User Colors";
 			
 	begin setupUserMenu;
 		USE (EBX, ESI, EDI);
@@ -319,103 +319,11 @@ program HED_MAIN;
 			chrg			:w.CHARRANGE;
 	
 		// local procedures
-		procedure _countspaces; @noframe;
-		begin _countspaces;
-			mov (&wordbuf, edi);
-			xor(ecx,ecx);
-			mov(eax,esi);
-			
-		_count:
-			lodsb();
-			cmp(al,0);
-			je _endcount;
-			cmp(al,' ');
-			je _addcount;
-			cmp(al,$09);
-			je _addcount;
-			
-			jmp _endcount;
-			
-		_addcount:
-			stosb();
-			jmp _count;
-			
-		_endcount:
-			mov(0, (type byte[edi]) );
-			ret();
-		end _countspaces;
-		
 		procedure _insertit;	@noframe;
 		begin _insertit;
 			w.SendMessage(listebx.hwnd,w.EM_REPLACESEL,true,eax);
 			ret();	
 		end _insertit;
-		
-		procedure _setit;	@noframe;
-		begin _setit;
-	
-			mov(&ins_tab,eax);	call _insertit;
-			w.SendMessage(listebx.hwnd,w.EM_EXGETSEL,0,&chrg);
-			mov(&ins_nl,eax);		call _insertit;
-			mov(&wordbuf,eax);		call _insertit;
-			mov(esi,eax);	call _insertit;
-			w.SendMessage(listebx.hwnd,w.EM_EXSETSEL,0,&chrg);
-			w.SendMessage(listebx.hwnd,w.EM_SCROLLCARET,0,0);
-			ret();
-			
-		end _setit;
-			
-		procedure _getname;	@noframe;
-		begin _getname;
-			
-			mov(workpath,esi);
-			mov(esi,eax);
-			_find:
-				cmp( (type byte[eax]), 0);
-				je _get;
-				cmp( (type byte[eax]), ';');
-				je _get;
-				cmp( (type byte[eax]), '(');
-				je _get;
-				cmp( (type byte[eax]), ' ');
-				je _get;
-				cmp( (type byte[eax]), $09);
-				je _get;
-				inc(eax);
-				jmp _find;
-				
-			_get:
-				if( (type byte[eax]) <> 0  ) then
-					mov(';', (type byte[eax]));
-					inc(eax);
-					mov(0, (type byte[eax]));
-				endif;
-				str.a_cpyz(esi);
-			ret();
-		end _getname;
-	
-	
-		procedure findDot; @noframe;
-		begin findDot;
-			// scan for a '.', if found, use only characters after it.
-			USE (ESI, ECX);
-				mov (workpath, esi);
-				mov (esi, ecx);
-				dec (esi);
-				forever
-					inc (esi);
-					mov ([esi],al);
-					breakif (al = 0);
-					if (al = '.') then
-						inc (esi);
-						sub (ecx, esi);
-						str.delete (workpath, 0, esi);
-						break;
-					endif;
-				endfor;
-			ENDUSE;
-			ret();
-		end findDot;
 		
 		procedure wordLeft ( toInsert:dword );
 			var
@@ -423,7 +331,7 @@ program HED_MAIN;
 				
 		begin wordLeft;
 			pushabi;
-			hed_ini.readInt( "HED Settings", "Auto Parenthesis" );
+			hed_ini.readInt( "HED", "Auto Parenthesis" );
 			if( eax ) then
 				
 				w.SendMessage (listebx.hwnd, w.EM_EXGETSEL, 0, &chrg);
@@ -446,7 +354,7 @@ program HED_MAIN;
 		procedure wordRight ( toInsert:dword );
 		begin wordRight;
 			pushabi;
-			hed_ini.readInt( "HED Settings", "Auto Parenthesis" );
+			hed_ini.readInt( "HED", "Auto Parenthesis" );
 			if( eax ) then
 				
 				mov (ebp::wparam, eax);
@@ -529,7 +437,7 @@ program HED_MAIN;
 				
 				//bm=debug
 				dbg.enters("*****DEBUG*****");
-				//w.DialogBoxParam( hinst, val ID_MANAGER, hwnd, &Proc_HIDEManager, manager_jobs );
+				//w.DialogBoxParam( hinst, val ID_MANAGER, hwnd, &Proc_HEDManager, manager_jobs );
 				dbg.exits("*****DEBUG*****");
 			
 			endif;
@@ -901,6 +809,12 @@ program HED_MAIN;
 		popabi;
 	end Menu_InsertFile;
 	
+	procedure Menu_OpenFolder;
+	begin Menu_OpenFolder;
+		toOutput("TODO: Open Folder");
+	end Menu_OpenFolder;
+
+	
 	procedure Menu_SaveFile;	@noframe;
 	begin Menu_SaveFile;
 		dbg.put("<save>");
@@ -1076,7 +990,7 @@ program HED_MAIN;
 			jmp done;
 			
 			showerror:
-				error.warning ("Unable to perform task, please doublecheck [User Menu] section in data/HIDE.ini" );
+				error.warning ("Unable to perform task, please doublecheck [User Menu] section in data/HED.ini" );
 			done:
 		endif;
 		ENDUSE;
@@ -1196,13 +1110,13 @@ program HED_MAIN;
 	begin Menu_ToolsRun;
 		pushabi;
 		
-		if (! hed_ini._readString ("HED Settings", "command", stringbuffer)) then
+		if (! hed_ini._readString ("HED", "command", stringbuffer)) then
 			str.cpy ("", stringbuffer);
 		endif;
 		
 		if ( getStringInput( "Enter Command", stringbuffer, workpath )) then
 
-			hed_ini.writeString ("HED Settings", "command", workpath);
+			hed_ini.writeString ("HED", "command", workpath);
 			expandPathMacs (workpath, workpath);
 			toOutput (nl ">", workpath, nl);
 			launchProgram( workpath, true, true );
@@ -1213,7 +1127,6 @@ program HED_MAIN;
 		ret();
 	end Menu_ToolsRun;
 
-	
 	procedure Menu_ToolsColor;
 		var
 			cc		:w.CHOOSECOLOR;
@@ -1226,8 +1139,6 @@ program HED_MAIN;
 		mov (eax, cc.lStructSize);
 		push (core.hwnd);
 		pop (cc.hwndOwner);
-		//push (hinst);
-		//pop (cc.hInstance);
 		mov (&CustColors, eax);
 		mov (eax, cc.lpCustColors);
 		mov(w.CC_FULLOPEN | w.CC_RGBINIT,cc.Flags);
@@ -1254,7 +1165,7 @@ program HED_MAIN;
 		
 		mov (str.talloc (1024), s);
 		
-		toOutput (	"HIDE Environment and Related Macros" nl
+		toOutput (	"HED Environment and Related Macros" nl
 					"===================================" nl
 					"%h home    : ", core.homepath,nl
 					"%p projects: ", core.projectpath,nl);
@@ -1291,7 +1202,7 @@ program HED_MAIN;
 		else
 			toOutput (nl nl "File not found: ", src, nl nl
 				"Some help files need to be downloaded and installed" nl
-				"in the HIDE\Documents folder manually." nl nl);
+				"in the HED\Documents folder manually." nl nl);
 		endif;
 	end startHelp;
 
@@ -1303,7 +1214,7 @@ program HED_MAIN;
 			w.ShowWindow(core.hsbr,w.SW_SHOWNA);
 			w.CheckMenuItem(core.hmenu,IDM_VIEW_STATUS,(w.MF_BYCOMMAND | w.MF_CHECKED));
 		else
-			w.ShowWindow(core.hsbr,w.SW_HIDE);
+			w.ShowWindow(core.hsbr,w.SW_HED);
 			w.CheckMenuItem(core.hmenu,IDM_VIEW_STATUS,(w.MF_BYCOMMAND));
 	    endif;
 		w.SendMessage(core.hwnd,w.WM_SIZE,w.SIZENORMAL,1);
@@ -1316,7 +1227,7 @@ program HED_MAIN;
 		xor(OUTPUT,settings.winview);
 		test(OUTPUT,settings.winview);
 		if (@z) then
-			Output_View(w.SW_HIDE);
+			Output_View(w.SW_HED);
 		else
 			Output_View(w.SW_SHOW);
 	    endif;
@@ -1351,12 +1262,12 @@ program HED_MAIN;
 		ret();
 	end Menu_ViewToggleWindows;
 	
-	procedure Menu_ViewHideAll; @noframe;
-	begin Menu_ViewHideAll;
+	procedure Menu_ViewHEDAll; @noframe;
+	begin Menu_ViewHEDAll;
 		PanelFold();	
-		Output_View ( w.SW_HIDE);
+		Output_View ( w.SW_HED);
 		ret();
-	end Menu_ViewHideAll;
+	end Menu_ViewHEDAll;
 	
 	procedure CommandProcessor;	@noframe;
 	
@@ -1639,7 +1550,6 @@ program HED_MAIN;
 			pop	(eax);
 			mov	(al, mainfont.lfItalic);
 			mov	(cf.rgbColors, core.col.txtcol);
-			//w.SendMessage(listebx.hwnd,REM_SETCOLOR,0,&core.col);
 			setFormatAll();
 			
 			hed_ini.writeBin ("Fonts","code",&mainfont,@size(mainfont));
@@ -1756,6 +1666,7 @@ proc
 			dword	IDM_FILE_NEW,		&Menu_NewFile;
 			dword	IDM_FILE_OPEN,		&Menu_OpenFile;
 			dword	IDM_FILE_INSERT,	&Menu_InsertFile;
+			dword	IDM_FILE_OPEN_FOLDER,&Menu_OpenFolder;
 			dword	IDM_FILE_SAVE,		&Menu_SaveFile;
 			dword	IDM_FILE_SAVEAS,	&Menu_SaveAs;
 			dword	IDM_FILE_SAVEALL,	&Menu_SaveAll;
@@ -1768,7 +1679,7 @@ proc
 			dword	IDM_VIEW_STATUS,	&Menu_ViewStatusbar;
 			dword	IDM_VIEW_OUTPUT,	&Menu_ViewOutput;
 			dword	IDM_VIEW_PANEL,		&Menu_ViewPanel;
-			dword	IDM_VIEW_HIDEALL,	&Menu_ViewHideAll;
+			dword	IDM_VIEW_HEDALL,	&Menu_ViewHEDAll;
 			dword	IDM_VIEW_TOGGLE,	&Menu_ViewToggleWindows;
 			dword	IDM_VIEW_CYCLE,		&Menu_ViewCycle;
 			
@@ -2015,7 +1926,7 @@ proc
 				mov(eax,prvline);
 		
 				push( edi );
-				hed_ini.readInt( "HED Settings", "Highlight Line" );
+				hed_ini.readInt( "HED", "Highlight Line" );
 				pop( edi );
 				if( eax ) then
 
@@ -2125,11 +2036,11 @@ proc
 					filesys.extractPath( stringbuffer, stringbuffer );
 
 				endif;
-				hed_ini.writeString( "HED Settings", "LastPath", stringbuffer );
+				hed_ini.writeString( "HED", "Last Path", stringbuffer );
 			endif;
 			
 			
-			hed_ini.writeBin ("HED Settings", "pos", &settings, @size(settings));
+			hed_ini.writeBin ("Settings", "pos", &settings, @size(settings));
 			
 			hed_ini.write (core.configmain);
 			//dbg.put ("quitting");
@@ -2152,8 +2063,8 @@ proc
 		
 		// check for active tool window
 		if (testz (TOOL,settings.winview)) then
-			// hide
-			w.ShowWindow(core.htbr,w.SW_HIDE);
+			// HED
+			w.ShowWindow(core.htbr,w.SW_HED);
 		else
 			// show toolbar
 			mov (lparam, eax);  // lparam = client x/y
@@ -2174,8 +2085,8 @@ proc
 		
 		// check for status window
 		if ( testz (STATUS,settings.winview)) then
-			// hide
-			w.ShowWindow(core.hsbr,w.SW_HIDE);
+			// HED
+			w.ShowWindow(core.hsbr,w.SW_HED);
 		else
 			mov(lparam,eax);
 			if (eax) then
@@ -2201,7 +2112,7 @@ proc
 		// see if panel is active
 		mov (settings.panelwin, eax);
 		if (! eax) then
-			w.ShowWindow (core.hHSplitBar, w.SW_HIDE);
+			w.ShowWindow (core.hHSplitBar, w.SW_HED);
 			
 		else
 	
@@ -2364,13 +2275,13 @@ proc
 			w.ShowWindow( core.hout, w.SW_SHOW );
 
 		else
-			w.ShowWindow( core.hout, w.SW_HIDE );
+			w.ShowWindow( core.hout, w.SW_HED );
 		endif;
 	
 		w.CreateDialogParam(core.hinst,val ID_EXPLORER, hwin, &Proc_Explorer, false);
 		w.SendMessage(core.hpaneltab, w.TCM_SETCURSEL, settings.panelwin, 0);
 		
-		w.ShowWindow (core.hexplorer, w.SW_HIDE);
+		w.ShowWindow (core.hexplorer, w.SW_HED);
 		
 		PanelViewWin();
 
@@ -2396,12 +2307,12 @@ proc
 	
 		w.SendMessage(hwin, w.WM_SIZE, 0, 0);
 	
-		if (hed_ini._readString ("HED Settings","LastPath", stringbuffer)) then
+		if (hed_ini._readString ("HED","Last Path", stringbuffer)) then
 			mov (stringbuffer, eax);
 			zstr.cpy(eax,&pathbuf);
 		endif;
 		
-		if (hed_ini.readInt ("HED Settings", "TopWindow")) then
+		if (hed_ini.readInt ("HED", "TopWindow")) then
 			if( eax ) then
 				w.SetWindowPos(core.hwnd,w.HWND_TOPMOST,0,0,0,0,3);
 			endif;
@@ -2481,19 +2392,17 @@ proc
 		hed_default_ini.create_file ( workpath );
 
 		if ( filesys.exists (core.configmain)) then
-			
 			hed_ini.create_file(core.configmain);
-			
 		else
-			
-			hed_ini.create();
-			
+			hed_default_ini.write(core.configmain);
+			hed_default_ini.destroy();
+			hed_ini.create (core.configmain);
 		endif;
 
-		if (hed_ini.isKeyDefined ("HED Settings", "pos")) then
-			hed_ini.readBin ("HED Settings", "pos", &settings, @size(settings));
+		if (hed_ini.isKeyDefined ("Settings", "pos")) then
+			hed_ini.readBin ("Settings", "pos", &settings, @size(settings));
 		else
-			hed_default_ini.readBin ("HED Settings", "pos", &settings, @size(settings));
+			hed_default_ini.readBin ("Settings", "pos", &settings, @size(settings));
 		endif;
 		
 		hed_ini.readBin ("Fonts", "code", &mainfont, @size(mainfont));
@@ -2501,46 +2410,40 @@ proc
 		
 		if (hed_ini.isKeyDefined ("Colors", "col")) then
 			hed_ini.readBin ("Colors", "col", &core.col, @size(core.col));
-		else
-			hed_default_ini.readBin( "Default.theme", "col", &core.col, @size(core.col) );
 		endif;
 	
 		if (hed_ini.isKeyDefined ("Colors", "usrcol")) then
 			hed_ini.readBin ("Colors", "usrcol", &usrcol, @size(usrcol));
-		else
-			hed_default_ini.readBin( "Default.theme", "usrcol", &usrcol, @size(usrcol) );
 		endif;
 		
-		hed_ini.readBin ("Colors", "user", &CustColors, @size(CustColors));
-		hed_ini.readInt ("HED Settings", "AutoUntitled");
+		hed_ini.readBin ("Colors", "User Colors", &CustColors, @size(CustColors));
+		hed_ini.readInt ("HED", "Auto Untitled");
 		mov (al, autountitled);
 
 		str.cpy ("", stringbuffer);	
-		if (hed_ini._readString ("HED Settings", "UserPath", stringbuffer)) then
+		if (hed_ini._readString ("HED", "User Path", stringbuffer)) then
 			expandPathMacs (stringbuffer, stringbuffer);
 			str.put2 (stringbuffer, ';');
 		endif;
 
-		str.put2 (stringbuffer, core.homepath, dirsep_c, "bin;");
-		env2.put ("PATH", stringbuffer);
-		if (hed_ini._readString ("HED Settings", "ProjFold", stringbuffer)) then
+		if (hed_ini._readString ("HED", "Project Folder", stringbuffer)) then
 			expandPathMacs (stringbuffer, stringbuffer);
 			str.cpy (stringbuffer, core.projectpath);
 		else
-			// default project folder
+			// default 
 			str.put (core.projectpath, core.homepath, dirsep_c, "Projects");
 		endif;
 
 		// default editor settings		
-		hed_ini.readUns( "HED Settings", "tab" );
+		hed_ini.readUns( "HED", "tab" );
 		if( eax ) then
 			mov( al, settings.tab );
 		else
 			mov( 4, settings.tab );
 		endif;
 
-		if( hed_ini.isKeyDefined( "HED Settings", "options" ) ) then
-			hed_ini.readHex( "HED Settings", "options" );
+		if( hed_ini.isKeyDefined( "HED", "options" ) ) then
+			hed_ini.readHex( "HED", "options" );
 			mov( eax, settings.options );
 		endif;
 		fileList.create();

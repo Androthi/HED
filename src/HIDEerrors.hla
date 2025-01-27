@@ -1,5 +1,5 @@
-// future spot for hide error handler
-unit HIDEerrors;
+// future spot for HED error handler
+unit HEDerrors;
 
 #includeonce ("HED.hhf")
 #includeonce ("memory.hhf")
@@ -12,9 +12,9 @@ unit HIDEerrors;
 procedure error.fatal(error_string:string);
 begin fatal;
 #if (os.win32)
-	w.MessageBox(NULL,error_string,"HIDE FATAL ERROR",w.MB_OK | w.MB_ICONERROR);
+	w.MessageBox(NULL,error_string,"HED FATAL ERROR",w.MB_OK | w.MB_ICONERROR);
 #else
-	stdout.put ("HIDE FATAL ERROR",nl, $9, error_string, nl);
+	stdout.put ("HED FATAL ERROR",nl, $9, error_string, nl);
 #endif
 	or (1, eax);
 end fatal;
@@ -31,9 +31,9 @@ end fileopenfailure;
 procedure error.warning (error_string:string);
 begin warning;
 #if (os.win32)
-	w.MessageBox(NULL,error_string,"HIDE WARNING",w.MB_OK | w.MB_ICONWARNING);
+	w.MessageBox(NULL,error_string,"HED WARNING",w.MB_OK | w.MB_ICONWARNING);
 #else
-	stdout.put ("HIDE WARNING :", error_string, nl);
+	stdout.put ("HED WARNING :", error_string, nl);
 #endif
 end warning;
 
@@ -60,4 +60,4 @@ begin testalloc;
 	endtry;
 end testalloc;
 
-end HIDEerrors;
+end HEDerrors;

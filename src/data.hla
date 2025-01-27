@@ -9,17 +9,17 @@
 
 storage
 	align(4);
-	core			:tCORE;		// HIDE global state
+	core			:tCORE;		// HED global state
 
-	hed_ini			:tConfig;	// HIDE.ini configuration file in memory
+	hed_ini			:tConfig;	// HED.ini configuration file in memory
 	hed_default_ini	:tConfig;	// hed_default.ini configuration file in memory
 	
 	workpath		:string;	// a string buffer for working paths, scratch path buffer  ** use with caution, should be depricated eventually
 	stringbuffer	:string;	// scratch string buffer ** use with caution, do not expect contents to be preserved across funtion calls
 
-	settings		:EDITOPTS;	// main settings for HIDE
+	settings		:EDITOPTS;				// main settings for HED
 	usrcol			:dword[nUserColors];	// custom user colors
-	rafnt			:RAFONT;	// font info
+	rafnt			:RAFONT;				// font info
 
 	rect			:hide.rect_t;
 
