@@ -122,7 +122,7 @@ type
 
 	WINPOS:	//window position
 		record
-			fmax	:dword;	// maximized state for windows; current distance from mainwindow edge for bars.
+			fmax	:dword;	// maximized state for some windows; current distance from mainwindow edge for bars.
 			x		:dword;
 			y		:dword;
 			wt		:dword;

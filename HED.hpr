@@ -2,7 +2,7 @@
 mainfile=src\HED.hla
 tab=4
 backups=0
-options=00000840
+options=00000040
 Project Version=10
 usetemp=false
 useunits=true

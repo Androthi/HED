@@ -2130,6 +2130,7 @@ proc
 			
 			
 			hed_ini.writeBin ("HED Settings", "pos", &settings, @size(settings));
+			
 			hed_ini.write (core.configmain);
 			//dbg.put ("quitting");
 			w.PostQuitMessage(0);
@@ -2373,10 +2374,7 @@ proc
 		
 		PanelViewWin();
 
-		if (testz (EXPLORER_D, settings.winview)) then
-			w.ShowWindow( core.hexplorer, w.SW_SHOW);
-		endif;
-		
+
 		// if the previeous session had status bar active, update the vertical split
 		// bar settings by the size of the status bar to avoid loosing size.
 		test(STATUS,settings.winview);
@@ -2476,8 +2474,11 @@ proc
 		dbg.put ("core.homepath = ", core.homepath);
 	
 		str.put (core.configmain, core.homepath, dirsep_c, HED_INI_FILE);	
-		filesys.cd (core.homepath);		
-		hed_default_ini.create_file ( HED_DEFAULTINI );
+		filesys.cd (core.homepath);
+		
+		str.put (workpath, core.homepath, dirsep_c, HED_DEFAULTINI);	
+		dbg.put("default ini = ", workpath );
+		hed_default_ini.create_file ( workpath );
 
 		if ( filesys.exists (core.configmain)) then
 			

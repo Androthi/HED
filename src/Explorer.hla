@@ -9,7 +9,7 @@ unit explorer;
 
 storage	// internal variables
 	align(4);
-	selType			:dword;
+	sbuffer			:string;
 	selMem			:pointer to fList.fnode;
 
 	tvins	:w.TV_INSERTSTRUCT;
@@ -21,16 +21,21 @@ storage	// internal variables
 
 procedure Explorer_AddNode(hparent:dword; item:string); @returns("EAX");
 begin Explorer_AddNode;
+	push (edx);
 	mov (hparent, tvins.hParent);
-	mov (w.TVIF_TEXT,tvins.item.imask);
+	mov (w.TVIF_TEXT | w.TVIF_PARAM,tvins.item.imask);
+	filesys.a_getFullPathName (item);
+	mov (eax, tvins.item.lParam);
 	mov (item, tvins.item.pszText);
 	w.SendMessage (core.hexplorertree, w.TVM_INSERTITEM, 0, &tvins);
+	pop (edx);
 end Explorer_AddNode;
 
 procedure Explorer_ReadFiles(hparent:dword);
 	var
-		itemstr	:string;
-		curdir	:string;
+		itemstr		:string;
+		curdir		:string;
+		curhandle	:dword;
 		
 begin Explorer_ReadFiles;
 	mov(str.talloc(500), curdir);
@@ -40,18 +45,15 @@ begin Explorer_ReadFiles;
 		filesys.gwd(curdir);
 
 		if(filesys.isDir(itemstr)) then
-			//toOutput("Directory :", itemstr, nl);
-			Explorer_AddNode(hparent, itemstr);
-			push(eax);
+			Explorer_AddNode (hparent, itemstr);
+			push (eax);
 			filesys.cd(itemstr);
-			pop(eax);
-			Explorer_ReadFiles(eax);
+			pop (eax);
+			Explorer_ReadFiles (eax);
 			filesys.cd(curdir);
 		elseif(filesys.isFile(itemstr)) then
-			//toOutput("	File :", itemstr, nl);
 			Explorer_AddNode(hparent, itemstr);
-		else
-			//toOutput("something else", nl);
+
 		endif;
 		str.free(itemstr);
 	endfor;
@@ -67,16 +69,10 @@ begin Explorer_Reload;
 end Explorer_Reload;
 
 procedure Proc_Explorer (lparam:dword; wparam:dword; umsg:uns32; hwin:dword);
-	var
-		chrg	:w.CHARRANGE;
-		himl	:dword;
-		hbmp	:dword;
-		sbuffer	:string;
-
 
 begin	Proc_Explorer;
 
-	mov( str.talloc(1000), sbuffer );
+
 	mov(umsg,eax);
 	cmp(eax,w.WM_NOTIFY);
 	je _notify;
@@ -117,57 +113,21 @@ begin	Proc_Explorer;
 			jmp xProc_Explorer;
 		
 		_leftdoubleclick:
-//				mov(selType,eax);
-//				if (eax = IMG_FILE || eax = IMG_RC || eax = IMG_PROGRAM || eax = IMG_UNIT || eax = IMG_BINARY) then
-//					if (! selectOpenMem (selMem)) then
-//						HED_openNode( selMem );
-//					endif;
-//
-//				elseif (eax = IMG_TARGET || eax = IMG_NOTARGET) then
-//					mov (selMem, eax);
-//					if ( eax = 0) then
-//						toOutput ("No target file selected, add one using Project Manager" nl);
-//					else
-//						if (! selectOpenMem (selMem)) then
-//							HED_openNode( selMem );
-//						endif;
-//					endif;
-//				endif;
-//				w.PostMessage(core.hwnd, w.WM_SETFOCUS, 0, 0);
+				dbg.put("opening :", sbuffer);
+				if (filesys.isFile (sbuffer)) then
+					hed_openFile (sbuffer);
+				endif;
+				w.PostMessage(core.hwnd, w.WM_SETFOCUS, 0, 0);
 				jmp xProc_Explorer;
 
 		_selchanged:
-			//call _GetItem;
-			//mov((type w.TV_ITEM [edx]).iImage,eax);
-			//mov(eax,selType);
-			//mov ((type w.TV_ITEM [edx]).lParam, eax);
-			//mov (eax, selMem);
-
+			call _GetItem;
+			mov ((type w.TV_ITEM [edx]).lParam, eax);
+			mov (eax, sbuffer);
+			dbg.put ("sel changed, ", sbuffer);
 			jmp xProc_Explorer;
 		
 		_rightclick:
-			// DEBUG will go into left click
-				w.GetCursorPos (tvhtst.pt);
-				w.ScreenToClient (core.hexplorertree, tvhtst.pt);
-				w.SendMessage(core.hexplorertree,w.TVM_HITTEST,0,&tvhtst);
-				mov(tvhtst.flags,eax);
-				and(w.TVHT_ONITEM,eax);
-				jz _exitrightclick;
-				mov(tvhtst.hItem,eax);
-				mov(eax,tvi.hItem);
-				mov(w.TVIF_HANDLE | w.TVIF_PARAM | w.TVIF_TEXT,tvi.imask);
-				
-				move( &treebuffer ,tvi.pszText);
-				mov(@size(treebuffer),tvi.cchTextMax);
-				
-				w.SendMessage(core.hexplorertree,w.TVM_SELECTITEM,w.TVGN_CARET,tvi.hItem);
-				w.SendMessage(core.hexplorertree,w.TVM_GETITEM,0,&tvi);
-				
-				str.cpyz (&treebuffer, sbuffer);
-				dbg.put("opening :", sbuffer);
-				hed_openFile (sbuffer);
-
-			_exitrightclick:
 				jmp xProc_Explorer;
 		
 	_size:
@@ -186,7 +146,7 @@ begin	Proc_Explorer;
 		w.SetParent(core.hexplorer,core.hwnd);
 		w.GetDlgItem(hwin,ID_EXPLORER_TREE);
 		mov(eax,core.hexplorertree);
-		Explorer_ReadFiles(core.hexplorertree);
+		Explorer_ReadFiles(NULL);
 		popabi;
 		jmp xProc_Explorer;
 
@@ -208,14 +168,16 @@ xProc_Explorer:
 		
 // internal procedures
 _GetItem:
-//		lea(edx,(type w.NM_TREEVIEW [edx]).itemNew);
-//		mov(w.TVIF_PARAM | w.TVIF_TEXT | w.TVIF_IMAGE,(type w.TV_ITEM [edx]).imask);
-//		lea(eax,treebuffer);
-//		mov(eax,(type w.TV_ITEM[edx]).pszText);
-//		mov(@size(buffer),(type w.TV_ITEM [edx]).cchTextMax);
-//		push(edx);
-//		w.SendMessage(core.h_explorer_tree,w.TVM_GETITEM,0,edx);
-//		pop(edx);
+		lea(edx,(type w.NM_TREEVIEW [edx]).itemNew);
+		mov(w.TVIF_PARAM | w.TVIF_TEXT,(type w.TV_ITEM [edx]).imask);
+		lea(eax,treebuffer);
+		mov(eax,(type w.TV_ITEM[edx]).pszText);
+		mov(@size(buffer),(type w.TV_ITEM [edx]).cchTextMax);
+		push(edx);
+		w.SendMessage(core.hexplorertree,w.TVM_GETITEM,0,edx);
+		pop(edx);
+		mov ( (type w.TV_ITEM[EDX]).lParam, eax );
+		dbg.put ("got item :", eax);
 		ret();
 
 _savepos:
