@@ -41,7 +41,7 @@ procedure IndentComment (nChr:dword; fN:dword);		@external;
 procedure InitOF (title:string; defext:string);	@external;
 procedure GetOpenName;	@returns ("eax"); @external;
 procedure GetSaveName;	@returns ("eax"); @external;
-procedure GetOpenProjectName;	@returns ("eax");	@external;
+procedure GetOpenFolderName;	@returns ("eax");	@external;
 procedure WriteToFile (hwin:dword; FileName: string); @external;
 procedure RAEdit_new (var node:fList.fnode); @external;
 procedure RAEdit_setFormat(var node:fList.fnode); @external;
@@ -130,37 +130,31 @@ static	// externals
 		SendStr: procedure ( hwnd:dword; msg:dword; replace:dword; str:string );
 			@stdcall; @external( "__imp__SendMessageA@16" ); 
 	
-		autountitled		:boolean;				@external;		// if true, Untitled is saved and built into temp folder (non-project only)
-		settings			:EDITOPTS;				@external;	// general settings				
-		rect				:hide.rect_t;			@external;		// generic rect struct
+		autountitled		:boolean;				@external;
+		settings			:EDITOPTS;				@external;				
+		rect				:hide.rect_t;			@external;
 		usrcol				:dword[nUserColors];	@external;
 		rafnt				:RAFONT;				@external;
 		linefont			:w.LOGFONT;				@external;
 		mainfont			:w.LOGFONT;				@external;
 		dialogfont			:w.LOGFONT;				@external;
 
-		buffer				:byte[300];				@external ("HED_private_buffer");		// general buffer	
-		findbuff			:byte[300];				@external;		// buffer for find dialog
-		replacebuf			:byte[300];				@external;		// buffer for replace dialog
-		CustColors			:dword[16];				@external;		// storage for custom colors
-		pathbuf				:byte[300];				@external;		// keeps track of last directory visited
+		buffer				:byte[300];				@external ("HED_private_buffer");	
+		findbuff			:byte[300];				@external;
+		replacebuf			:byte[300];				@external;
+		CustColors			:dword[16];				@external;
+		pathbuf				:byte[300];				@external;
 		
-		workpath			:string;				@external;	// a string buffer for working paths
-		stringbuffer				:string;				@external;	// scratch static string
+		workpath			:string;				@external;
+		stringbuffer		:string;				@external;
 
 		core				:tCORE;					@external;	// HED global state
-		htimer				:dword; @external;  // 0 = output timer off,  >0 = output timer on
+		htimer				:dword;					@external;  // 0 = output timer off,  >0 = output timer on
 	
-
-		//notes_win		:WINPOS;	@external; // depricated, change to scripts window in future
-		mode				:byte;	@external;
-
-		// shared c-string constants
-		
 		szCmntStart			:byte;					@external;
 		szCmntEnd			:byte;					@external;
 
-		Proc_OldVSplit	:dword; @external;
+	Proc_OldVSplit	:dword; @external;
 	Proc_OldHSplit	:dword; @external;
 
 	hed_ini			:tConfig; @external;

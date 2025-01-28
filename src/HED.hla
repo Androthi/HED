@@ -838,8 +838,7 @@ program HED_MAIN;
 		mov (str.talloc (pathsize_c), s);
 		pushabi;
 		dbg.put("<saveas>");
-		InitOF(	"Save File   : Default extension '.hla'   : End with '.' for no extension",
-				NULL);
+		InitOF(	"Save File : End with '.' for no extension", NULL);
 		if ( GetSaveName() ) then
 			mov (eax, openfile_s);
 			str.cpy (openfile_s, s);
@@ -881,7 +880,7 @@ program HED_MAIN;
 				Recent_Insert( listebx.fullname );
 				UpdateMenu();
 				tabtool_update ([ebx]);
-			endif;
+		endif;
 			setupFind();
 			GetFileTime (listebx.relative, listebx.writetime);
 			tabtool_activate();
@@ -1167,8 +1166,7 @@ program HED_MAIN;
 		
 		toOutput (	"HED Environment and Related Macros" nl
 					"===================================" nl
-					"%h home    : ", core.homepath,nl
-					"%p projects: ", core.projectpath,nl);
+					"%h home    : ", core.homepath,nl);
 
 		filesys.gwd (workpath);
 		toOutput (  "%$ current : ", workpath, nl);
@@ -1765,9 +1763,6 @@ proc
 
 	_setinsert:
 		
-		// also updated project status
-		//bm=todo combine this and toggle debug in one
-		// 'UPDATESTATUS' message
 		mov( curnode, ebx );
 		if( ebx ) then
 			
@@ -2307,7 +2302,7 @@ proc
 	
 		w.SendMessage(hwin, w.WM_SIZE, 0, 0);
 	
-		if (hed_ini._readString ("HED","Last Path", stringbuffer)) then
+		if (hed_ini._readString ("HED", "Last Path", stringbuffer)) then
 			mov (stringbuffer, eax);
 			zstr.cpy(eax,&pathbuf);
 		endif;
@@ -2371,7 +2366,6 @@ proc
 		move( str.alloc (pathsize_c), core.homepath);
 		move( str.alloc (pathsize_c), core.configmain);
 		move( str.alloc (worksize_c), workpath);
-		move( str.alloc (pathsize_c), core.projectpath);
 		move( str.alloc (mastersize_c), stringbuffer);
 	
 		and(! opt_exptabs, settings.options);
@@ -2396,27 +2390,21 @@ proc
 		else
 			hed_default_ini.write(core.configmain);
 			hed_default_ini.destroy();
-			hed_ini.create (core.configmain);
+			hed_ini.create_file (core.configmain);
 		endif;
-
-		if (hed_ini.isKeyDefined ("Settings", "pos")) then
-			hed_ini.readBin ("Settings", "pos", &settings, @size(settings));
-		else
-			hed_default_ini.readBin ("Settings", "pos", &settings, @size(settings));
-		endif;
-		
+		hed_ini.readBin ("Settings", "pos", &settings, @size(settings));
 		hed_ini.readBin ("Fonts", "code", &mainfont, @size(mainfont));
 		hed_ini.readBin ("Fonts", "line", &linefont, @size(linefont));
 		
+		dbg.put("col");
 		if (hed_ini.isKeyDefined ("Colors", "col")) then
 			hed_ini.readBin ("Colors", "col", &core.col, @size(core.col));
 		endif;
-	
-		if (hed_ini.isKeyDefined ("Colors", "usrcol")) then
-			hed_ini.readBin ("Colors", "usrcol", &usrcol, @size(usrcol));
+		dbg.put("user col");
+		if (hed_ini.isKeyDefined ("Colors", "User Colors")) then
+			hed_ini.readBin ("Colors", "User Colors", &CustColors, @size(CustColors));
 		endif;
-		
-		hed_ini.readBin ("Colors", "User Colors", &CustColors, @size(CustColors));
+		dbg.put("auto");
 		hed_ini.readInt ("HED", "Auto Untitled");
 		mov (al, autountitled);
 
@@ -2425,14 +2413,7 @@ proc
 			expandPathMacs (stringbuffer, stringbuffer);
 			str.put2 (stringbuffer, ';');
 		endif;
-
-		if (hed_ini._readString ("HED", "Project Folder", stringbuffer)) then
-			expandPathMacs (stringbuffer, stringbuffer);
-			str.cpy (stringbuffer, core.projectpath);
-		else
-			// default 
-			str.put (core.projectpath, core.homepath, dirsep_c, "Projects");
-		endif;
+		dbg.put("/user path");
 
 		// default editor settings		
 		hed_ini.readUns( "HED", "tab" );
@@ -2441,11 +2422,13 @@ proc
 		else
 			mov( 4, settings.tab );
 		endif;
-
+		dbg.put ("options");
 		if( hed_ini.isKeyDefined( "HED", "options" ) ) then
+			dbg.put("readhex");
 			hed_ini.readHex( "HED", "options" );
 			mov( eax, settings.options );
 		endif;
+		dbg.put("filelist");
 		fileList.create();
 		setupFind();
 		mov (0, settings.panelactive);

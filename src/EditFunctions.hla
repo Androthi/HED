@@ -408,11 +408,14 @@ begin InitOF;
 	mov	(&ofBuffer, of.lpstrFile);
 	mov	(@size(ofBuffer), of.nMaxFile);
 	move (title, of.lpstrTitle);
+	//	dbg.put ("pathbuf :", pathbuf[0]);
 
 	if (pathbuf[0] <> 0) then
-		mov(&pathbuf,eax);
+//		dbg.put ("pathbuf :", pathbuf[0]);
+
+			mov(&pathbuf,eax);
 	endif;
-	mov(eax,of.lpstrInitialDir);
+	//mov(eax,of.lpstrInitialDir);
 
 	mov(defext,eax);
 	mov(eax,of.lpstrDefExt);
@@ -454,24 +457,25 @@ begin GetOpenName;
 	ret();
 end GetOpenName;
 
-procedure GetOpenProjectName;	@noframe;
-begin GetOpenProjectName;
-	mov(core.projectpath,eax);
-	mov(eax,of.lpstrInitialDir);
-	w.GetOpenFileName(&of);
-	if (eax) then
-		str.cpyz(&ofBuffer, stringbuffer);
-		mov(of.nFileOffset,ax);
-		dec(ax);
-		movzx(ax,eax);
-		mov(0,ofBuffer[eax]);
-		str.a_cpy (stringbuffer);
-	else
-		xor(eax,eax);		
-	endif;
-//	dbg.put ("/getopenprojectname");
+procedure GetOpenFolderName;	@noframe;
+begin GetOpenFolderName;
+//	mov(core.projectpath,eax);
+//	mov(eax,of.lpstrInitialDir);
+//	w.GetOpenFileName(&of);
+//	if (eax) then
+//		str.cpyz(&ofBuffer, stringbuffer);
+//		mov(of.nFileOffset,ax);
+//		dec(ax);
+//		movzx(ax,eax);
+//		mov(0,ofBuffer[eax]);
+//		str.a_cpy (stringbuffer);
+//	else
+//		xor(eax,eax);		
+//	endif;
+//	dbg.put ("/GetOpenFolderName");
+	toOutput ("TODO: GetOpenFolderName");
 	ret();
-end GetOpenProjectName;
+end GetOpenFolderName;
 
 procedure saveAll; @noframe;
 	// go through file-list and save all edit controls
@@ -536,7 +540,6 @@ begin closeAll;
 			breakif (querySave ([ebx]));
 			w.SendMessage (core.htab, w.TCM_DELETEITEM, count,0);
 			
-			// if this is a project file, HED the window, else destroy the window .
 			w.DestroyWindow (listebx.hwnd);
 			
 
