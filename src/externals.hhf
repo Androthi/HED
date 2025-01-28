@@ -39,6 +39,9 @@ procedure RAEdit_SaveFile (var node:fList.fnode); @external;
 procedure RAEdit_loadFileLight( var node: fList.fnode ); @external;
 procedure IndentComment (nChr:dword; fN:dword);		@external;
 procedure InitOF (title:string; defext:string);	@external;
+procedure initBF; @external;
+
+
 procedure GetOpenName;	@returns ("eax"); @external;
 procedure GetSaveName;	@returns ("eax"); @external;
 procedure GetOpenFolderName;	@returns ("eax");	@external;
@@ -62,10 +65,6 @@ procedure Proc_FindDlg (lParam:dword; wParam:dword; uMsg:uns32; hWin:dword);	@ex
 procedure find_next; @external;
 procedure find_prev; @external;
 procedure setupFind; @external;
-
-// explorer
-procedure Explorer_Reload; @external;
-
 
 // tabtool
 procedure tabtool_activate; @external;
@@ -91,7 +90,10 @@ procedure Output_View (message:dword);	@external;
 procedure WriteOutput ( _msg_:string);	@external;
 procedure CancelTimerCloseOutput; @external;
 
+// explorer
 procedure Proc_Explorer(lparam:dword; wparam:dword; umsg:uns32; hwin:dword);	@external;
+procedure Explorer_ReadFiles(hparent:dword); @external;
+procedure Explorer_LoadFolder (folder:string); @external;
 
 // make
 procedure MakeProc (command:dword; dparam:dword; wparam:dword);	@external;

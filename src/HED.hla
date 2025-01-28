@@ -782,9 +782,14 @@ program HED_MAIN;
 		ret();
 	end Menu_OpenFile;
 		
-	procedure Menu_OpenFolder;
+	procedure Menu_OpenFolder; @noframe;
 	begin Menu_OpenFolder;
-		toOutput("TODO: Open Folder");
+		GetOpenFolderName();
+		if (eax) then
+			toOutput ("Open Folder:", core.projectpath, nl );
+			Explorer_LoadFolder (core.projectpath);
+		endif;
+		ret();
 	end Menu_OpenFolder;
 
 	
@@ -1166,7 +1171,8 @@ program HED_MAIN;
 		
 		toOutput (	"HED Environment and Related Macros" nl
 					"===================================" nl
-					"%h home    : ", core.homepath,nl);
+					"%h home    : ", core.homepath, nl
+					"%p project : ", core.projectpath,nl nl);
 
 		filesys.gwd (workpath);
 		toOutput (  "%$ current : ", workpath, nl);
@@ -2367,6 +2373,7 @@ proc
 		move( str.alloc (pathsize_c), core.configmain);
 		move( str.alloc (worksize_c), workpath);
 		move( str.alloc (mastersize_c), stringbuffer);
+		move( str.alloc (pathsize_c), core.projectpath);
 	
 		and(! opt_exptabs, settings.options);
 		or( opt_indent, settings.options);			
@@ -2374,6 +2381,7 @@ proc
 		call arg.c;
 		mov (eax,argc);
 		os2.getmodulepath (core.homepath);
+		
 		
 		filesys.extractPath( core.homepath, core.homepath );
 		dbg.put ("core.homepath = ", core.homepath);
@@ -2400,11 +2408,11 @@ proc
 		if (hed_ini.isKeyDefined ("Colors", "col")) then
 			hed_ini.readBin ("Colors", "col", &core.col, @size(core.col));
 		endif;
-		dbg.put("user col");
+
 		if (hed_ini.isKeyDefined ("Colors", "User Colors")) then
 			hed_ini.readBin ("Colors", "User Colors", &CustColors, @size(CustColors));
 		endif;
-		dbg.put("auto");
+		
 		hed_ini.readInt ("HED", "Auto Untitled");
 		mov (al, autountitled);
 
@@ -2413,22 +2421,26 @@ proc
 			expandPathMacs (stringbuffer, stringbuffer);
 			str.put2 (stringbuffer, ';');
 		endif;
-		dbg.put("/user path");
-
-		// default editor settings		
+		
 		hed_ini.readUns( "HED", "tab" );
 		if( eax ) then
 			mov( al, settings.tab );
 		else
 			mov( 4, settings.tab );
 		endif;
-		dbg.put ("options");
+		
 		if( hed_ini.isKeyDefined( "HED", "options" ) ) then
-			dbg.put("readhex");
 			hed_ini.readHex( "HED", "options" );
 			mov( eax, settings.options );
 		endif;
-		dbg.put("filelist");
+		
+		if (hed_ini._readString ("HED", "Project Path", core.projectpath)) then
+			expandPathMacs (core.projectpath, core.projectpath);
+		else
+			filesys.gwd (core.projectpath);
+		endif;
+		dbg.put("init, project path = ", core.projectpath);
+		
 		fileList.create();
 		setupFind();
 		mov (0, settings.panelactive);
@@ -2441,6 +2453,31 @@ proc
 	
 	//===============================================================
 	// Main program begins here *************************************
+	
+	procedure RegisterWindow; @noframe;
+	begin RegisterWindow;
+		
+		// register window classes
+		mov(@size(w.WNDCLASSEX),wc.cbSize);
+		mov(w.CS_HREDRAW | w.CS_VREDRAW,wc.style);
+		mov(&WndProc,wc.lpfnWndProc);
+		mov(NULL,wc.cbClsExtra);
+		mov(w.DLGWINDOWEXTRA,wc.cbWndExtra);
+		mov(core.hinst,wc.hInstance);
+		mov(w.COLOR_BTNFACE+1, wc.hbrBackground);
+		mov(IDR_MENU,wc.lpszMenuName);
+		mov(&ClassName,wc.lpszClassName);
+		w.LoadIcon(core.hinst,val IDB_JACKALICON);
+		mov(eax,wc.hIcon);
+		mov(eax,wc.hIconSm);
+		w.LoadCursor(NULL,val w.IDC_ARROW);
+		mov(eax,wc.hCursor);
+		w.RegisterClassEx(wc);
+		w.CreateDialogParam(core.hinst,val IDD_DLG,NULL,&WndProc,NULL);
+		ret();
+		
+	end RegisterWindow;
+
 	
 	begin	HED_MAIN;
 	
@@ -2471,24 +2508,7 @@ proc
 		endif;
 		mov(eax,hradll);
 		
-		// register window classes
-		mov(@size(w.WNDCLASSEX),wc.cbSize);
-		mov(w.CS_HREDRAW | w.CS_VREDRAW,wc.style);
-		mov(&WndProc,wc.lpfnWndProc);
-		mov(NULL,wc.cbClsExtra);
-		mov(w.DLGWINDOWEXTRA,wc.cbWndExtra);
-		mov(core.hinst,wc.hInstance);
-		mov(w.COLOR_BTNFACE+1, wc.hbrBackground);
-		mov(IDR_MENU,wc.lpszMenuName);
-		mov(&ClassName,wc.lpszClassName);
-		w.LoadIcon(core.hinst,val IDB_JACKALICON);
-		mov(eax,wc.hIcon);
-		mov(eax,wc.hIconSm);
-		w.LoadCursor(NULL,val w.IDC_ARROW);
-		mov(eax,wc.hCursor);
-		w.RegisterClassEx(wc);
-		w.CreateDialogParam(core.hinst,val IDD_DLG,NULL,&WndProc,NULL);
-		dbg.put ("dialog created");
+		RegisterWindow();
 		if(settings.edtwin.fmax) then
 			mov(w.SW_MAXIMIZE,eax);
 		else
@@ -2497,23 +2517,28 @@ proc
 
 		w.ShowWindow(core.hwnd,eax);
 		w.UpdateWindow(core.hwnd);
+		initBF();		//setup the browsefolder structure, needs to be done after window creation
 		
 		w.LoadAccelerators(core.hinst,val IDR_ACCEL);
 		mov(eax,haccel);
 		dbg.put(">>args");
 		dec (argc);
-		if (argc <> 0) then
+		if (argc > 0) then
 			while (argc > 0 ) do
 				arg.v (argc);
+ 
 				mov (eax, openfile_s);
-				
-				filesys.extractExt( openfile_s, stringbuffer );
+				if (str.eq (openfile_s, ".")) then
+					// open folder
+					filesys.gwd (core.projectpath);
+					Explorer_LoadFolder (core.projectpath);
+				else
+					filesys.extractExt( openfile_s, stringbuffer );
+					dbg.put("open :", openfile_s);
+					hed_openFile (openfile_s);
+					Recent_Insert( openfile_s );
+				endif;
 
-				
-				dbg.put("open :", openfile_s);
-				hed_openFile (openfile_s);
-				Recent_Insert( openfile_s );
-				
 				_nxtarg:
 				dec (argc);
 			endwhile;

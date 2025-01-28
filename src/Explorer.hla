@@ -46,12 +46,14 @@ begin Explorer_ReadFiles;
 
 		if(filesys.isDir(itemstr)) then
 			Explorer_AddNode (hparent, itemstr);
+			//dbg.put("dir :", itemstr);
 			push (eax);
 			filesys.cd(itemstr);
 			pop (eax);
 			Explorer_ReadFiles (eax);
 			filesys.cd(curdir);
 		elseif(filesys.isFile(itemstr)) then
+			//dbg.put("file :", itemstr);
 			Explorer_AddNode(hparent, itemstr);
 
 		endif;
@@ -59,14 +61,13 @@ begin Explorer_ReadFiles;
 	endfor;
 end Explorer_ReadFiles;
 
-
-procedure Explorer_Reload;
-begin Explorer_Reload;
-
+procedure Explorer_LoadFolder(folder:string);
+begin Explorer_LoadFolder;
+	filesys.cd (folder);
 	w.SendMessage(core.hexplorertree,w.TVM_DELETEITEM,0,w.TVI_ROOT);
-	Explorer_ReadFiles(NULL); // null for base node
-	
-end Explorer_Reload;
+	Explorer_ReadFiles (NULL);
+end Explorer_LoadFolder;
+
 
 procedure Proc_Explorer (lparam:dword; wparam:dword; umsg:uns32; hwin:dword);
 
@@ -146,7 +147,6 @@ begin	Proc_Explorer;
 		w.SetParent(core.hexplorer,core.hwnd);
 		w.GetDlgItem(hwin,ID_EXPLORER_TREE);
 		mov(eax,core.hexplorertree);
-		Explorer_ReadFiles(NULL);
 		popabi;
 		jmp xProc_Explorer;
 

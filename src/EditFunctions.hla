@@ -3,6 +3,7 @@ unit EditFunctions;
 #includeonce	("fileio.hhf")
 #includeonce	("memory.hhf")
 #includeonce	("w32/shell32.hhf")
+#includeonce	("w32/ole32.hhf")
 
 ?@nodisplay:=true;
 ?@align:=4;
@@ -14,6 +15,8 @@ readonly
 		byte "All Files (*.*)",0,"*.*",0;
 		byte "Text Files (*.txt)",0,"*.txt",0,0;
 		
+	bftitle		:zstring := "Select a folder to open";
+	
 endreadonly;
 
 storage
@@ -22,7 +25,10 @@ storage
 	editstream	:w.EDITSTREAM;
 	of			:w.OPENFILENAME;
 	ofBuffer	:byte[300];
+	
 	bf			:w.BROWSEINFO;
+	bfBuffer	:byte[300];
+	bfimage		:int32;
 	
 procedure GetSelText (var lpBuff:dword);
 
@@ -396,6 +402,19 @@ USE (EAX, ESI, EDI);
 ENDUSE;
 end Recent_Insert;
 
+procedure initBF;
+begin initBF;
+	mov (core.hwnd, bf.hwndOwner);
+	mov (NULL, bf.pidlRoot);
+	mov (&bfBuffer, bf.pszDisplayName);
+	mov (&bftitle, bf.lpszTitle);
+  	mov (w.BIF_NEWDIALOGSTYLE, bf.ulFlags);
+  	mov (NULL, bf.lpfn);
+  	mov (NULL, bf.lParam);
+  	mov (&bfimage, bf.iImage);
+end initBF;
+
+
 procedure InitOF (title:string; defext:string);
 	// initializes the OPENFILENAME structure
 begin InitOF;
@@ -458,19 +477,22 @@ end GetOpenName;
 procedure GetOpenFolderName;	@noframe;
 begin GetOpenFolderName;
 
-//	w.GetOpenFileName(&of);
-//	if (eax) then
-//		str.cpyz(&ofBuffer, stringbuffer);
-//		mov(of.nFileOffset,ax);
-//		dec(ax);
-//		movzx(ax,eax);
-//		mov(0,ofBuffer[eax]);
-//		str.a_cpy (stringbuffer);
-//	else
-//		xor(eax,eax);		
-//	endif;
-//	dbg.put ("/GetOpenFolderName");
-	toOutput ("TODO: GetOpenFolderName");
+	CoInitialize (NULL);
+	w.SHBrowseForFolder ( &bf );
+	if (eax) then
+		push (eax);
+		w.SHGetPathFromIDList (eax, &bfBuffer);
+		pop (eax);
+		CoTaskMemFree (eax);
+		str.cpyz (&bfBuffer, core.projectpath);
+		dbg.put ("after path :", core.projectpath);
+		mov (core.projectpath, eax);
+	else
+		xor (eax, eax);
+	endif;
+	push (eax);
+	CoUninitialize();
+	pop (eax);
 	ret();
 end GetOpenFolderName;
 
