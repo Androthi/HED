@@ -781,6 +781,12 @@ program HED_MAIN;
 		updateDisplay (update_general);
 		ret();
 	end Menu_OpenFile;
+		
+	procedure Menu_OpenFolder;
+	begin Menu_OpenFolder;
+		toOutput("TODO: Open Folder");
+	end Menu_OpenFolder;
+
 	
 	procedure Menu_InsertFile;
 	
@@ -808,12 +814,6 @@ program HED_MAIN;
 		endif;
 		popabi;
 	end Menu_InsertFile;
-	
-	procedure Menu_OpenFolder;
-	begin Menu_OpenFolder;
-		toOutput("TODO: Open Folder");
-	end Menu_OpenFolder;
-
 	
 	procedure Menu_SaveFile;	@noframe;
 	begin Menu_SaveFile;
@@ -1212,7 +1212,7 @@ program HED_MAIN;
 			w.ShowWindow(core.hsbr,w.SW_SHOWNA);
 			w.CheckMenuItem(core.hmenu,IDM_VIEW_STATUS,(w.MF_BYCOMMAND | w.MF_CHECKED));
 		else
-			w.ShowWindow(core.hsbr,w.SW_HED);
+			w.ShowWindow(core.hsbr,w.SW_HIDE);
 			w.CheckMenuItem(core.hmenu,IDM_VIEW_STATUS,(w.MF_BYCOMMAND));
 	    endif;
 		w.SendMessage(core.hwnd,w.WM_SIZE,w.SIZENORMAL,1);
@@ -1225,7 +1225,7 @@ program HED_MAIN;
 		xor(OUTPUT,settings.winview);
 		test(OUTPUT,settings.winview);
 		if (@z) then
-			Output_View(w.SW_HED);
+			Output_View(w.SW_HIDE);
 		else
 			Output_View(w.SW_SHOW);
 	    endif;
@@ -1263,7 +1263,7 @@ program HED_MAIN;
 	procedure Menu_ViewHEDAll; @noframe;
 	begin Menu_ViewHEDAll;
 		PanelFold();	
-		Output_View ( w.SW_HED);
+		Output_View ( w.SW_HIDE);
 		ret();
 	end Menu_ViewHEDAll;
 	
@@ -2059,7 +2059,7 @@ proc
 		// check for active tool window
 		if (testz (TOOL,settings.winview)) then
 			// HED
-			w.ShowWindow(core.htbr,w.SW_HED);
+			w.ShowWindow(core.htbr,w.SW_HIDE);
 		else
 			// show toolbar
 			mov (lparam, eax);  // lparam = client x/y
@@ -2081,7 +2081,7 @@ proc
 		// check for status window
 		if ( testz (STATUS,settings.winview)) then
 			// HED
-			w.ShowWindow(core.hsbr,w.SW_HED);
+			w.ShowWindow(core.hsbr,w.SW_HIDE);
 		else
 			mov(lparam,eax);
 			if (eax) then
@@ -2107,7 +2107,7 @@ proc
 		// see if panel is active
 		mov (settings.panelwin, eax);
 		if (! eax) then
-			w.ShowWindow (core.hHSplitBar, w.SW_HED);
+			w.ShowWindow (core.hHSplitBar, w.SW_HIDE);
 			
 		else
 	
@@ -2270,13 +2270,13 @@ proc
 			w.ShowWindow( core.hout, w.SW_SHOW );
 
 		else
-			w.ShowWindow( core.hout, w.SW_HED );
+			w.ShowWindow( core.hout, w.SW_HIDE );
 		endif;
 	
 		w.CreateDialogParam(core.hinst,val ID_EXPLORER, hwin, &Proc_Explorer, false);
 		w.SendMessage(core.hpaneltab, w.TCM_SETCURSEL, settings.panelwin, 0);
 		
-		w.ShowWindow (core.hexplorer, w.SW_HED);
+		w.ShowWindow (core.hexplorer, w.SW_HIDE);
 		
 		PanelViewWin();
 

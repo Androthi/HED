@@ -36,7 +36,6 @@ storage
 	Proc_OldHSplit	:dword;		// old proc for split bar
 
 	autountitled	:boolean;	// if true, Untitled is saved and built into temp folder (non-project only)
-	mode			:byte;		// keeps track of current mode
 	align(4);
 
 

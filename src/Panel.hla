@@ -149,7 +149,7 @@ begin tabtool_add;
 USE (ESI, ECX, EDI, EBX, EDX);
 	mov (curnode, eax);
 	if (eax && eax <> node) then
-		w.ShowWindow (listeax.hwnd, w.SW_HED);
+		w.ShowWindow (listeax.hwnd, w.SW_HIDE);
 	endif;
 	mov (w.TCIF_TEXT | w.TCIF_PARAM, core.tci.imask);
 	mov (30, core.tci.cchTextMax);
@@ -247,7 +247,7 @@ USE(ebx,edx,esi,edi);
 			mov (curnode, ebx);
 			mov (eax, curnode);
 			if (ebx) then
-				w.ShowWindow ( listebx.hwnd, w.SW_HED);
+				w.ShowWindow ( listebx.hwnd, w.SW_HIDE);
 			endif;
 			mov (curnode, ebx);
 			w.ShowWindow (listebx.hwnd, w.SW_SHOW);
@@ -312,7 +312,7 @@ procedure Panel_HEDClosed; @noframe;
 begin Panel_HEDClosed;
 	mov (settings.panelactive, eax);
 	if (eax = core.hexplorer) then
-		w.ShowWindow (core.hexplorer, w.SW_HED);
+		w.ShowWindow (core.hexplorer, w.SW_HIDE);
 	endif;
 	ret();
 end Panel_HEDClosed;
@@ -344,7 +344,7 @@ begin PanelFold;
 	dbg.put ("PanelFold");	
 	mov (panel_closed, settings.panelwin);
 	Panel_HEDClosed();
-	w.ShowWindow (core.hHSplitBar, w.SW_HED);
+	w.ShowWindow (core.hHSplitBar, w.SW_HIDE);
 	w.SendMessage(core.hpaneltab, w.TCM_SETCURSEL, panel_closed, 0);	
 	w.CheckMenuItem (core.hmenu, IDM_VIEW_PANEL, w.MF_BYCOMMAND | w.MF_UNCHECKED);
 	w.SetFocus (core.hwnd);

@@ -2,6 +2,7 @@ unit EditFunctions;
 #includeonce	("HED.hhf")
 #includeonce	("fileio.hhf")
 #includeonce	("memory.hhf")
+#includeonce	("w32/shell32.hhf")
 
 ?@nodisplay:=true;
 ?@align:=4;
@@ -21,6 +22,7 @@ storage
 	editstream	:w.EDITSTREAM;
 	of			:w.OPENFILENAME;
 	ofBuffer	:byte[300];
+	bf			:w.BROWSEINFO;
 	
 procedure GetSelText (var lpBuff:dword);
 
@@ -408,14 +410,10 @@ begin InitOF;
 	mov	(&ofBuffer, of.lpstrFile);
 	mov	(@size(ofBuffer), of.nMaxFile);
 	move (title, of.lpstrTitle);
-	//	dbg.put ("pathbuf :", pathbuf[0]);
-
 	if (pathbuf[0] <> 0) then
-//		dbg.put ("pathbuf :", pathbuf[0]);
-
-			mov(&pathbuf,eax);
+		mov(&pathbuf,eax);
 	endif;
-	//mov(eax,of.lpstrInitialDir);
+	mov(eax,of.lpstrInitialDir);
 
 	mov(defext,eax);
 	mov(eax,of.lpstrDefExt);
@@ -424,7 +422,7 @@ begin InitOF;
 	mov(eax,of.lpstrFilter);
 	
 	mov	(	w.OFN_PATHMUSTEXIST | w.OFN_NOCHANGEDIR | w.OFN_FILEMUSTEXIST |
-			w.OFN_HEDREADONLY | w.OFN_OVERWRITEPROMPT,of.Flags);
+			w.OFN_HIDEREADONLY | w.OFN_OVERWRITEPROMPT,of.Flags);
 
 	popabi;
 end InitOF;
@@ -459,8 +457,7 @@ end GetOpenName;
 
 procedure GetOpenFolderName;	@noframe;
 begin GetOpenFolderName;
-//	mov(core.projectpath,eax);
-//	mov(eax,of.lpstrInitialDir);
+
 //	w.GetOpenFileName(&of);
 //	if (eax) then
 //		str.cpyz(&ofBuffer, stringbuffer);
@@ -630,7 +627,7 @@ begin IndentComment;
 	endif;
 	w.SendMessage(listebx.hwnd, w.EM_EXGETSEL,0, &ochr);
 	w.SendMessage(listebx.hwnd, w.EM_EXGETSEL,0, &chr);
-	w.SendMessage(listebx.hwnd, w.EM_HEDSELECTION,true,0);
+	w.SendMessage(listebx.hwnd, w.EM_HIDESELECTION,true,0);
 	w.SendMessage(listebx.hwnd, w.EM_EXLINEFROMCHAR,0,chr.cpMin);
 	mov	(eax, LnSt);
 	mov	(chr.cpMax, eax);
@@ -697,7 +694,7 @@ begin IndentComment;
 		endif;
 	endif;
 	w.SendMessage(listebx.hwnd, w.EM_EXSETSEL,0, &ochr);
-	w.SendMessage(listebx.hwnd, w.EM_HEDSELECTION,false, 0);
+	w.SendMessage(listebx.hwnd, w.EM_HIDESELECTION,false, 0);
 	w.SendMessage(listebx.hwnd, w.EM_SCROLLCARET,0,0);
 	w.SendMessage(listebx.hwnd, w.WM_SETREDRAW,true,0);
 	w.SendMessage(listebx.hwnd, REM_REPAINT,0,0);

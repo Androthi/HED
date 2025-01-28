@@ -42,10 +42,10 @@ procedure Output_View ( message:dword);
 begin Output_View;
 	mov(message,eax);
 	
-	if (eax = w.SW_HED) then
+	if (eax = w.SW_HIDE) then
 		w.CheckMenuItem(core.hmenu,IDM_VIEW_OUTPUT,w.MF_BYCOMMAND);
-		w.ShowWindow(core.hout,w.SW_HED);
-		w.ShowWindow(core.hVSplitBar,w.SW_HED);
+		w.ShowWindow(core.hout,w.SW_HIDE);
+		w.ShowWindow(core.hVSplitBar,w.SW_HIDE);
 		and(! (VSPLIT), settings.winview);
 		and(! (OUTPUT), settings.winview);
 			
@@ -126,7 +126,7 @@ begin 	Proc_Output;
 			
 	_close:
 			call _savepos;	
-			Output_View( w.SW_HED);
+			Output_View( w.SW_HIDE);
 			w.SendMessage(core.hwnd,w.WM_SIZE,0,0);			
 
 		
