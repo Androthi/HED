@@ -1,6 +1,6 @@
 const
 
-	hed_version	:string := "HED 0.0.18";
+	hed_version	:string := "HED 0.0.20";
 
 	#includeonce	("os.hhf")
 	#includeonce	("w32/win32.hhf")
@@ -79,7 +79,7 @@ const
 	// used in updateDisplay procedure
 	update_general	:= 0;
 	update_selection:= 1;
-	update_hexed	:= 2;
+	//update_hexed	:= 2;
 	
 	TABHT				:= 22;
 	TOOLHT				:= 24;

@@ -19,7 +19,7 @@ Docs
 
 [HED]
 console=false
-output=%h\..\HED_WORK\hed.exe
+output=hed.exe
 type=modular
 main=src\Panel.hla
 debug=true

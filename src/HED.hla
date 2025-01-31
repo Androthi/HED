@@ -64,7 +64,7 @@ program HED_MAIN;
 		prvline		:dword;
 		haccel		:dword;		// handle for accelerator table
 		hradll		:dword;		// dll handle
-		hexeddll	:dword;		// hex ed dll handle
+		//hexeddll	:dword;		// hex ed dll handle
 		nlastline	:dword;		// check for last line in edit control
 		dummy		:dword;		// dummy var for some windows APIs and temp storage
 		openfile_s	:string;
@@ -2565,7 +2565,7 @@ proc
 		_end:
 		push (eax);
 		w.FreeLibrary(hradll);
-		w.FreeLibrary(hexeddll);
+		//w.FreeLibrary(hexeddll);
 		pop (eax);
 		_errorexit:
 		os.exitProcess (eax);
