@@ -2313,7 +2313,7 @@ proc
 			zstr.cpy(eax,&pathbuf);
 		endif;
 		
-		if (hed_ini.readInt ("HED", "TopWindow")) then
+		if (hed_ini.readInt ("HED", "Top Window")) then
 			if( eax ) then
 				w.SetWindowPos(core.hwnd,w.HWND_TOPMOST,0,0,0,0,3);
 			endif;
