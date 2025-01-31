@@ -402,6 +402,25 @@ USE (EAX, ESI, EDI);
 ENDUSE;
 end Recent_Insert;
 
+
+procedure Proc_InitBrowse (lparam:dword; wparam:dword; umsg:uns32; hwin:dword);
+begin Proc_InitBrowse;
+	mov (umsg, eax);
+	if (eax = w.BFFM_INITIALIZED) then
+		dbg.put("yes");
+		mov (lparam, eax);
+		if ((type byte [eax]) != 0) then
+			w.SendMessage( hwin, w.BFFM_SETSELECTION, 1, eax);
+			or (1, eax);
+			jmp _done;
+		endif;
+	endif;
+	dbg.put ("ret 0");
+	xor (eax, eax);
+	_done:
+end Proc_InitBrowse;
+
+
 procedure initBF;
 begin initBF;
 	mov (core.hwnd, bf.hwndOwner);
@@ -409,8 +428,8 @@ begin initBF;
 	mov (&bfBuffer, bf.pszDisplayName);
 	mov (&bftitle, bf.lpszTitle);
   	mov (w.BIF_NEWDIALOGSTYLE, bf.ulFlags);
-  	mov (NULL, bf.lpfn);
-  	mov (NULL, bf.lParam);
+  	mov (&Proc_InitBrowse, bf.lpfn);
+  	mov (&pathbuf, bf.lParam);
   	mov (&bfimage, bf.iImage);
 end initBF;
 
@@ -478,6 +497,10 @@ procedure GetOpenFolderName;	@noframe;
 begin GetOpenFolderName;
 
 	CoInitialize (NULL);
+	if (hed_ini._readString ("HED", "Last Path", stringbuffer)) then
+		mov (stringbuffer, eax);
+		
+	endif;
 	w.SHBrowseForFolder ( &bf );
 	if (eax) then
 		push (eax);
@@ -485,6 +508,7 @@ begin GetOpenFolderName;
 		pop (eax);
 		CoTaskMemFree (eax);
 		str.cpyz (&bfBuffer, core.projectpath);
+		zstr.cpy (&bfBuffer, &pathbuf);
 		dbg.put ("after path :", core.projectpath);
 		mov (core.projectpath, eax);
 	else
