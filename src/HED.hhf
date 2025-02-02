@@ -1,6 +1,6 @@
 const
 
-	hed_version	:string := "HED 0.0.22";
+	hed_version	:string := "HED 0.0.23";
 
 	#includeonce	("os.hhf")
 	#includeonce	("src/win_inc.hhf")
@@ -79,31 +79,18 @@ const
 	// used in updateDisplay procedure
 	update_general	:= 0;
 	update_selection:= 1;
-	//update_hexed	:= 2;
 	
 	TABHT				:= 22;
-	TOOLHT				:= 24;
-	RESIZEHT			:= 2;
 	DOUBLESLASH			:= 5555;
 
 	// status bar and tool bar IDs
 	IDC_SBR	:= 1003;
-	IDC_TBR	:= 1002;
 	
-	// winview settings	
-	dummy_sym_0038938 := @{0};	// required or HLA linux can't find next symbol --- why do i even care?
-	TOOL	:= @{0};
+	// winview settings options
 	STATUS	:= @{1};
 	OUTPUT	:= @{2};
-	NOTES_A	:= @{3};	// depricated  -- change to scripts window in the future
-	PROP_A	:= @{4};	// depricated
 	VSPLIT	:= @{5};
-	EXPLORER_D	:= @{6};
 	HSPLIT	:= @{7};
-	OUTPUT_D:= @{8};
-	TREE_D	:= @{9};
-	PROP_D	:= @{10};	// depricated
-	TREE_A	:= @{11};	// depricated
 
 
 	// used for side panel	
@@ -122,9 +109,9 @@ const
 	mastersize_c	:= $10000;
 	dirsep_c		:= '\';
 
-
-	opt_console		:= @{0};	// console to output
-	opt_exptabs		:= @{1};	// expand tabs
+	opt_console		:= @{0};	// stdout to output window
+	opt_exptabs		:= @{1};	// expand tabs to spaces
 	opt_indent		:= @{2};	// auto indent
-
+	opt_autountitled:= @{3};	// automatically save untitled with ran dom filename
+	opt_restore		:= @{4};	// open last used file
 

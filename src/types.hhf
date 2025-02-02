@@ -90,12 +90,10 @@ type
 			htab			:dword;
 			hpaneltab		:dword;
 			htaboldproc		:dword;
-			htbr			:dword;
 			hlinefont		:dword;
 			hmainfont		:dword;
 			hitalic			:dword;		
 			hdialogfont		:dword;
-			htree			:dword;
 			hexplorer		:dword;
 			hexplorertree	:dword;
 			hfind			:dword;
@@ -109,8 +107,6 @@ type
 			// data
 			tci				:w.TC_ITEM;
 			col				:RACOLOR;
-
-			new_format		:boolean; // transitioning phase
 
 			// string data
 			projectpath		:string;

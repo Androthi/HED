@@ -179,13 +179,7 @@ _retfalse:
 	exit Proc_HSplit;
 
 _getworkheight:
-	test(TOOL,settings.winview);
-	_if(@nz)
-		w.GetWindowRect(core.htbr,_rect);
-		mov(_rect.bottom,eax);
-		sub(_rect.top,eax);
-		add(eax,rect.top);
-	_endif;
+
 	test(STATUS,settings.winview);
 	_if(@nz)
 		w.GetWindowRect(core.hsbr,_rect);

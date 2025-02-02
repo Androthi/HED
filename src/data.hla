@@ -35,7 +35,7 @@ storage
 	Proc_OldVSplit	:dword;		// old proc for split bar
 	Proc_OldHSplit	:dword;		// old proc for split bar
 
-	autountitled	:boolean;	// if true, Untitled is saved and built into temp folder (non-project only)
+	autountitled	:boolean;	// if true, Untitled
 	align(4);
 
 

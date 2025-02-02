@@ -469,9 +469,6 @@ program HED_MAIN;
 				endif;
 				w.EnableMenuItem (core.hmenu, edx, eax);
 			ENDUSE;
-			USE (EAX, EDX);
-				w.SendMessage(core.htbr, w.TB_ENABLEBUTTON,edx,eax);
-			ENDUSE;
 			ret();
 		end Toggle;
 
@@ -2056,24 +2053,6 @@ proc
 		mov (eax, _clientright);
 		mov (mainrect.bottom, eax);
 		
-		// check for active tool window
-		if (testz (TOOL,settings.winview)) then
-			// HED
-			w.ShowWindow(core.htbr,w.SW_HIDE);
-		else
-			// show toolbar
-			mov (lparam, eax);  // lparam = client x/y
-			if (eax) then
-				w.MoveWindow(core.htbr,0,0,0,0,true);	
-			endif;
-			
-			w.GetWindowRect (core.htbr, toolrect);
-			mov (toolrect.bottom, eax);
-			sub (toolrect.top, eax);
-			add (eax, mainrect.top);
-			
-		endif;
-		
 		mov (mainrect.top, eax);
 		mov (eax, settings.hsplitbar.y);
 		mov(eax, _clienttop);
@@ -2307,12 +2286,11 @@ proc
 			zstr.cpy(eax,&pathbuf);
 		endif;
 		
-		if (hed_ini.readInt ("HED", "Top Window")) then
-			if( eax ) then
-				w.SetWindowPos(core.hwnd,w.HWND_TOPMOST,0,0,0,0,3);
-			endif;
+		dbg.put("reading top");
+		if (hed_ini.readBool ("HED", "Top Window")) then
+			dbg.put("top");
+			w.SetWindowPos(core.hwnd,w.HWND_TOPMOST,0,0,0,0,3);
 		endif;
-		
 		
 		// subclass the tab tool for context menu
 		w.GetWindowLong (core.htab, w.GWL_WNDPROC);
@@ -2368,14 +2346,10 @@ proc
 		move( str.alloc (worksize_c), workpath);
 		move( str.alloc (mastersize_c), stringbuffer);
 		move( str.alloc (pathsize_c), core.projectpath);
-	
-		and(! opt_exptabs, settings.options);
-		or( opt_indent, settings.options);			
-		
+			
 		call arg.c;
 		mov (eax,argc);
 		os2.getmodulepath (core.homepath);
-		
 		
 		filesys.extractPath( core.homepath, core.homepath );
 		dbg.put ("core.homepath = ", core.homepath);
@@ -2384,7 +2358,6 @@ proc
 		filesys.cd (core.homepath);
 		
 		str.put (workpath, core.homepath, dirsep_c, HED_DEFAULTINI);	
-		dbg.put("default ini = ", workpath );
 		hed_default_ini.create_file ( workpath );
 
 		if ( filesys.exists (core.configmain)) then
@@ -2394,6 +2367,27 @@ proc
 			hed_default_ini.destroy();
 			hed_ini.create_file (core.configmain);
 		endif;
+		
+		if (hed_ini.readBool ("HED", "Tab Space")) then
+			or (opt_exptabs, settings.options);
+		endif;
+		
+		if (hed_ini.readBool ("HED", "Auto Indent")) then
+			or (opt_indent, settings.options);
+		endif;
+		
+		if (hed_ini.readBool ("HED", "Restore Work")) then
+			or (opt_restore, settings.options);
+		endif;
+		
+		if (hed_ini.readBool ("HED", "Auto Untitled")) then
+			or (opt_autountitled, settings.options);
+		endif;
+		
+		if (hed_ini.readBool ("HED", "Stdout Output")) then
+			or (opt_console, settings.options);
+		endif;
+		
 		hed_ini.readBin ("Settings", "pos", &settings, @size(settings));
 		hed_ini.readBin ("Fonts", "code", &mainfont, @size(mainfont));
 		hed_ini.readBin ("Fonts", "line", &linefont, @size(linefont));
@@ -2421,11 +2415,6 @@ proc
 			mov( al, settings.tab );
 		else
 			mov( 4, settings.tab );
-		endif;
-		
-		if( hed_ini.isKeyDefined( "HED", "options" ) ) then
-			hed_ini.readHex( "HED", "options" );
-			mov( eax, settings.options );
 		endif;
 		
 		if (hed_ini._readString ("HED", "Project Path", core.projectpath)) then
