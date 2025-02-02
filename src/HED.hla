@@ -394,7 +394,7 @@ program HED_MAIN;
 			
 			mov(wparam,eax);
 			ScancodeToAscii(eax); // char is in register BL
-		
+
 			if (eax = w.VK_SHIFT) then
 				mov (false, shiftdn);
 			
@@ -823,62 +823,28 @@ program HED_MAIN;
 
 	procedure Menu_SaveAs;
 		var
-			s	:string;
+			fname :string;
 			
 	begin Menu_SaveAs;
-		
-		mov (str.talloc (pathsize_c), s);
+		mov (str.talloc(300), fname);
 		pushabi;
 		dbg.put("<saveas>");
-		InitOF(	"Save File : End with '.' for no extension", NULL);
+		InitOF(	"Save File", NULL);
 		if ( GetSaveName() ) then
-			mov (eax, openfile_s);
-			str.cpy (openfile_s, s);
-			str.free (openfile_s);
-			str.length (s);
-			mov (s, esi);
-			mov ([esi+eax-1], al);
-			if (al = '.') then
-				// remove the '.' and treat file as having no extension
-				str.truncate (s, 1);
-			
-			else
-		
-				// see if filename has an extension
-				// if not, add .hla
-				if( ! filesys.hasExtension( s ) ) then
-					str.put2( s, ".hla" );	
-				endif;
-				
-				
-			endif;
-			
-			// save it as new name
+			push (eax);
+			str.cpy (eax, fname);
+			pop (eax);
+			str.free (eax);
 			mov (curnode, ebx);
-			//RAEdit_SaveFile ([ebx]);
-			WriteToFile (listebx.hwnd, s);
-
-			// if this is project file, open it as a new RAEdit window
-
-				// just update curnode without creating a new node
-				str.free (listebx.fullname);
-				str.free (listebx.id);
-				str.a_cpy (s);
-				mov (eax, listebx.fullname);
-				
-				filesys.a_extractFilename( s );
-				mov( eax, listebx.id );
-				
-				Recent_Insert( listebx.fullname );
-				UpdateMenu();
-				tabtool_update ([ebx]);
+			WriteToFile (listebx.hwnd, fname);
+			RAEdit_openNew (fname);
+			tabtool_add ([eax]);
+			updateDisplay (update_general);
+			w.SetFocus( core.hwnd );
+			filesys.gwd (workpath);
+			Explorer_LoadFolder (workpath);
 		endif;
-		setupFind();
-		GetFileTime (listebx.fullname, listebx.writetime);
-		tabtool_activate();
-		filesys.gwd (workpath);
-		Explorer_LoadFolder (workpath);
-		popabi;
+		popabi;		
 	end Menu_SaveAs;
 		
 	procedure Menu_SaveAll;	@noframe;

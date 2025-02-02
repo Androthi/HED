@@ -303,42 +303,17 @@ end saveFileAs;
 
 
 procedure RAEdit_SaveFile (var node:fList.fnode);
-	var
-		filestruc	:w.WIN32_FIND_DATA;
-		nextfile	:dword;
-		backpath	:string;
-		saveAsed	:BOOL;
-
-	static
-		backindex	:uns32 := 0;
-		
-	val
-		thisfile	:text := "(type w.WIN32_FIND_DATA [edi])";
-
 begin RAEdit_SaveFile;
-
-	//dbg.put("RAEdit_SaveFile");
-
-	mov (str.talloc (pathsize_c), backpath);
-	
-USE (ebx, esi, edi, ecx, edx);
-	
+	USE (ebx, esi, edi, ecx, edx);
 	mov (node, ebx);
 	test( ebx, ebx );	jz no_node;
 	cmp( listebx.hwnd, 0 );	je no_node;
-	
-	mov (false, saveAsed);
-		
-	if (! saveAsed) then
-		WriteToFile (listebx.hwnd, listebx.fullname);
-		GetFileTime (listebx.fullname, listebx.writetime);
-		
-	endif;
+	WriteToFile (listebx.hwnd, listebx.fullname);
+	GetFileTime (listebx.fullname, listebx.writetime);
 	updateDisplay( update_general );
-	
 	no_node:
-ENDUSE;
-//dbg.put ("/RAEdit_SaveFile");
+	ENDUSE;
+	//dbg.put ("/RAEdit_SaveFile");
 end RAEdit_SaveFile;
 
 procedure StreamInProc (var pBytesRead:dword ; NumBytes:dword ; var pBuffer:dword ; hFile:dword);
@@ -468,14 +443,14 @@ end InitOF;
 procedure GetSaveName;	@noframe;
 	
 begin GetSaveName;
-	dbg.put("GetSaveName");
+	dbg.enters("GetSaveName");
 	w.GetSaveFileName(&of);
 	if (eax) then
-		zstr.cpy(&ofBuffer,&pathbuf);
 		str.a_cpyz(&ofBuffer);
 	else
 		xor(eax,eax);	
 	endif;
+	dbg.exits ("GetSaveName");
 	ret();
 end GetSaveName;
 
