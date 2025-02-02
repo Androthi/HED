@@ -108,5 +108,16 @@ unit filelist_unit;
 	ENDUSE;
 	end findID;
 
-	
+	method fList.findFullname (id:string);
+	begin findFullname;
+	USE (EBX);
+		mov (this.head, ebx);
+		while (ebx) do
+			breakif (str.ieq (id, listebx.fullname));
+			mov (listebx.next, ebx);
+		endwhile;
+		mov (ebx, eax);
+	ENDUSE;
+	end findFullname;
+
 end filelist_unit;

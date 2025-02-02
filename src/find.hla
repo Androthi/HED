@@ -206,7 +206,7 @@ begin find_next;
 			mov (true, isFound);
 			
 			if (! tabtool_isOpen ([ebx]) ) then
-				HED_selectNode( [ebx] );
+				hed_selectNode( [ebx] );
 			elseif( ebx != curnode ) then
 				selectOpenMem( [ebx] );
 			endif;
@@ -291,7 +291,7 @@ begin find_prev;
 			mov (true, isFound);
 
 			if (! tabtool_isOpen ([ebx]) ) then
-				HED_selectNode( [ebx] );
+				hed_selectNode( [ebx] );
 			elseif( ebx != curnode ) then
 				selectOpenMem( [ebx] );
 			endif;
@@ -352,7 +352,7 @@ procedure find_replaceAll;
 			dbg.put ("cleanup = ", cleanup );
 			if( cleanup ) then
 				mov( false, cleanup );
-				HED_selectNode( [ebx] );
+				hed_selectNode( [ebx] );
 			endif;
 			
 			w.SendMessage( listebx.hwnd, w.EM_EXSETSEL, 0, &ft.chrgText);

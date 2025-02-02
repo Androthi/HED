@@ -161,6 +161,7 @@ type
 			method newNode; @returns ("EAX"); @external;
 			method appendFile (id:string); @returns ("EAX"); @external;
 			method findID (id:string); @returns ("EAX"); @external;
+			method findFullname (id:string); @returns ("EAX"); @external;
 			method dumpList; @external;
 		endclass;
 		

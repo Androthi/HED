@@ -5,9 +5,9 @@ proc
 	expandPathMacs			:procedure( source:string; dest:string ); @external;
 	UpdateMenu				:procedure; @external;
 	Menu_CloseFile			:procedure; @external;
-	HED_openNode			:procedure( var node:fList.fnode ); @external;
-	HED_closeNode			:procedure( var node:fList.fnode ); @external;
-	HED_selectNode			:procedure( var node:fList.fnode ); @external;
+	hed_openNode			:procedure( var node:fList.fnode ); @external;
+	hed_closeNode			:procedure( var node:fList.fnode ); @external;
+	hed_selectNode			:procedure( var node:fList.fnode ); @external;
 	updateDisplay			:procedure( toupdate:dword ); @external;
 
 	keywordsUpdate	:procedure( hwin:dword ); external;

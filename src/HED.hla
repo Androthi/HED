@@ -694,39 +694,34 @@ program HED_MAIN;
 		dbg.put ("/hed_openFile");
 	end hed_openFile;
 
-	procedure HED_openNode ( var node:fList.fnode );
-	begin HED_openNode;
+	procedure hed_openNode ( var node:fList.fnode );
+	begin hed_openNode;
 	
 	USE( EBX );
 		mov( node, ebx );
 		cmp( listebx.hwnd, 0 );	jne already_open;
 		
 		//dbg.put("3 :", listebx.fullname);
-		
-
-				
-			RAEdit_new( [ebx] );
-			if( filesys.exists( listebx.fullname) ) then
-				
-				RAEdit_loadFile( [ebx], listebx.fullname );
-				dbg.put("post loadfile");
-			else
-				toOutput("File not found: ", listebx.fullname, nl );
-			endif;
+		RAEdit_new( [ebx] );
+		if( filesys.exists( listebx.fullname) ) then
 			
-			tabtool_add( [ebx] );
-				
+			RAEdit_loadFile( [ebx], listebx.fullname );
+			dbg.put("post loadfile");
+		else
+			toOutput("File not found: ", listebx.fullname, nl );
+		endif;
 		
+		tabtool_add( [ebx] );
 		already_open:
 	ENDUSE;
-	//dbg.put("/HED_openNode");
-	end HED_openNode;
+	//dbg.put("/hed_openNode");
+	end hed_openNode;
  
- 	procedure HED_selectNode( var node:fList.fnode );
- 	begin HED_selectNode;
+ 	procedure hed_selectNode( var node:fList.fnode );
+ 	begin hed_selectNode;
  		
  		// node already created and hwnd opened but invisible
- 		// make if visible and update properties, create and attach
+ 		// make it visible and update properties, create and attach
  		// a tabtool
  		
  		USE( EBX );
@@ -737,11 +732,11 @@ program HED_MAIN;
 		tabtool_add( [ebx] );
  		ENDUSE;
  		
- 	end HED_selectNode;
+ 	end hed_selectNode;
 
  
- 	procedure HED_closeNode ( var node:fList.fnode );
- 	begin HED_closeNode;
+ 	procedure hed_closeNode ( var node:fList.fnode );
+ 	begin hed_closeNode;
 		USE( EBX );
 		mov( node, ebx );
 		cmp( listebx.hwnd, 0 );	je already_closed;
@@ -750,7 +745,7 @@ program HED_MAIN;
 		mov( 0, listebx.hwnd );
 		already_closed:
 		ENDUSE;
- 	end HED_closeNode;
+ 	end hed_closeNode;
 
 	procedure Menu_NewFile; @noframe;
 	begin Menu_NewFile;
@@ -878,9 +873,11 @@ program HED_MAIN;
 				UpdateMenu();
 				tabtool_update ([ebx]);
 		endif;
-			setupFind();
-			GetFileTime (listebx.fullname, listebx.writetime);
-			tabtool_activate();
+		setupFind();
+		GetFileTime (listebx.fullname, listebx.writetime);
+		tabtool_activate();
+		filesys.gwd (workpath);
+		Explorer_LoadFolder (workpath);
 		popabi;
 	end Menu_SaveAs;
 		
@@ -898,7 +895,7 @@ program HED_MAIN;
 		mov (curnode, ebx);
 		if (ebx) then
 			if (! querySave ([ebx])) then
-				HED_closeNode( [ebx] );
+				hed_closeNode( [ebx] );
 				
 					// orphaned file...
 					// also remove from list and update treeview.
@@ -1244,12 +1241,12 @@ program HED_MAIN;
 		ret();
 	end Menu_ViewToggleWindows;
 	
-	procedure Menu_ViewHEDAll; @noframe;
-	begin Menu_ViewHEDAll;
+	procedure Menu_ViewHideAll; @noframe;
+	begin Menu_ViewHideAll;
 		PanelFold();	
 		Output_View ( w.SW_HIDE);
 		ret();
-	end Menu_ViewHEDAll;
+	end Menu_ViewHideAll;
 	
 	procedure CommandProcessor;	@noframe;
 	
@@ -1661,7 +1658,7 @@ proc
 			dword	IDM_VIEW_STATUS,	&Menu_ViewStatusbar;
 			dword	IDM_VIEW_OUTPUT,	&Menu_ViewOutput;
 			dword	IDM_VIEW_PANEL,		&Menu_ViewPanel;
-			dword	IDM_VIEW_HEDALL,	&Menu_ViewHEDAll;
+			dword	IDM_VIEW_HEDALL,	&Menu_ViewHideAll;
 			dword	IDM_VIEW_TOGGLE,	&Menu_ViewToggleWindows;
 			
 			dword	IDM_EDIT_UNDO,		&_meud;

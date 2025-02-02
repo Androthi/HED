@@ -115,7 +115,11 @@ begin	Proc_Explorer;
 		_leftdoubleclick:
 				dbg.put("opening :", sbuffer);
 				if (filesys.isFile (sbuffer)) then
-					hed_openFile (sbuffer);
+					if (fileList.findFullname (sbuffer)) then
+						selectOpenMem ([eax]);
+					else
+						hed_openFile (sbuffer);
+					endif;
 				endif;
 				w.PostMessage(core.hwnd, w.WM_SETFOCUS, 0, 0);
 				jmp xProc_Explorer;
