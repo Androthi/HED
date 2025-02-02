@@ -145,15 +145,12 @@ type
 			type
 				fnode :record inherits( baseNode_t );
 			
-					id			:string;			// name + extension of file
-					union
-						fullname	:string;		// full path for orphan files or
-						relative	:string;		// path releative to  for project files
-					endunion;
-					
-					hwnd		:dword;				// attached handle for RAEDIT window
-					oldhwnd		:dword;				// subclassed proc
-					writetime	:qword;		
+					id			:string;	// name + extension of file
+					fullname	:string;	// full path for orphan files or
+					typename	:string;	// based on extension, which settings file to use
+					hwnd		:dword;
+					oldhwnd		:dword;
+					writetime	:qword;		// for automatic make ? still use this ?
 					align(4);
 				endrecord;
 				
@@ -163,7 +160,6 @@ type
 			
 			method newNode; @returns ("EAX"); @external;
 			method appendFile (id:string); @returns ("EAX"); @external;
-			method findFullname (id:string); @returns ("EAX"); @external;
 			method findID (id:string); @returns ("EAX"); @external;
 			method dumpList; @external;
 		endclass;

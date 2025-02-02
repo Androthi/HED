@@ -68,7 +68,6 @@ begin Explorer_LoadFolder;
 	Explorer_ReadFiles (NULL);
 end Explorer_LoadFolder;
 
-
 procedure Proc_Explorer (lparam:dword; wparam:dword; umsg:uns32; hwin:dword);
 
 begin	Proc_Explorer;

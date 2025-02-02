@@ -66,7 +66,7 @@ begin SetWindowCaption;
 			str.put2 (workpath, '*');
 			toOutput (nl nl "Warning: File has been modified externally" nl);
 		endif;
-		str.put2 (workpath, listebx.relative, "   HED");
+		str.put2 (workpath, listebx.fullname, "   HED");
 	else
 		str.cpy( &AppName, workpath );
 	endif;
@@ -103,7 +103,7 @@ procedure RAEdit_loadFile (var fnode:fList.fnode; fname:string);
 begin RAEdit_loadFile;
 USE (EBX);
 	mov (fnode, ebx);
-	dbg.put ("RAEdit_loadFile :", listebx.relative);
+	dbg.put ("RAEdit_loadFile :", listebx.fullname);
 	fileio.open (fname, fileio.r);
 	mov (eax, hfile);
 	mov (hfile, editstream.dwCookie);
@@ -115,7 +115,7 @@ USE (EBX);
 	mov (0,_chrg.cpMax);
 	lea (eax,_chrg);
 	w.SendMessage (listebx.hwnd,w.EM_EXSETSEL,0, eax);
-	GetFileTime (listebx.relative, listebx.writetime);
+	GetFileTime (listebx.fullname, listebx.writetime);
 	RAEdit_setFormat ([ebx]);
 	dbg.put ("/RAEdit_loadFile");
 ENDUSE;	
@@ -190,11 +190,14 @@ begin RAEdit_openNew;
 			str.a_cpy (s);
 			mov (eax, listebx.fullname);
 			
-	
+			filesys.extractExt( s, s );
+			str.put2 (s, ".ini");
+			str.a_cpy (s);
+			mov (eax, listebx.typename);
+			
 			fileList.append ([ebx]);
-	
 			RAEdit_new ([ebx]);
-			RAEdit_loadFile ([ebx], s);
+			RAEdit_loadFile ([ebx], listebx.fullname);
 		else
 			xor (ebx, ebx);
 		endif;
@@ -328,7 +331,7 @@ USE (ebx, esi, edi, ecx, edx);
 		
 	if (! saveAsed) then
 		WriteToFile (listebx.hwnd, listebx.fullname);
-		GetFileTime (listebx.relative, listebx.writetime);
+		GetFileTime (listebx.fullname, listebx.writetime);
 		
 	endif;
 	updateDisplay( update_general );

@@ -72,7 +72,8 @@ program HED_MAIN;
 		chrg		:w.CHARRANGE;	
 		wordbuf		:byte[300];
 		
-		updateIns	:boolean;
+		updateIns		:boolean;
+		open_override	:boolean;
 
 		align(4);
 
@@ -731,7 +732,7 @@ program HED_MAIN;
  		USE( EBX );
 		 		
 		mov( node, ebx );
-		GetFileTime (listebx.relative, listebx.writetime);
+		GetFileTime (listebx.fullname, listebx.writetime);
 		RAEdit_setFormat ([ebx]);
 		tabtool_add( [ebx] );
  		ENDUSE;
@@ -878,7 +879,7 @@ program HED_MAIN;
 				tabtool_update ([ebx]);
 		endif;
 			setupFind();
-			GetFileTime (listebx.relative, listebx.writetime);
+			GetFileTime (listebx.fullname, listebx.writetime);
 			tabtool_activate();
 		popabi;
 	end Menu_SaveAs;
@@ -1234,20 +1235,6 @@ program HED_MAIN;
 		PanelViewActive();
 		ret();
 	end Menu_ViewPanel;
-	
-	procedure Menu_ViewCycle; @noframe;
-	begin Menu_ViewCycle;
-		dbg.put ("cycle");
-		mov (settings.panelwin, eax);
-		inc (eax);
-		if (eax > nPanelWindows) then
-			mov (0, eax);
-		endif;
-		mov (eax, settings.panelwin);
-		PanelViewWin();
-		ret();	
-	end Menu_ViewCycle;
-	
 	
 	procedure Menu_ViewToggleWindows; @noframe;
 	begin Menu_ViewToggleWindows;
@@ -1676,7 +1663,6 @@ proc
 			dword	IDM_VIEW_PANEL,		&Menu_ViewPanel;
 			dword	IDM_VIEW_HEDALL,	&Menu_ViewHEDAll;
 			dword	IDM_VIEW_TOGGLE,	&Menu_ViewToggleWindows;
-			dword	IDM_VIEW_CYCLE,		&Menu_ViewCycle;
 			
 			dword	IDM_EDIT_UNDO,		&_meud;
 			dword	IDM_EDIT_REDO,		&_merd;
@@ -1982,26 +1968,38 @@ proc
 	_close:	
 		dbg.separator;
 		dbg.put ("close");
+		
+		if (pathbuf[0] <> 0 ) then
 			
-			//	check for open output/tree windows and close them.
-			//	but maintain their open status for next time program loads
-	
-				closeAll();
-				cmp (eax, true);
-				je _cancel;
-	
-			if (core.hout) then
-	        	w.DestroyWindow(core.hout);
-			endif;
+			str.cpyz (&pathbuf, stringbuffer);
+			if( filesys.hasExtension( stringbuffer ) ) then
+				
+				filesys.extractPath( stringbuffer, stringbuffer );
 
-	        //dbg.put ("all windows xed");
-			w.GetWindowLong(hwin,w.GWL_STYLE);
-			test(w.WS_MAXIMIZE,eax);
-			jnz _setmax;	
+			endif;
+			hed_ini.writeString( "HED", "Last Path", stringbuffer );
+		endif;
+		
+		mov (curnode, eax);
+		if (eax) then
+			hed_ini.writeString ("HED", "Last File", listeax.fullname);
+		endif;	
+	
+		closeAll();
+		cmp (eax, true);
+		je _cancel;
+	
+		if (core.hout) then
+	       	w.DestroyWindow(core.hout);
+		endif;
+
+		w.GetWindowLong(hwin,w.GWL_STYLE);
+		test(w.WS_MAXIMIZE,eax);
+		jnz _setmax;	
 		
 		_savepos:	
 				test(w.WS_MINIMIZE,eax);
-				jnz _ckproj;
+				jnz _final;
 				mov(false,settings.edtwin.fmax);
 				w.GetWindowRect(hwin,&rect);
 				mov(rect.left,settings.edtwin.x);
@@ -2012,25 +2010,14 @@ proc
 				mov(rect.bottom,eax);
 				sub(rect.top,eax);
 				mov(eax,settings.edtwin.ht);
-				jmp _ckproj;
+				jmp _final;
 		
 		_setmax:	
 				mov(true,settings.edtwin.fmax);
 				// float
 					
-		_ckproj:
+		_final:
 	
-			if (pathbuf[0] <> 0 ) then
-				
-				str.cpyz (&pathbuf, stringbuffer);
-				if( filesys.hasExtension( stringbuffer ) ) then
-					
-					filesys.extractPath( stringbuffer, stringbuffer );
-
-				endif;
-				hed_ini.writeString( "HED", "Last Path", stringbuffer );
-			endif;
-			
 			
 			hed_ini.writeBin ("Settings", "pos", &settings, @size(settings));
 			
@@ -2405,9 +2392,11 @@ proc
 		mov (al, autountitled);
 
 		str.cpy ("", stringbuffer);	
-		if (hed_ini._readString ("HED", "User Path", stringbuffer)) then
+		if (hed_ini.readString ("HED", "User Path", stringbuffer)) then
 			expandPathMacs (stringbuffer, stringbuffer);
 			str.put2 (stringbuffer, ';');
+			str.trim(stringbuffer);
+			env2.put ("PATH", stringbuffer);
 		endif;
 		
 		hed_ini.readUns( "HED", "tab" );
@@ -2417,8 +2406,9 @@ proc
 			mov( 4, settings.tab );
 		endif;
 		
-		if (hed_ini._readString ("HED", "Project Path", core.projectpath)) then
+		if (hed_ini.readString ("HED", "Project Path", core.projectpath)) then
 			expandPathMacs (core.projectpath, core.projectpath);
+			str.trim (core.projectpath); 
 		else
 			filesys.gwd (core.projectpath);
 		endif;
@@ -2491,6 +2481,8 @@ proc
 		endif;
 		mov(eax,hradll);
 		
+		mov (false, open_override);
+		
 		RegisterWindow();
 		if(settings.edtwin.fmax) then
 			mov(w.SW_MAXIMIZE,eax);
@@ -2515,17 +2507,32 @@ proc
 					// open folder
 					filesys.gwd (core.projectpath);
 					Explorer_LoadFolder (core.projectpath);
+					mov (true, open_override);
 				else
+					//+ TODO: check if arg is a folder
 					filesys.extractExt( openfile_s, stringbuffer );
 					dbg.put("open :", openfile_s);
 					hed_openFile (openfile_s);
 					Recent_Insert( openfile_s );
+					mov (true, open_override);
 				endif;
 
 				_nxtarg:
 				dec (argc);
 			endwhile;
+		endif;
 
+		if (!open_override) then
+			if (hed_ini.readBool ("HED", "Restore Work")) then
+				if (hed_ini.readString ("HED", "Last Path", workpath)) then
+					Explorer_LoadFolder (workpath);
+				endif;
+				
+				if (hed_ini.isKeyDefined ("HED", "Last File")) then
+					hed_ini.readString ("HED", "Last File", workpath);
+					hed_openFile (workpath);
+				endif;
+			endif;
 		endif;
 
 		updateDisplay (update_general);

@@ -32,6 +32,12 @@ unit filelist_unit;
 		mov (this.head, ebx);
 		while (ebx) do
 			str.free (listebx.id);
+			if (listebx.fullname != NULL) then
+				str.free (listebx.fullname);
+			endif;
+			if (listebx.typename != NULL) then
+				str.free (listebx.typename);
+			endif;
 			mov (listebx.next, ebx);
 		endwhile;
 		// frees the actual list memory
@@ -89,18 +95,6 @@ unit filelist_unit;
 		super.remove( lNode );
 	ENDUSE;
 	end remove;
-
-	method fList.findFullname (id:string);
-	begin findFullname;
-	USE (EBX);
-		mov (this.head, ebx);
-		while (ebx) do
-			breakif (str.ieq (id, listebx.fullname));
-			mov (listebx.next, ebx);
-		endwhile;
-		mov (ebx, eax);
-	ENDUSE;
-	end findFullname;
 
 	method fList.findID (id:string);
 	begin findID;

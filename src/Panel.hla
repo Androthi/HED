@@ -157,14 +157,13 @@ USE (ESI, ECX, EDI, EBX, EDX);
 	mov (listebx.id, eax);
 	mov (eax, core.tci.pszText);
 	mov (ebx, core.tci.lParam);
-	dbg.put("inserting");
 	w.SendMessage(core.htab,w.TCM_INSERTITEM, 999, &core.tci);
-	dbg.put(".");
 	w.SendMessage(core.htab,w.TCM_SETCURSEL, eax,0);
 	mov (ebx, curnode);
 	call SetWindowCaption;
 	if( listebx.hwnd ) then
-		w.ShowWindow (listebx.hwnd, w.SW_SHOW);		
+		w.ShowWindow (listebx.hwnd, w.SW_SHOW);
+		w.SetFocus (listebx.hwnd);
 	endif;
 	w.SendMessage (core.hwnd, w.WM_SIZE, 0, 0);
 	w.SendMessage(core.hwnd,HED_SETINSERTMODE,0,0);
@@ -263,7 +262,7 @@ USE(ebx,edx,esi,edi);
 	endif;
 	updateDisplay (update_general);
 ENDUSE;
-//dbg.put("/tabtool_activate");
+dbg.put("/tabtool_activate");
 ret();
 end tabtool_activate;
 
