@@ -123,8 +123,6 @@ procedure Proc_Goto(lparam:dword; wparam:dword; umsg:uns32; hwin:dword); @extern
 procedure getStringInput2 (title:string; dest:string); @returns ("EAX"); @external;
 procedure getStringInput3 (title:string; initial:string; dest:string); @returns ("EAX"); @external;
 
-procedure showAboutWin; @external;
-
 static	// externals
 	align(4);
 	

@@ -300,6 +300,9 @@ program HED_MAIN;
 //		dbg.exits("expandPathMacs");
 	end expandPathMacs;
 	
+	
+	//bm=edit proc
+
 	procedure Proc_SubclassedEdit(lparam:dword; wparam:dword; umsg:uns32; hwin:dword);
 	@alignstack;
 	
@@ -1124,7 +1127,9 @@ program HED_MAIN;
 		
 		mov (str.talloc (1024), s);
 		
-		toOutput (	"HED Environment and Related Macros" nl
+		toOutput (	
+					"HED version ", hed_version, nl nl
+					"HED Environment and Related Macros" nl
 					"===================================" nl
 					"%h home    : ", core.homepath, nl
 					"%p project : ", core.projectpath,nl nl);
@@ -1576,7 +1581,8 @@ proc
 	
 	end ShowPos;
 	
-	
+	//bm=wndproc
+
 	procedure	WndProc (lparam:dword; wparam:dword; umsg:uns32; hwin:dword);
 	
 	var
@@ -1694,7 +1700,7 @@ proc
 			pop(edi); pop(esi); pop(ebx);
 			w.DefWindowProc(hwin,umsg,wparam,lparam);
 			exit WndProc;
-		
+	
 	_toggleout:
 			mov(IDM_VIEW_OUTPUT,eax);
 			or(w.BN_CLICKED,eax);
