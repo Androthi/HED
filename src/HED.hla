@@ -2205,7 +2205,7 @@ proc
 		w.SendMessage (eax, w.WM_SETFONT, core.hdialogfont, false);
 		
 		PanelSetup (hwin);
-	
+		
 		w.GetDlgItem(hwin,IDC_VSPLITBAR);
 		mov(eax,core.hVSplitBar);
 		w.SetWindowLong(core.hVSplitBar,w.GWL_WNDPROC,&Proc_VSplit);
@@ -2419,7 +2419,7 @@ proc
 	
 	//===============================================================
 	// Main program begins here *************************************
-	
+
 	procedure RegisterWindow; @noframe;
 	begin RegisterWindow;
 		
@@ -2477,6 +2477,7 @@ proc
 		mov (false, open_override);
 		
 		RegisterWindow();
+		
 		if(settings.edtwin.fmax) then
 			mov(w.SW_MAXIMIZE,eax);
 		else
