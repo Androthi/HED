@@ -265,12 +265,4 @@ proc
 		//dbg.put ("/checkFileTimes >", eax);
 	end checkFileTimes;
 
-
-procedure MakeProc (command:dword; dparam:dword; wparam:dword);
-begin MakeProc;
-	
-	toOutput ("TODO: make proc commands" nl);
-
-end MakeProc;
-
 end Make_Unit;

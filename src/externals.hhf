@@ -95,7 +95,6 @@ procedure Explorer_ReadFiles(hparent:dword); @external;
 procedure Explorer_LoadFolder (folder:string); @external;
 
 // make
-procedure MakeProc (command:dword; dparam:dword; wparam:dword);	@external;
 procedure make_build; @external;
 procedure GetFileTime ( file:string; var dest:qword); @external;
 procedure checkFileTimes (src:string; dest:string); @returns ("EAX"); @external;

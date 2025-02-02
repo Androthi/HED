@@ -1,6 +1,6 @@
 const
 
-	hed_version	:string := "HED 0.0.29";
+	hed_version	:string := "HED 0.0.32";
 
 	#includeonce	("os.hhf")
 	#includeonce	("src/win_inc.hhf")
@@ -70,7 +70,53 @@ const
 	USER_MENU_START			:= RECENT_MENU_END;
 	USER_MENU_END			:= USER_MENU_START + 100;
 		
-		
+	IDM_FILE_NEW            := 1050;
+	IDM_FILE_OPEN           := 1006;
+	IDM_FILE_INSERT         := 1076;
+	IDM_FILE_OPEN_FOLDER	:= 1077;
+	IDM_FILE_OPENRECENT     := 1082;
+	IDM_FILE_SAVE           := 1007;
+	IDM_FILE_SAVEAS         := 1008;
+	IDM_FILE_SAVEALL        := 1026;
+	IDM_FILE_CLOSE          := 1009;
+	IDM_FILE_CLOSEALL       := 1068;
+	IDM_FILE_PAGESETUP      := 1034;
+	IDM_FILE_PRINT          := 1035;
+	IDM_FILE_EXIT           := 1001;
+	IDM_EDIT_UNDO           := 1012;
+	IDM_EDIT_REDO           := 1013;
+	IDM_EDIT_CUT            := 1010;
+	IDM_EDIT_COPY           := 1011;
+	IDM_EDIT_PASTE          := 1014;
+	IDM_EDIT_DELETE         := 1015;
+	IDM_EDIT_SELECTALL      := 1017;
+	IDM_MARK_SET            := 1069;
+	IDM_MARK_END            := 1070;
+	IDM_EDIT_FIND           := 1018;
+	IDM_EDIT_NEXT           := 1019;
+	IDM_EDIT_PREV           := 1020;
+	IDM_EDIT_REPLACE        := 1021;
+	IDM_EDIT_GOTO           := 1067;
+	IDM_EDIT_SETMARK        := 1027;
+	IDM_EDIT_NEXTBOOK       := 1028;
+	IDM_EDIT_PREVBOOK       := 1029;
+	IDM_EDIT_CLEARBOOK      := 1030;
+	IDM_VIEW_STATUS         := 1004;
+	IDM_VIEW_PANEL          := 1016;
+	IDM_VIEW_OUTPUT         := 1041;
+	IDM_VIEW_TOGGLE         := 1005;
+	IDM_VIEW_HIDEALL        := 1096;
+	IDM_TOOL_CALC           := 1078;
+	IDM_TOOL_COLOR          := 1079;
+	IDM_TOOL_CONSOLE        := 1080;
+	IDM_TOOL_RUN            := 1052;
+	IDM_OPTION_CODEFONT     := 1031;
+	IDM_OPTION_LINEFONT     := 1032;
+	IDM_HELP_SHOWENV        := 1084;
+	KEYBOARD_CTRLTAB        := 1500;
+	IDM_VIEW_CYCLE          := 1058;
+	IDM_EDIT_FINDRETURN     := 1120;
+	
 	// used for status window messages
 	STATUS_PARTS		:=3;
 	STATUS_POSITION		:=0;

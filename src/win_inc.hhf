@@ -719,6 +719,7 @@ const
 	COLOR_3DFACE                   :=  COLOR_BTNFACE;
 	MF_BYCOMMAND                   := $0;
 	MF_BYPOSITION                  := $400;
+	MF_SEPARATOR                   := $800;
 	MF_ENABLED                     := $0;
 	MF_GRAYED                      := $1;
 	MF_UNCHECKED                   := $0;
@@ -1755,6 +1756,12 @@ CreateDialogParam: procedure
 		@returns( "eax" );
 		@external( "__imp__CreateDialogParamA@20" );
 
+CreateMenu: procedure;
+		@stdcall;
+		@returns( "eax" );
+		@external( "__imp__CreateMenu@0" );
+
+
 CreatePopupMenu: procedure;
 		@stdcall;
 		@returns( "eax" );
@@ -1985,6 +1992,17 @@ GetMenu: procedure
 		@stdcall;
 		@returns( "eax" );
 		@external( "__imp__GetMenu@4" );
+
+SetMenu: procedure
+	( 
+		hWnd		:dword; 
+		hMenu		:dword
+	);
+		@stdcall;
+		@returns( "eax" );
+		@external( "__imp__SetMenu@8" );
+
+
 
 GetMessage: procedure
 	( 
@@ -2657,6 +2675,7 @@ InitCommonControls: procedure;
 		@stdcall;	
 		@returns( "eax" );	
 		@external( "__imp__InitCommonControls@0" );
+
 
 
 

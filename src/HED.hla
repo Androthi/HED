@@ -56,7 +56,7 @@ program HED_MAIN;
 		align(4);
 		argc		:uns32;		// command line arguments
 		prvline		:dword;
-		haccel		:dword;		// handle for accelerator table
+		//haccel		:dword;		// handle for accelerator table
 		hradll		:dword;		// dll handle
 		//hexeddll	:dword;		// hex ed dll handle
 		nlastline	:dword;		// check for last line in edit control
@@ -68,7 +68,6 @@ program HED_MAIN;
 		pt			:hide.point_t;
 
 		cf			:w.CHOOSEFONT;
-		markpos		:w.CHARRANGE;
 		chrg		:w.CHARRANGE;	
 		wordbuf		:byte[300];
 		
@@ -553,38 +552,13 @@ program HED_MAIN;
 				Toggle();
 				mov (IDM_EDIT_GOTO, EDX);
 				Toggle();
-				MOV (IDM_EDIT_INDENT, EDX);
-				Toggle();
-				MOV (IDM_EDIT_OUTDENT, EDX);
-				Toggle();
-				MOV (IDM_EDIT_COMMENT, EDX);
-				Toggle();
-				MOV (IDM_EDIT_UNCOMMENT, EDX);
-				Toggle();
 				mov (IDM_EDIT_FINDRETURN, EDX);
 				Toggle();
 				mov (IDM_EDIT_SELECTALL, edx);
-				Toggle();
-				MOV (IDM_MENU_MARK, EDX);
-				Toggle();
-				mov (IDM_EDIT_SETMARK, EDX);
-				Toggle();
-
-				mov (IDM_MAKE_BUILDIT,edx);
-				Toggle();
-				mov (IDM_MAKE_REBUILD,edx);
-				Toggle();
-				mov (IDM_MAKE_RUN,edx);
-				Toggle();
-				mov (IDM_MAKE_BUILDITRUN,edx);
-				Toggle();
-				
 			else
-	
 				xor (eax, eax);
 				mov (IDM_EDIT_FIND, edx);
 				Toggle();
-
 				xor (eax, eax);
 				mov (IDM_EDIT_NEXT, EDX);
 				Toggle();
@@ -593,14 +567,6 @@ program HED_MAIN;
 				mov (IDM_EDIT_REPLACE, edx);
 				Toggle();
 				mov (IDM_EDIT_GOTO, EDX);
-				Toggle();
-				MOV (IDM_EDIT_INDENT, EDX);
-				Toggle();
-				MOV (IDM_EDIT_OUTDENT, EDX);
-				Toggle();
-				MOV (IDM_EDIT_COMMENT, EDX);
-				Toggle();
-				MOV (IDM_EDIT_UNCOMMENT, EDX);
 				Toggle();
 				mov (IDM_EDIT_FINDRETURN, EDX);
 				Toggle();
@@ -618,8 +584,6 @@ program HED_MAIN;
 				Toggle();
 				mov	(IDM_EDIT_PASTE, edx);
 				Toggle();
-				mov (IDM_MENU_MARK, EDX);
-				Toggle();
 				mov	(IDM_EDIT_NEXTBOOK, edx);
 				Toggle();
 				mov	(IDM_EDIT_PREVBOOK, edx);
@@ -633,23 +597,9 @@ program HED_MAIN;
 				mov	(IDM_EDIT_CLEARBOOK,edx);
 				Toggle();
 				mov (IDM_EDIT_SETMARK, EDX);
-				Toggle();
-				mov (IDM_MAKE_BUILDIT,edx);
-				Toggle();
-				mov (IDM_MAKE_REBUILD,edx);
-				Toggle();
-				mov (IDM_MAKE_RUN,edx);
-				Toggle();
-				mov (IDM_MAKE_BUILDITRUN,edx);
-				Toggle();
-
-				
 			endif;
 		
-				xor(eax,eax);
-
-			mov(IDM_MAKE_REBUILD,edx);
-			Toggle();
+			xor(eax,eax);
 
 		case (update_selection)
 			mov (curnode, ebx);
@@ -1013,46 +963,6 @@ program HED_MAIN;
 		ret();	
 	end Menu_Print;
 
-	procedure Menu_MakeClean; @noframe;
-	begin Menu_MakeClean;	
-		toOutput( nl "TODO: Clean..." nl );
-		ret();
-	end Menu_MakeClean;
-	
-	procedure Menu_MakeBuild;	@noframe;
-	begin Menu_MakeBuild;
-		toOutput( nl "TODO: Make Build" nl );
-		ret();
-	end Menu_MakeBuild;
-	
-	procedure Menu_MakeRebuild;	@noframe;
-	begin Menu_MakeRebuild;
-		toOutput( nl "TODO: Make Rebuild" nl );
-		ret();
-	end Menu_MakeRebuild;
-
-	procedure Menu_MakeRun;	@noframe;
-	begin Menu_MakeRun;
-		
-		toOutput( nl "TODO: Run" nl );
-		//runNode( val curnode, true );
-		ret();
-	end Menu_MakeRun;
-	
-	procedure Menu_MakeTestBuild;	@noframe;
-	begin Menu_MakeTestBuild;
-		
-		toOutput( nl "TODO: Test build" nl );
-		ret();
-	end Menu_MakeTestBuild;
-
-	procedure Menu_MakeBuildRun; @noframe;
-	begin Menu_MakeBuildRun;
-		toOutput( nl "TODO: Build Run" nl );
-		ret();
-	end Menu_MakeBuildRun;
-
-	
 	procedure Menu_ToolsCalc; @noframe;
 	begin Menu_ToolsCalc;
 		launchProgram( "calc.exe", false, false );
@@ -1278,25 +1188,7 @@ program HED_MAIN;
 			mov (curnode, ecx);
 			w.SendMessage(listecx.hwnd,w.EM_EXSETSEL,0,eax);
 			ret();
-			
-
-	_mems::
-		mov (curnode, eax);
-		w.SendMessage(listeax.hwnd,w.EM_EXGETSEL,0,&chrg);
-		mov(chrg.cpMin,eax);
-		mov(eax,markpos.cpMin);
-		ret();
-	
-	_meme::
-		mov (curnode, eax);
-		push (eax);
-		w.SendMessage(listeax.hwnd,w.EM_EXGETSEL,0,&chrg);
-		mov(chrg.cpMin,eax);
-		mov(eax,markpos.cpMax);
-		pop (eax);
-		w.SendMessage(listeax.hwnd, w.EM_EXSETSEL,0,&markpos);
-		ret();
-			
+		
 	_mefnd::
 			mov (curnode, eax);
 			if (!eax) then
@@ -1374,30 +1266,14 @@ program HED_MAIN;
 			w.DialogBoxParam(core.hinst,val ID_GOTO,hwin,&Proc_Goto,false);
 			ret();
 		
-	_meind::	
-			IndentComment(w.VK_TAB,true);
-			ret();
-			
-	_meoutd::	
-			IndentComment(w.VK_TAB,false);
-			ret();
-			
-	_mecomnt::	
-		mov (curnode, eax);
-		if (eax) then
-			
-			IndentComment(DOUBLESLASH,true);
-
-		endif;
-		ret();
-			
-	_meuncmnt::
-		mov (curnode, eax);
-		if (eax) then
-			IndentComment(DOUBLESLASH,false);
-		endif;
-		ret();
-			
+//	_meind::	
+//			IndentComment(w.VK_TAB,true);
+//			ret();
+//			
+//	_meoutd::	
+//			IndentComment(w.VK_TAB,false);
+//			ret();
+//			
 	_mesbook::	
 		USE (EBX);
 			mov (curnode, ebx);
@@ -1581,6 +1457,96 @@ proc
 	
 	end ShowPos;
 	
+	
+	AddMenus	:procedure;
+	
+	var
+		file_menu		:dword;
+		edit_menu		:dword;
+		view_menu		:dword;
+		tools_menu		:dword;
+		options_menu	:dword;
+		help_menu		:dword;
+		recent_menu		:dword;
+		build_str		:string;
+	
+	begin AddMenus;
+		mov (str.talloc(1000), build_str);
+		
+		mov (w.CreateMenu(), file_menu);
+		mov (w.CreateMenu(), edit_menu);
+		mov (w.CreateMenu(), options_menu);
+		mov (w.CreateMenu(), view_menu);
+		mov (w.CreateMenu(), help_menu);
+		mov (w.CreatePopupMenu(), recent_menu );
+
+		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_NEW, "&New File");
+		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_OPEN, "&Open File...");
+		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_INSERT, "&Insert File at Cursor");
+		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_OPEN_FOLDER, "Open &Folder...");
+		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_OPENRECENT, "Recent Files");
+		w.AppendMenu (file_menu, w.MF_SEPARATOR, NULL, NULL);
+		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_SAVE, "&Save");
+		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_SAVEAS, "Save &As...");
+		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_SAVEALL, "Save &All");
+		w.AppendMenu (file_menu, w.MF_SEPARATOR, NULL, NULL);
+		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_CLOSE, "&Close File");
+		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_CLOSEALL, "Close All Files");
+		w.AppendMenu (file_menu, w.MF_SEPARATOR, NULL, NULL);
+		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_PAGESETUP, "Page Setup...");
+		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_PRINT, "Print...");
+		w.AppendMenu (file_menu, w.MF_SEPARATOR, NULL, NULL);
+		w.AppendMenu (file_menu, w.MF_SEPARATOR, NULL, NULL);
+		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_EXIT, "&Quit	ESC");
+		w.AppendMenu (core.hmenu, w.MF_POPUP, file_menu, "&File");
+
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_UNDO, "&Undo	Ctrl+Z");
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_REDO, "&Redo	Ctrl+Y");
+		w.AppendMenu (edit_menu, w.MF_SEPARATOR, NULL, NULL);
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_CUT, "&Cut	Ctrl+X");
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_COPY, "Copy	Ctrl+C");
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_PASTE, "&Paste	Ctrl+V");
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_DELETE, "&Delete	Del");
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_SELECTALL, "Select &All	Ctrl+A");
+		w.AppendMenu (edit_menu, w.MF_SEPARATOR, NULL, NULL);
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_FIND, "Find...");
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_NEXT, "Find Next");
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_PREV, "Find Prev");
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_REPLACE, "Replace...");
+		w.AppendMenu (edit_menu, w.MF_SEPARATOR, NULL, NULL);
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_GOTO, "Goto...");
+		w.AppendMenu (edit_menu, w.MF_SEPARATOR, NULL, NULL);
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_SETMARK, "Bookmark Set");
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_NEXTBOOK, "Bookmark Next");
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_PREVBOOK, "Bookmark Prev");
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_CLEARBOOK, "Bookmark Clear");
+		w.AppendMenu (core.hmenu, w.MF_POPUP, edit_menu, "&Edit");
+
+		w.AppendMenu (view_menu, w.MF_STRING, IDM_VIEW_STATUS, "Status Bar");
+		w.AppendMenu (view_menu, w.MF_STRING, IDM_VIEW_OUTPUT, "Output Window");
+		w.AppendMenu (view_menu, w.MF_STRING, IDM_VIEW_PANEL, "Side Panel");
+		w.AppendMenu (view_menu, w.MF_STRING, IDM_VIEW_HIDEALL, "Hide All");
+		w.AppendMenu (view_menu, w.MF_STRING, IDM_VIEW_TOGGLE, "Toggle");
+		w.AppendMenu (core.hmenu, w.MF_POPUP, view_menu, "&View");
+
+		w.AppendMenu (tools_menu, w.MF_STRING, IDM_TOOL_CALC, "Calculator");
+		w.AppendMenu (tools_menu, w.MF_STRING, IDM_TOOL_COLOR, "Color Picker");
+		w.AppendMenu (tools_menu, w.MF_STRING, IDM_TOOL_CONSOLE, "Open Console");
+		w.AppendMenu (tools_menu, w.MF_STRING, IDM_TOOL_RUN, "Run Command...");
+		w.AppendMenu (core.hmenu, w.MF_POPUP, tools_menu, "&Tools");
+		
+		w.AppendMenu (options_menu, w.MF_STRING, IDM_OPTION_CODEFONT, "Editor Font...");
+		w.AppendMenu (options_menu, w.MF_STRING, IDM_OPTION_LINEFONT, "Line Number Font...");
+		w.AppendMenu (core.hmenu, w.MF_POPUP, options_menu, "&Options");
+
+		w.AppendMenu (view_menu, w.MF_STRING, IDM_HELP_SHOWENV, "Help");
+		w.AppendMenu (core.hmenu, w.MF_POPUP, help_menu, "&Help");
+
+		w.SetMenu(core.hwnd, core.hmenu);
+
+	end AddMenus;
+
+	
 	//bm=wndproc
 
 	procedure	WndProc (lparam:dword; wparam:dword; umsg:uns32; hwin:dword);
@@ -1630,7 +1596,7 @@ proc
 			dword	IDM_VIEW_STATUS,	&Menu_ViewStatusbar;
 			dword	IDM_VIEW_OUTPUT,	&Menu_ViewOutput;
 			dword	IDM_VIEW_PANEL,		&Menu_ViewPanel;
-			dword	IDM_VIEW_HEDALL,	&Menu_ViewHideAll;
+			dword	IDM_VIEW_HIDEALL,	&Menu_ViewHideAll;
 			dword	IDM_VIEW_TOGGLE,	&Menu_ViewToggleWindows;
 			
 			dword	IDM_EDIT_UNDO,		&_meud;
@@ -1640,17 +1606,13 @@ proc
 			dword	IDM_EDIT_PASTE,		&_mepst;
 			dword	IDM_EDIT_DELETE,	&_medel;
 			dword	IDM_EDIT_SELECTALL,	&_mesa;
-			dword	IDM_MARK_SET,		&_mems;
-			dword	IDM_MARK_END,		&_meme;
 			dword	IDM_EDIT_FIND,		&_mefnd;
 			dword	IDM_EDIT_NEXT,		&_mefnxt;
 			dword	IDM_EDIT_PREV,		&_mefprv;
 			dword	IDM_EDIT_REPLACE,	&_mefrpl;
 			dword	IDM_EDIT_GOTO,		&_megoto;
-			dword	IDM_EDIT_INDENT,	&_meind;
-			dword	IDM_EDIT_OUTDENT,	&_meoutd;
-			dword	IDM_EDIT_COMMENT,	&_mecomnt;
-			dword	IDM_EDIT_UNCOMMENT,	&_meuncmnt;
+			//dword	IDM_EDIT_INDENT,	&_meind;
+			//dword	IDM_EDIT_OUTDENT,	&_meoutd;
 			dword	IDM_EDIT_SETMARK,	&_mesbook;
 			dword	IDM_EDIT_NEXTBOOK,	&_menbook;
 			dword	IDM_EDIT_PREVBOOK,	&_mepbook;
@@ -1658,13 +1620,6 @@ proc
 			
 			dword	IDM_HED_EXPANDALL,		&_expandall;	// expand/collapse buttons
 			dword	IDM_HED_COLLAPSEALL,	&_collapseall;
-			
-			dword	IDM_MAKE_BUILDIT,		&Menu_MakeBuild;
-			dword	IDM_MAKE_REBUILD,		&Menu_MakeRebuild;
-			dword	IDM_MAKE_RUN,			&Menu_MakeRun;
-			dword	IDM_MAKE_BUILDITRUN,	&Menu_MakeBuildRun;
-			dword	IDM_MAKE_TESTBUILD,		&Menu_MakeTestBuild;
-			dword	IDM_MAKE_CLEAN,			&Menu_MakeClean;
 			
 			dword	IDM_OPTION_CODEFONT,	&_mocfnt;
 			dword	IDM_OPTION_LINEFONT,	&_molfnt;
@@ -1674,7 +1629,7 @@ proc
 			dword	IDM_TOOL_CONSOLE,		&Menu_ToolsConsole;
 			dword	IDM_TOOL_RUN,			&Menu_ToolsRun;
 			
-			dword	IDM_HELP_SHOWENV,		&Menu_Help_ShowEnv;		
+			dword	IDM_HELP_SHOWENV,		&Menu_Help_ShowEnv;
 			dword	KEYBOARD_CTRLTAB,		&_ctrltab;
 			
 			// add more commands above here
@@ -1802,7 +1757,7 @@ proc
 			shr(16,edx);
 			cmp(edx,w.BN_CLICKED);
 			je _mf0;
-			cmp(edx,1);	// for accelerator messages
+			cmp(edx,1);	// for accelerator messages  -- depricated
 			je _mf0;
 			jmp xWndProc;
 			
@@ -2130,7 +2085,7 @@ proc
 		
 		pushabi;
 		dbg.put(">init_window");
-	
+		
 		// create fonts
 		w.CreateFontIndirect(&linefont);
 		mov(eax,core.hlinefont);
@@ -2151,6 +2106,10 @@ proc
 
 		mov(hwin,eax);
 		mov(eax,core.hwnd);
+	
+		w.CreateMenu();
+		mov (eax, core.hmenu);
+		AddMenus();
 	
 		// default position
 		w.MoveWindow(hwin,settings.edtwin.x,settings.edtwin.y,settings.edtwin.wt,settings.edtwin.ht,true);
@@ -2403,7 +2362,7 @@ proc
 		mov(w.DLGWINDOWEXTRA,wc.cbWndExtra);
 		mov(core.hinst,wc.hInstance);
 		mov(w.COLOR_BTNFACE+1, wc.hbrBackground);
-		mov(IDR_MENU,wc.lpszMenuName);
+		mov (NULL, wc.lpszMenuName);
 		mov(&ClassName,wc.lpszClassName);
 		w.LoadIcon(core.hinst,val IDB_JACKALICON);
 		mov(eax,wc.hIcon);
@@ -2460,8 +2419,7 @@ proc
 		w.UpdateWindow(core.hwnd);
 		initBF();		//setup the browsefolder structure, needs to be done after window creation
 		
-		w.LoadAccelerators(core.hinst,val IDR_ACCEL);
-		mov(eax,haccel);
+
 		dbg.put(">>args");
 		dec (argc);
 		if (argc > 0) then
@@ -2509,9 +2467,9 @@ proc
 			w.IsDialogMessage(core.hfind,msg); and(eax,eax); jnz _msgloop;
 			w.IsDialogMessage(core.hout,msg); and(eax,eax); jnz _msgloop;
 
-			w.TranslateAccelerator(core.hwnd,haccel,msg);
-			cmp(eax,true);
-			je _msgloop;
+			//w.TranslateAccelerator(core.hwnd,haccel,msg);
+			//cmp(eax,true);
+			//je _msgloop;
 			w.TranslateMessage(msg);
 			w.DispatchMessage(msg);
 		jmp _msgloop;
