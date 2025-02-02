@@ -26,7 +26,6 @@ procedure Proc_KeyWords (lparam:dword; wparam:dword; umsg:uns32; hwin:dword);	@e
 
 
 // editfunctions
-procedure SetKeyWordsByFile(var fname:string); @external;
 procedure SetKeyWords(var node:fList.fnode); @external;
 procedure saveAll; @external;
 procedure closeAll; @external;

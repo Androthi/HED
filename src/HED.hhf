@@ -1,6 +1,6 @@
 const
 
-	hed_version	:string := "HED 0.0.26";
+	hed_version	:string := "HED 0.0.27";
 
 	#includeonce	("os.hhf")
 	#includeonce	("src/win_inc.hhf")

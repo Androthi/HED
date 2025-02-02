@@ -2017,9 +2017,8 @@ proc
 	
 			
 			hed_ini.writeBin ("Settings", "pos", &settings, @size(settings));
-			
+			hed_ini.writeBin ("Colors","User Colors", &CustColors, @size(CustColors));
 			hed_ini.write (core.configmain);
-			//dbg.put ("quitting");
 			w.PostQuitMessage(0);
 			
 		_cancel:
@@ -2270,9 +2269,7 @@ proc
 			zstr.cpy(eax,&pathbuf);
 		endif;
 		
-		dbg.put("reading top");
 		if (hed_ini.readBool ("HED", "Top Window")) then
-			dbg.put("top");
 			w.SetWindowPos(core.hwnd,w.HWND_TOPMOST,0,0,0,0,3);
 		endif;
 		
@@ -2313,7 +2310,6 @@ proc
 			w.DeleteObject(core.hlinefont);
 			w.DestroyCursor(core.hVsplitcursor);
 			w.DestroyCursor(core.hHsplitcursor);
-			dbg.put ("done all destroy");
 			// float
 	xWndProc:
 			pop(edi); pop(esi); pop(ebx);

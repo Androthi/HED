@@ -39,12 +39,7 @@ static
 	
 
 proc
-	SetKeyWordsByFile :procedure ( var fname:string );
-	begin SetKeyWordsByFile;
-		toOutput ("TODO: Keywords by file");
-	end SetKeyWordsByFile;
 
-	
 	SetKeyWords :procedure( var node:fList.fnode );
 		var
 			index		:uns32;
