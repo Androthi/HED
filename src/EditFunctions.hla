@@ -2,8 +2,6 @@ unit EditFunctions;
 #includeonce	("HED.hhf")
 #includeonce	("fileio.hhf")
 #includeonce	("memory.hhf")
-#includeonce	("w32/shell32.hhf")
-#includeonce	("w32/ole32.hhf")
 
 ?@nodisplay:=true;
 ?@align:=4;
@@ -496,7 +494,7 @@ end GetOpenName;
 procedure GetOpenFolderName;	@noframe;
 begin GetOpenFolderName;
 
-	CoInitialize (NULL);
+	w.CoInitialize (NULL);
 	if (hed_ini._readString ("HED", "Last Path", stringbuffer)) then
 		mov (stringbuffer, eax);
 		
@@ -506,7 +504,7 @@ begin GetOpenFolderName;
 		push (eax);
 		w.SHGetPathFromIDList (eax, &bfBuffer);
 		pop (eax);
-		CoTaskMemFree (eax);
+		w.CoTaskMemFree (eax);
 		str.cpyz (&bfBuffer, core.projectpath);
 		zstr.cpy (&bfBuffer, &pathbuf);
 		dbg.put ("after path :", core.projectpath);
@@ -515,7 +513,7 @@ begin GetOpenFolderName;
 		xor (eax, eax);
 	endif;
 	push (eax);
-	CoUninitialize();
+	w.CoUninitialize();
 	pop (eax);
 	ret();
 end GetOpenFolderName;

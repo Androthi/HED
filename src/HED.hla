@@ -14,12 +14,6 @@ program HED_MAIN;
 	#includeonce	("memory.hhf")
 	#includeonce	("stdin.hhf")
 
-	#includeonce	("w32/shlwapi.hhf")
-	#includeonce	("w32/shell32.hhf")
-	#includeonce	("w32/comctl32.hhf")
-
-	#includeonce	("macros/maclib.hhf")
-
 	// global compile-time settings
 	?@nodisplay:=true;
 	?@align:=4;
