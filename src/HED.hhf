@@ -1,3 +1,4 @@
+
 const
 
 	hed_version	:string := "HED 0.0.32";
@@ -161,3 +162,13 @@ const
 	opt_autountitled:= @{3};	// automatically save untitled with ran dom filename
 	opt_restore		:= @{4};	// open last used file
 
+	// for custom key encoding
+	key_ctrl		:= @{0};
+	key_shift		:= @{1};
+	key_alt			:= @{2};
+	key_super		:= @{3}; // not supprted for now, maybe ever
+		
+	ctrl_shift		:= key_ctrl | key_shift;
+	ctrl_alt_shift	:= key_ctrl | key_shift | key_alt;
+	alt_shift		:= key_alt | key_shift;
+	ctrl_alt		:= key_ctrl | key_alt;

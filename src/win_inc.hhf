@@ -601,6 +601,8 @@ const
 	VK_RETURN                      := $0D;
 	VK_RIGHT                       := $27;
 	VK_SHIFT                       := $10;
+	VK_CONTROL						:= $11;
+	VK_MENU							:= $12;
 	VK_TAB                         := $9;
 	VK_UP                          := $26;
 	VK_F1                          := $70;
@@ -635,6 +637,10 @@ const
 	WM_KEYDOWN                     := $100;
 	WM_KEYUP                       := $101;
 	WM_CHAR                        := $102;
+	WM_SYSKEYDOWN                  := $104;
+	WM_SYSKEYUP                    := $105;
+	WM_SYSCHAR                     := $106;
+
 	WM_KEYLAST                     := $108;
 	WM_INITDIALOG                  := $110;
 	WM_COMMAND                     := $111;
@@ -1984,6 +1990,14 @@ GetKeyboardState: procedure
 		@stdcall;
 		@returns( "eax" );
 		@external( "__imp__GetKeyboardState@4" );
+
+	GetKeyState: procedure
+	( 
+		nVirtKey		:dword
+	);
+		@stdcall;
+		@returns( "eax" );
+		@external( "__imp__GetKeyState@4" );
 
 GetMenu: procedure
 	( 

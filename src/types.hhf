@@ -232,3 +232,9 @@ type
 		endrecord;
 
 	BOOL		:dword;
+
+	UserKey	:record
+		modkeys	:byte;
+		vcode	:byte;
+		command	:dword;
+	endrecord;

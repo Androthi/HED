@@ -19,7 +19,6 @@ program HED_MAIN;
 	?@align:=4;
 	?@noalignstack := true;
 	
-
 	//===============================================================
 	// locals
 
@@ -50,17 +49,12 @@ program HED_MAIN;
 		current_menu	:uns16 := RECENT_MENU_START;		// track auto-added menus current number
 		align (4);
 
-
-
 	storage	// local variables
 		align(4);
 		argc		:uns32;		// command line arguments
 		prvline		:dword;
-		//haccel		:dword;		// handle for accelerator table
 		hradll		:dword;		// dll handle
-		//hexeddll	:dword;		// hex ed dll handle
 		nlastline	:dword;		// check for last line in edit control
-		dummy		:dword;		// dummy var for some windows APIs and temp storage
 		openfile_s	:string;
 				
 		wc			:w.WNDCLASSEX;
@@ -75,7 +69,6 @@ program HED_MAIN;
 		open_override	:boolean;
 
 		align(4);
-
 	
 	readonly
 		align(4);
@@ -97,9 +90,45 @@ program HED_MAIN;
 		ins_startBrace		:mzstr ( "{" );
 		ins_startBracket	:mzstr ( "[" );
 		
+//bm=custom keys
+	static
+		UserKeys	:UserKey; @nostorage;
+		UserKey
+			UserKey:[ 0, 0, IDM_FILE_NEW],
+			UserKey:[ 0, 0, IDM_FILE_OPEN],
+			UserKey:[ 0, 0, IDM_FILE_INSERT],
+			UserKey:[ 0, 0, IDM_FILE_OPEN_FOLDER],
+			UserKey:[ 0, 0, IDM_FILE_SAVE],
+			UserKey:[ 0, 0, IDM_FILE_SAVEAS],
+			UserKey:[ 0, 0, IDM_FILE_SAVEALL],
+			UserKey:[ 0, 0, IDM_FILE_CLOSE],
+			UserKey:[ 0, 0, IDM_FILE_CLOSEALL],
+			UserKey:[ 0, 0, IDM_FILE_EXIT],
+			UserKey:[ 0, 0, IDM_EDIT_UNDO],
+			UserKey:[ 0, 0, IDM_EDIT_REDO],
+			UserKey:[ 0, 0, IDM_EDIT_CUT],
+			UserKey:[ 0, 0, IDM_EDIT_COPY],
+			UserKey:[ 0, 0, IDM_EDIT_PASTE],
+			UserKey:[ 0, 0, IDM_EDIT_DELETE],
+			UserKey:[ 0, 0, IDM_EDIT_SELECTALL],
+			UserKey:[ 0, 0, IDM_EDIT_FIND],
+			UserKey:[ 0, 0, IDM_EDIT_NEXT],
+			UserKey:[ 0, 0, IDM_EDIT_PREV],
+			UserKey:[ 0, 0, IDM_EDIT_REPLACE],
+			UserKey:[ 0, 0, IDM_EDIT_GOTO],
+			UserKey:[ 0, 0, IDM_EDIT_SETMARK],
+			UserKey:[ 0, 0, IDM_EDIT_NEXTBOOK],
+			UserKey:[ 0, 0, IDM_EDIT_PREVBOOK],
+			UserKey:[ 0, 0, IDM_EDIT_CLEARBOOK],
+			UserKey:[ 0, 0, IDM_VIEW_OUTPUT],
+			UserKey:[ 0, 0, IDM_VIEW_PANEL],
+
+			UserKey:[ 0, 0, 0]; // end of keys
+
+		KeyboardState :byte[256];
+		
 	proc
 	
-		
 	UpdateMenu	:procedure;
 	
 		// adds dynamic menus > recent files, etc.
@@ -154,7 +183,6 @@ program HED_MAIN;
 		
 		popad();
 	end UpdateMenu;
-	
 	
 	setupUserMenu	:procedure;
 		var
@@ -440,7 +468,18 @@ program HED_MAIN;
 			endif;
 		
 		elseif (eax = w.WM_KEYDOWN) then
-			dbg.put("keydown : wparam = ", wparam);
+//			dbg.put("keydown : wparam = ", wparam);
+//			//w.GetKeyboardState(KeyboardState);	
+//			if (w.GetKeyState(w.VK_SHIFT)) then
+//				dbg.put ("shift d");
+//			endif;
+//			if (w.GetKeyState(w.VK_MENU)) then
+//				dbg.put ("alt d");
+//			endif;
+//			if (w.GetKeyState(w.VK_CONTROL)) then
+//				dbg.put ("ctrl d");
+//			endif;
+//			
 			
 			if (wparam = w.VK_SHIFT) then
 				mov (true, shiftdn);
@@ -2467,9 +2506,12 @@ proc
 			w.IsDialogMessage(core.hfind,msg); and(eax,eax); jnz _msgloop;
 			w.IsDialogMessage(core.hout,msg); and(eax,eax); jnz _msgloop;
 
-			//w.TranslateAccelerator(core.hwnd,haccel,msg);
-			//cmp(eax,true);
-			//je _msgloop;
+    		if (msg.message = w.WM_SYSKEYDOWN && msg.wParam = w.VK_MENU) then
+        		dbg.put ("alt key down");
+        	elseif (msg.message = w.WM_SYSKEYUP && msg.wParam = w.VK_MENU) then
+     			dbg.put ("alt key up");
+     		endif;
+
 			w.TranslateMessage(msg);
 			w.DispatchMessage(msg);
 		jmp _msgloop;
