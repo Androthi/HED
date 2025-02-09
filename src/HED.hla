@@ -80,52 +80,44 @@ program HED_MAIN;
 		szINS		:mzstr ( "INS");
 		szOVR		:mzstr ( "OVR");
 		
-	// auto inserts
-		ins_nl				:byte := 13; byte 10,0,0;	// new line sequence, aligned 4
-		ins_tab				:byte := 09; byte 0, 0, 0;	// tab sequence, aligned 4
-		ins_endParen		:mzstr ( ")" );
-		ins_endBrace		:mzstr ( "}" );
-		ins_endBracket		:mzstr ( "]" );
-		ins_startParen		:mzstr ( "(" );
-		ins_startBrace		:mzstr ( "{" );
-		ins_startBracket	:mzstr ( "[" );
-		
 //bm=custom keys
 	static
-		UserKeys	:UserKey; @nostorage;
+		UserKey_table	:UserKey; @nostorage;
 		UserKey
-			UserKey:[ 0, 0, IDM_FILE_NEW],
-			UserKey:[ 0, 0, IDM_FILE_OPEN],
+			UserKey:[ key_ctrl, w.VK_N, IDM_FILE_NEW],
+			UserKey:[ key_ctrl, w.VK_O, IDM_FILE_OPEN],
 			UserKey:[ 0, 0, IDM_FILE_INSERT],
-			UserKey:[ 0, 0, IDM_FILE_OPEN_FOLDER],
-			UserKey:[ 0, 0, IDM_FILE_SAVE],
-			UserKey:[ 0, 0, IDM_FILE_SAVEAS],
-			UserKey:[ 0, 0, IDM_FILE_SAVEALL],
-			UserKey:[ 0, 0, IDM_FILE_CLOSE],
-			UserKey:[ 0, 0, IDM_FILE_CLOSEALL],
-			UserKey:[ 0, 0, IDM_FILE_EXIT],
-			UserKey:[ 0, 0, IDM_EDIT_UNDO],
-			UserKey:[ 0, 0, IDM_EDIT_REDO],
-			UserKey:[ 0, 0, IDM_EDIT_CUT],
-			UserKey:[ 0, 0, IDM_EDIT_COPY],
-			UserKey:[ 0, 0, IDM_EDIT_PASTE],
-			UserKey:[ 0, 0, IDM_EDIT_DELETE],
-			UserKey:[ 0, 0, IDM_EDIT_SELECTALL],
-			UserKey:[ 0, 0, IDM_EDIT_FIND],
-			UserKey:[ 0, 0, IDM_EDIT_NEXT],
-			UserKey:[ 0, 0, IDM_EDIT_PREV],
-			UserKey:[ 0, 0, IDM_EDIT_REPLACE],
-			UserKey:[ 0, 0, IDM_EDIT_GOTO],
-			UserKey:[ 0, 0, IDM_EDIT_SETMARK],
-			UserKey:[ 0, 0, IDM_EDIT_NEXTBOOK],
-			UserKey:[ 0, 0, IDM_EDIT_PREVBOOK],
-			UserKey:[ 0, 0, IDM_EDIT_CLEARBOOK],
-			UserKey:[ 0, 0, IDM_VIEW_OUTPUT],
-			UserKey:[ 0, 0, IDM_VIEW_PANEL],
+			UserKey:[ key_alt, w.VK_O, IDM_FILE_OPEN_FOLDER],
+			UserKey:[ key_ctrl, w.VK_S, IDM_FILE_SAVE],
+			UserKey:[ key_alt, w.VK_S , IDM_FILE_SAVEAS],
+			UserKey:[ ctrl_shift, w.VK_S, IDM_FILE_SAVEALL],
+			UserKey:[ key_ctrl, w.VK_F4, IDM_FILE_CLOSE],
+			UserKey:[ ctrl_shift, w.VK_F4, IDM_FILE_CLOSEALL],
+			UserKey:[ 0, w.VK_ESCAPE, IDM_FILE_EXIT],
+			UserKey:[ key_ctrl, w.VK_Z, IDM_EDIT_UNDO],
+			UserKey:[ key_ctrl, w.VK_Y, IDM_EDIT_REDO],
+			UserKey:[ key_ctrl, w.VK_X, IDM_EDIT_CUT],
+			UserKey:[ key_ctrl, w.VK_C, IDM_EDIT_COPY],
+			UserKey:[ key_ctrl, w.VK_V, IDM_EDIT_PASTE],
+			UserKey:[ key_ctrl, w.VK_D, IDM_EDIT_DELETE],
+			UserKey:[ key_ctrl, w.VK_A, IDM_EDIT_SELECTALL],
+			UserKey:[ key_ctrl, w.VK_F, IDM_EDIT_FIND],
+			UserKey:[ 0, w.VK_F3, IDM_EDIT_NEXT],
+			UserKey:[ key_ctrl, w.VK_F3, IDM_EDIT_PREV],
+			UserKey:[ key_ctrl, w.VK_R, IDM_EDIT_REPLACE],
+			UserKey:[ key_ctrl, w.VK_G, IDM_EDIT_GOTO],
+			UserKey:[ key_shift, w.VK_F8, IDM_EDIT_SETMARK],
+			UserKey:[ 0, w.VK_F8, IDM_EDIT_NEXTBOOK],
+			UserKey:[ key_ctrl, w.VK_F8, IDM_EDIT_PREVBOOK],
+			UserKey:[ 0, w.VK_F11, IDM_VIEW_OUTPUT],
+			UserKey:[ key_ctrl, w.VK_B, IDM_VIEW_PANEL],
+			UserKey:[ 0, w.VK_F12, IDM_VIEW_TOGGLE],
+			UserKey:[ key_ctrl, w.VK_F12, IDM_VIEW_HIDEALL],
 
 			UserKey:[ 0, 0, 0]; // end of keys
 
-		KeyboardState :byte[256];
+		//KeyboardState :byte[256];
+		modkey	:dword := 0;
 		
 	proc
 	
@@ -327,134 +319,95 @@ program HED_MAIN;
 //		dbg.exits("expandPathMacs");
 	end expandPathMacs;
 	
+	procedure ProcessKeys (key:dword); @returns("EAX");
+	begin ProcessKeys;
+
+     	mov (&UserKey_table, edx);
+		forever
+			breakif ((type UserKey[edx]).command = 0);
+			movzx ((type UserKey[edx]).modkeys, ecx);
+			if (ecx = modkey) then
+				mov ((type UserKey[edx]).vcode, al);
+				mov ((type byte key), ah);
+				breakif (ah = al);
+			endif;
+			add (@size(UserKey), edx);
+		endfor;
+		mov ((type UserKey[edx]).command, eax);
+		if (!eax) then
+			exit ProcessKeys;
+		endif;
+		w.SendMessage (core.hwnd, w.WM_COMMAND, EAX, 0);
+
+		dbg.put ("/process keys :", eax);
+	end ProcessKeys;
+
 	
 	//bm=edit proc
 
 	procedure Proc_SubclassedEdit(lparam:dword; wparam:dword; umsg:uns32; hwin:dword);
 	@alignstack;
-	
-		var
-			temp_s		:string;
-			isctl		:dword;
-			inProc		:boolean;
-	
-		static
-			mclicked		:boolean := false;
-			shiftdn			:boolean := false;
-			chrg			:w.CHARRANGE;
-	
-		// local procedures
-		procedure _insertit;	@noframe;
-		begin _insertit;
-			w.SendMessage(listebx.hwnd,w.EM_REPLACESEL,true,eax);
-			ret();	
-		end _insertit;
-		
-		procedure wordLeft ( toInsert:dword );
-			var
-				_chrg	:w.CHARRANGE;
-				
-		begin wordLeft;
-			pushabi;
-			hed_ini.readInt( "HED", "Auto Parenthesis" );
-			if( eax ) then
-				
-				w.SendMessage (listebx.hwnd, w.EM_EXGETSEL, 0, &chrg);
-				mov (chrg.cpMin, eax);
-				dec (eax);
-				w.SendMessage (listebx.hwnd, w.EM_FINDWORDBREAK, w.WB_MOVEWORDLEFT, eax);
-				mov (eax, _chrg.cpMin);
-				mov (eax, _chrg.cpMax);
-				lea (eax, _chrg);
-				w.SendMessage (listebx.hwnd, w.EM_EXSETSEL, 0, eax);
-				mov (toInsert, eax);	call _insertit;
-				inc (chrg.cpMin);
-				inc (chrg.cpMax);
-				w.SendMessage (listebx.hwnd, w.EM_EXSETSEL, 0, &chrg);
-				w.SendMessage(listebx.hwnd,w.EM_SCROLLCARET,0,0);
-			endif;
-			popabi;
-		end wordLeft;
-		
-		procedure wordRight ( toInsert:dword );
-		begin wordRight;
-			pushabi;
-			hed_ini.readInt( "HED", "Auto Parenthesis" );
-			if( eax ) then
-				
-				mov (ebp::wparam, eax);
-				w.SendMessage(listebx.hwnd,w.EM_EXGETSEL,0,&chrg);
-				mov (toInsert, eax);	call _insertit;
-				w.SendMessage(listebx.hwnd,w.EM_EXSETSEL,0,&chrg);
-				w.SendMessage(listebx.hwnd,w.EM_SCROLLCARET,0,0);
-			endif;
-			popabi;
-		end wordRight;
-		
-		procedure ScancodeToAscii(scancode:dword);
-		
-			// 	covert scan code to ascii
-			// 	result of ascii code in register BL
-			//	added by: Bernd Kastenholz
-		
-		var 
-			KeyState:byte[256];
-			CharBuf:byte;
-			
-		begin	ScancodeToAscii;
-				
-		USE(eax);
-			w.GetKeyboardState(KeyState);	
-			lea(eax, KeyState);
-			lea(edx, CharBuf);
-			w.ToAscii(scancode, scancode, [eax], [edx], 0);
-			mov(CharBuf, dl);
-		ENDUSE;
-		end ScancodeToAscii;
-		
 	begin Proc_SubclassedEdit;
 	USE(ESI, EDI, EBX, EDX);
-		mov (umsg,eax);
-		mov( false, inProc );
+	
 		mov (curnode, ebx);
 		if (! ebx) then
 			jmp _exitnocall;
 		endif;
-		if(eax=w.WM_KEYUP) then
-			
-			mov(wparam,eax);
-			ScancodeToAscii(eax); // char is in register BL
+	
+		mov (umsg,eax);
 
-			if (eax = w.VK_SHIFT) then
-				mov (false, shiftdn);
-			
-			// code added by Bernd Kastenholz  -----------------------
-			elseif (dl = '(') then
-				
-				wordRight (&ins_endParen);
-				
-			elseif (dl = '{') then
-				
-				wordRight (&ins_endBrace);
-				
-			elseif (dl = ')' ) THEN
+   		if (eax = w.WM_SYSKEYDOWN) then
+   			if (wparam = w.VK_MENU) then
+        		// w.VK_MENU is sent by syskeydown message, as well as keydown message if
+        		// alt is pressed after another modifier. such as control-alt 
+        		dbg.put( "syskey down");
+        		or (key_alt, modkey);
+        		xor (eax, eax);
+        		jmp _exitnocall;
+        	elseif (wparam = w.VK_SHIFT) then
+        		or (key_shift, modkey);
+        		xor (eax, eax);
+        		jmp _exitnocall;
+        	endif;
+
+		elseif (eax = w.WM_SYSKEYUP) then
+			if (wparam = w.VK_MENU) then
+     			and (!key_alt, modkey);
+				xor (eax, eax);
+        		jmp _exitnocall;
+        	elseif (wparam = w.VK_SHIFT) then
+        		dbg.put("up shift");
+        		and (!key_shift, modkey);
+        		xor (eax, eax);
+        		jmp _exitnocall;
+        	endif;
+        		
+        elseif (eax = w.WM_SYSCHAR) then
+        	dbg.put ("syschar  :", wparam);
+        	ProcessKeys (wparam);
+        	jmp _exitnocall;
 		
-				wordLeft (&ins_startParen);
-						
-			elseif (dl = '}') then
-		
-				wordLeft (&ins_startBrace);
-			
-			elseif (dl = '[') then
-
-				wordRight (&ins_endBracket);
+		elseif (eax = w.WM_KEYDOWN) then
+     		if (wparam = w.VK_CONTROL) then
+	     		or (key_ctrl, modkey);
+	     	elseif (wparam = w.VK_SHIFT) then
+	     		or (key_shift, modkey);
+	     	elseif (wparam = w.VK_MENU) then
+	     		or (key_alt, modkey);
+			else
+				ProcessKeys (wparam);
 				
-			elseif (dl = ']') then
-			
-				wordLeft (&ins_startBracket);
+	    	endif;
 
-			// -------------------------------------------------------
-			
+		elseif (eax = w.WM_KEYUP) then
+			if (wparam = w.VK_CONTROL) then
+     			and (!key_ctrl, modkey);
+			elseif (wparam = w.VK_SHIFT) then
+				and (!key_shift, modkey);
+			elseif (wparam = w.VK_MENU) then
+				and (!key_alt, modkey);
+
 			elseif(eax=w.VK_INSERT)	then
 				mov (true, updateIns);
 				
@@ -466,35 +419,14 @@ program HED_MAIN;
 				dbg.exits("*****DEBUG*****");
 			
 			endif;
-		
-		elseif (eax = w.WM_KEYDOWN) then
-//			dbg.put("keydown : wparam = ", wparam);
-//			//w.GetKeyboardState(KeyboardState);	
-//			if (w.GetKeyState(w.VK_SHIFT)) then
-//				dbg.put ("shift d");
-//			endif;
-//			if (w.GetKeyState(w.VK_MENU)) then
-//				dbg.put ("alt d");
-//			endif;
-//			if (w.GetKeyState(w.VK_CONTROL)) then
-//				dbg.put ("ctrl d");
-//			endif;
-//			
-			
-			if (wparam = w.VK_SHIFT) then
-				mov (true, shiftdn);
-				
-			elseif( wparam = w.VK_ESCAPE ) then
-				dbg.put("close");
-				w.SendMessage(core.hwnd,w.WM_CLOSE,0,0);				
-			endif;
+
 		endif;
-		_noautostruct:
-			w.CallWindowProc ( listebx.oldhwnd, hwin, umsg, wparam, lparam);
-			if (updateIns) then
-				mov (false, updateIns);
-				w.SendMessage(core.hwnd,HED_SETINSERTMODE,0,0);
-			endif;
+
+		w.CallWindowProc ( listebx.oldhwnd, hwin, umsg, wparam, lparam);
+		if (updateIns) then
+			mov (false, updateIns);
+			w.SendMessage(core.hwnd,HED_SETINSERTMODE,0,0);
+		endif;
 		_exitnocall:
 	ENDUSE;
 	end Proc_SubclassedEdit;
@@ -850,6 +782,7 @@ program HED_MAIN;
 	procedure Menu_CloseFile;	@noframe;
 	begin Menu_CloseFile;
 	USE (EBX);
+		dbg.put ("close file");
 		mov (curnode, ebx);
 		if (ebx) then
 			if (! querySave ([ebx])) then
@@ -1068,6 +1001,16 @@ program HED_MAIN;
 		
 	end Menu_ToolsColor;
 	
+	procedure Menu_Help_About;
+	begin Menu_Help_About;
+		toOutput (
+			"HED version ", hed_version, nl nl
+			"Sevag Krikorian" nl
+			"androth.pro@gmail.com" nl nl
+			"Stripped down version of HIDE, made into a source agnostic editor" nl
+			"https://github.com/Androthi/HED" nl );
+	end Menu_Help_About;
+
 	procedure Menu_Help_ShowEnv;
 		var
 			s	:string;
@@ -1102,22 +1045,12 @@ program HED_MAIN;
 	
 	end Menu_Help_ShowEnv;
 	
-	procedure startHelp (src:string);
-		var
-			s	:string;
-			
-	begin startHelp;
-		move (str.talloc (1024), s);
-		if (filesys.exists (src)) then
-			str.put (s, "kHelp """, src, '"');
-			launchProgram( s, false, true );
-			
-		else
-			toOutput (nl nl "File not found: ", src, nl nl
-				"Some help files need to be downloaded and installed" nl
-				"in the HED\Documents folder manually." nl nl);
-		endif;
-	end startHelp;
+	procedure Menu_Quit; @noframe;
+	begin Menu_Quit;
+		dbg.put ("menu quit");
+		w.SendMessage(core.hwnd,w.WM_CLOSE,0,0);
+		ret();
+	end Menu_Quit;
 
 	procedure Menu_ViewStatusbar;	@noframe;
 	begin Menu_ViewStatusbar;
@@ -1185,11 +1118,7 @@ program HED_MAIN;
 	endval;
 	
 	begin CommandProcessor;
-	
-	_mfq::	
-			w.SendMessage(hwin,w.WM_CLOSE,0,0);
-			ret();
-			
+
 	_meud::	
 			mov (curnode, eax);
 			w.SendMessage(listeax.hwnd, w.EM_UNDO,0,0);
@@ -1519,18 +1448,18 @@ proc
 		mov (w.CreateMenu(), help_menu);
 		mov (w.CreatePopupMenu(), recent_menu );
 
-		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_NEW, "&New File");
-		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_OPEN, "&Open File...");
+		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_NEW, "&New File	Ctrl+N");
+		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_OPEN, "&Open File...	Ctrl+O");
 		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_INSERT, "&Insert File at Cursor");
-		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_OPEN_FOLDER, "Open &Folder...");
+		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_OPEN_FOLDER, "Open &Folder...	Alt+O");
 		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_OPENRECENT, "Recent Files");
 		w.AppendMenu (file_menu, w.MF_SEPARATOR, NULL, NULL);
-		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_SAVE, "&Save");
-		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_SAVEAS, "Save &As...");
-		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_SAVEALL, "Save &All");
+		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_SAVE, "&Save	Ctrl+S");
+		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_SAVEAS, "Save &As...	Alt+S");
+		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_SAVEALL, "Save &All	Ctrl+Shift+S");
 		w.AppendMenu (file_menu, w.MF_SEPARATOR, NULL, NULL);
-		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_CLOSE, "&Close File");
-		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_CLOSEALL, "Close All Files");
+		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_CLOSE, "&Close File	Ctrl+F4");
+		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_CLOSEALL, "Close All Files	Ctrl+Shift+F4");
 		w.AppendMenu (file_menu, w.MF_SEPARATOR, NULL, NULL);
 		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_PAGESETUP, "Page Setup...");
 		w.AppendMenu (file_menu, w.MF_STRING, IDM_FILE_PRINT, "Print...");
@@ -1545,27 +1474,27 @@ proc
 		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_CUT, "&Cut	Ctrl+X");
 		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_COPY, "Copy	Ctrl+C");
 		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_PASTE, "&Paste	Ctrl+V");
-		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_DELETE, "&Delete	Del");
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_DELETE, "&Delete	Ctrl+d");
 		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_SELECTALL, "Select &All	Ctrl+A");
 		w.AppendMenu (edit_menu, w.MF_SEPARATOR, NULL, NULL);
-		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_FIND, "Find...");
-		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_NEXT, "Find Next");
-		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_PREV, "Find Prev");
-		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_REPLACE, "Replace...");
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_FIND, "Find...	Ctrl+F");
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_NEXT, "Find Next	F3");
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_PREV, "Find Prev	Ctrl+F3");
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_REPLACE, "Replace...	Ctrl+R");
 		w.AppendMenu (edit_menu, w.MF_SEPARATOR, NULL, NULL);
-		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_GOTO, "Goto...");
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_GOTO, "Goto...	Ctrl+G");
 		w.AppendMenu (edit_menu, w.MF_SEPARATOR, NULL, NULL);
-		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_SETMARK, "Bookmark Set");
-		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_NEXTBOOK, "Bookmark Next");
-		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_PREVBOOK, "Bookmark Prev");
-		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_CLEARBOOK, "Bookmark Clear");
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_SETMARK, "Bookmark Toggle	Shift+F8");
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_NEXTBOOK, "Bookmark Next	F8");
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_PREVBOOK, "Bookmark Prev	Ctrl+F8");
+		w.AppendMenu (edit_menu, w.MF_STRING, IDM_EDIT_CLEARBOOK, "Clear All Bookmarks");
 		w.AppendMenu (core.hmenu, w.MF_POPUP, edit_menu, "&Edit");
 
 		w.AppendMenu (view_menu, w.MF_STRING, IDM_VIEW_STATUS, "Status Bar");
-		w.AppendMenu (view_menu, w.MF_STRING, IDM_VIEW_OUTPUT, "Output Window");
-		w.AppendMenu (view_menu, w.MF_STRING, IDM_VIEW_PANEL, "Side Panel");
-		w.AppendMenu (view_menu, w.MF_STRING, IDM_VIEW_HIDEALL, "Hide All");
-		w.AppendMenu (view_menu, w.MF_STRING, IDM_VIEW_TOGGLE, "Toggle");
+		w.AppendMenu (view_menu, w.MF_STRING, IDM_VIEW_OUTPUT, "Output Window	F11");
+		w.AppendMenu (view_menu, w.MF_STRING, IDM_VIEW_PANEL, "Side Panel	Ctrl+B");
+		w.AppendMenu (view_menu, w.MF_STRING, IDM_VIEW_HIDEALL, "Hide All	Ctrl+F12");
+		w.AppendMenu (view_menu, w.MF_STRING, IDM_VIEW_TOGGLE, "Toggle	F12");
 		w.AppendMenu (core.hmenu, w.MF_POPUP, view_menu, "&View");
 
 		w.AppendMenu (tools_menu, w.MF_STRING, IDM_TOOL_CALC, "Calculator");
@@ -1578,7 +1507,8 @@ proc
 		w.AppendMenu (options_menu, w.MF_STRING, IDM_OPTION_LINEFONT, "Line Number Font...");
 		w.AppendMenu (core.hmenu, w.MF_POPUP, options_menu, "&Options");
 
-		w.AppendMenu (view_menu, w.MF_STRING, IDM_HELP_SHOWENV, "Help");
+		w.AppendMenu (help_menu, w.MF_STRING, IDM_HELP_SHOWENV, "Help");
+		w.AppendMenu (help_menu, w.MF_STRING, IDM_HELP_ABOUT, "About");
 		w.AppendMenu (core.hmenu, w.MF_POPUP, help_menu, "&Help");
 
 		w.SetMenu(core.hwnd, core.hmenu);
@@ -1630,7 +1560,7 @@ proc
 			dword	IDM_FILE_CLOSEALL,	&Menu_CloseAll;
 			dword	IDM_FILE_PAGESETUP,	&Menu_PageSetup;
 			dword	IDM_FILE_PRINT,		&Menu_Print;
-			dword	IDM_FILE_EXIT,		&_mfq;
+			dword	IDM_FILE_EXIT,		&Menu_Quit;
 			
 			dword	IDM_VIEW_STATUS,	&Menu_ViewStatusbar;
 			dword	IDM_VIEW_OUTPUT,	&Menu_ViewOutput;
@@ -1650,8 +1580,6 @@ proc
 			dword	IDM_EDIT_PREV,		&_mefprv;
 			dword	IDM_EDIT_REPLACE,	&_mefrpl;
 			dword	IDM_EDIT_GOTO,		&_megoto;
-			//dword	IDM_EDIT_INDENT,	&_meind;
-			//dword	IDM_EDIT_OUTDENT,	&_meoutd;
 			dword	IDM_EDIT_SETMARK,	&_mesbook;
 			dword	IDM_EDIT_NEXTBOOK,	&_menbook;
 			dword	IDM_EDIT_PREVBOOK,	&_mepbook;
@@ -1669,6 +1597,7 @@ proc
 			dword	IDM_TOOL_RUN,			&Menu_ToolsRun;
 			
 			dword	IDM_HELP_SHOWENV,		&Menu_Help_ShowEnv;
+			dword	IDM_HELP_ABOUT,			&Menu_Help_About;
 			dword	KEYBOARD_CTRLTAB,		&_ctrltab;
 			
 			// add more commands above here
@@ -1796,8 +1725,6 @@ proc
 			shr(16,edx);
 			cmp(edx,w.BN_CLICKED);
 			je _mf0;
-			cmp(edx,1);	// for accelerator messages  -- depricated
-			je _mf0;
 			jmp xWndProc;
 			
 		_mf0:
@@ -1831,8 +1758,8 @@ proc
 			jne _nxtmnu;
 	
 			call([edx+4]);
-			jmp xWndProc;		
-		
+			jmp xWndProc;
+	
 	_notify:
 		mov(lparam,edx);
 		mov((type w.NMHDR [edx]).code, eax);
@@ -2305,7 +2232,11 @@ proc
 		dbg.put ("core.homepath = ", core.homepath);
 	
 		str.put (core.configmain, core.homepath, dirsep_c, HED_INI_FILE);	
-		filesys.cd (core.homepath);
+		try
+			filesys.cd (core.homepath);
+		anyexception
+			toOutput ("Unable to change directory to ", core.homepath);	
+		endtry;
 		
 		str.put (workpath, core.homepath, dirsep_c, HED_DEFAULTINI);	
 		hed_default_ini.create_file ( workpath );
@@ -2505,23 +2436,72 @@ proc
 			je xWinMain;
 			w.IsDialogMessage(core.hfind,msg); and(eax,eax); jnz _msgloop;
 			w.IsDialogMessage(core.hout,msg); and(eax,eax); jnz _msgloop;
+	
+	  		if (msg.message = w.WM_SYSKEYDOWN) then
+   				if (msg.wParam = w.VK_MENU) then
+        		// w.VK_MENU is sent by syskeydown message, as well as keydown message if
+        		// alt is pressed after another modifier. such as control-alt 
+        		dbg.put( "syskey down");
+        		or (key_alt, modkey);
+        		xor (eax, eax);
+        		jmp _msgloop;
+        	elseif (msg.wParam = w.VK_SHIFT) then
+        		or (key_shift, modkey);
+        		xor (eax, eax);
+        		jmp _msgloop;
+        	endif;
 
-    		if (msg.message = w.WM_SYSKEYDOWN && msg.wParam = w.VK_MENU) then
-        		dbg.put ("alt key down");
-        	elseif (msg.message = w.WM_SYSKEYUP && msg.wParam = w.VK_MENU) then
-     			dbg.put ("alt key up");
-     		endif;
+		elseif (msg.message = w.WM_SYSKEYUP) then
+			if (msg.wParam = w.VK_MENU) then
+     			and (!key_alt, modkey);
+				xor (eax, eax);
+        		jmp _msgloop;
+        	elseif (msg.wParam = w.VK_SHIFT) then
+        		dbg.put("up shift");
+        		and (!key_shift, modkey);
+        		xor (eax, eax);
+        		jmp _msgloop;
+        	endif;
+        		
+        elseif (msg.message = w.WM_SYSCHAR) then
+        	dbg.put ("syschar  :", msg.wParam);
+        	ProcessKeys (msg.wParam);
+        	jmp _msgloop;
+		
+		elseif (msg.message = w.WM_KEYDOWN) then
+     		if (msg.wParam = w.VK_CONTROL) then
+	     		or (key_ctrl, modkey);
+	     	elseif (msg.wParam = w.VK_SHIFT) then
+	     		or (key_shift, modkey);
+	     	elseif (msg.wParam = w.VK_MENU) then
+	     		or (key_alt, modkey);
+			else
+				ProcessKeys (msg.wParam);
+	
+	    	endif;
 
+		elseif (msg.message = w.WM_KEYUP) then
+			if (msg.wParam = w.VK_CONTROL) then
+     			and (!key_ctrl, modkey);
+			elseif (msg.wParam = w.VK_SHIFT) then
+				and (!key_shift, modkey);
+			elseif (msg.wParam = w.VK_MENU) then
+				and (!key_alt, modkey);
+
+			endif;
+
+		endif;
+	
+			
 			w.TranslateMessage(msg);
 			w.DispatchMessage(msg);
 		jmp _msgloop;
 	
 	xWinMain:
-		mov(msg.wParam,eax);		
+		mov(msg.wParam,eax);
 		_end:
 		push (eax);
 		w.FreeLibrary(hradll);
-		//w.FreeLibrary(hexeddll);
 		pop (eax);
 		_errorexit:
 		os.exitProcess (eax);

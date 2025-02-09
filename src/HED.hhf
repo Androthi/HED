@@ -114,6 +114,7 @@ const
 	IDM_OPTION_CODEFONT     := 1031;
 	IDM_OPTION_LINEFONT     := 1032;
 	IDM_HELP_SHOWENV        := 1084;
+	IDM_HELP_ABOUT			:= 1085;
 	KEYBOARD_CTRLTAB        := 1500;
 	IDM_VIEW_CYCLE          := 1058;
 	IDM_EDIT_FINDRETURN     := 1120;
@@ -163,8 +164,8 @@ const
 	opt_restore		:= @{4};	// open last used file
 
 	// for custom key encoding
-	key_ctrl		:= @{0};
-	key_shift		:= @{1};
+	key_shift		:= @{0};
+	key_ctrl		:= @{1};
 	key_alt			:= @{2};
 	key_super		:= @{3}; // not supprted for now, maybe ever
 		
