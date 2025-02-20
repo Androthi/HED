@@ -85,8 +85,8 @@ USE (EBX);
 	mov (eax, listebx.hwnd);
 
 	// subclass it
-	w.SendMessage (listebx.hwnd, REM_SUBCLASS, 0, &Proc_SubclassedEdit);
-	mov (eax, listebx.oldhwnd);
+	//w.SendMessage (listebx.hwnd, REM_SUBCLASS, 0, &Proc_SubclassedEdit);
+	//mov (eax, listebx.oldhwnd);
 
 ENDUSE;
 end RAEdit_new;

@@ -89,7 +89,7 @@ program HED_MAIN;
 			UserKey:[ 0, 0, IDM_FILE_INSERT],
 			UserKey:[ key_alt, w.VK_O, IDM_FILE_OPEN_FOLDER],
 			UserKey:[ key_ctrl, w.VK_S, IDM_FILE_SAVE],
-			UserKey:[ key_alt, w.VK_S , IDM_FILE_SAVEAS],
+			UserKey:[ key_alt, w.VK_S, IDM_FILE_SAVEAS],
 			UserKey:[ ctrl_shift, w.VK_S, IDM_FILE_SAVEALL],
 			UserKey:[ key_ctrl, w.VK_F4, IDM_FILE_CLOSE],
 			UserKey:[ ctrl_shift, w.VK_F4, IDM_FILE_CLOSEALL],
@@ -322,13 +322,16 @@ program HED_MAIN;
 	procedure ProcessKeys (key:dword); @returns("EAX");
 	begin ProcessKeys;
 
+		dbg.put ("ProcessKeys : ", key);
      	mov (&UserKey_table, edx);
 		forever
 			breakif ((type UserKey[edx]).command = 0);
 			movzx ((type UserKey[edx]).modkeys, ecx);
+			//dbg.put ("mod | status :", ecx, " | ", modkey);
 			if (ecx = modkey) then
 				mov ((type UserKey[edx]).vcode, al);
 				mov ((type byte key), ah);
+				//dbg.put ("found, vcode | key :", al, " | ", ah);
 				breakif (ah = al);
 			endif;
 			add (@size(UserKey), edx);
@@ -339,7 +342,7 @@ program HED_MAIN;
 		endif;
 		w.SendMessage (core.hwnd, w.WM_COMMAND, EAX, 0);
 
-		dbg.put ("/process keys :", eax);
+		//dbg.put ("/process keys :", eax);
 	end ProcessKeys;
 
 	
@@ -1445,6 +1448,7 @@ proc
 		mov (w.CreateMenu(), edit_menu);
 		mov (w.CreateMenu(), options_menu);
 		mov (w.CreateMenu(), view_menu);
+		mov (w.CreateMenu(), tools_menu);
 		mov (w.CreateMenu(), help_menu);
 		mov (w.CreatePopupMenu(), recent_menu );
 
@@ -2430,73 +2434,98 @@ proc
 		endif;
 
 		updateDisplay (update_general);
-		_msgloop:
+		forever
 			w.GetMessage(msg,NULL,0,0);
 			cmp(eax,0);
-			je xWinMain;
-			w.IsDialogMessage(core.hfind,msg); and(eax,eax); jnz _msgloop;
-			w.IsDialogMessage(core.hout,msg); and(eax,eax); jnz _msgloop;
+			breakif (@z);
+			w.IsDialogMessage(core.hfind,msg); and(eax,eax); continueif (@nz);
+			w.IsDialogMessage(core.hout,msg); and(eax,eax); continueif (@nz);
 	
 	  		if (msg.message = w.WM_SYSKEYDOWN) then
+   				
    				if (msg.wParam = w.VK_MENU) then
-        		// w.VK_MENU is sent by syskeydown message, as well as keydown message if
-        		// alt is pressed after another modifier. such as control-alt 
-        		dbg.put( "syskey down");
-        		or (key_alt, modkey);
-        		xor (eax, eax);
-        		jmp _msgloop;
-        	elseif (msg.wParam = w.VK_SHIFT) then
-        		or (key_shift, modkey);
-        		xor (eax, eax);
-        		jmp _msgloop;
-        	endif;
+        			// w.VK_MENU is sent by syskeydown message, as well as keydown message if
+        			// alt is pressed after another modifier. such as control-alt 
+        			dbg.put( "menu down");
+        			or (key_alt, modkey);
+        			xor (eax, eax);
+        			continue;
+        			
+       		 	elseif (msg.wParam = w.VK_SHIFT) then
+        			dbg.put ("shift down");
+        			or (key_shift, modkey);
+        			xor (eax, eax);
+        			continue;
+        		else
+        			dbg.put ("other sys key down :", msg.wParam);
+        		endif;
 
-		elseif (msg.message = w.WM_SYSKEYUP) then
-			if (msg.wParam = w.VK_MENU) then
-     			and (!key_alt, modkey);
-				xor (eax, eax);
-        		jmp _msgloop;
-        	elseif (msg.wParam = w.VK_SHIFT) then
-        		dbg.put("up shift");
-        		and (!key_shift, modkey);
-        		xor (eax, eax);
-        		jmp _msgloop;
-        	endif;
-        		
-        elseif (msg.message = w.WM_SYSCHAR) then
-        	dbg.put ("syschar  :", msg.wParam);
-        	ProcessKeys (msg.wParam);
-        	jmp _msgloop;
-		
-		elseif (msg.message = w.WM_KEYDOWN) then
-     		if (msg.wParam = w.VK_CONTROL) then
-	     		or (key_ctrl, modkey);
-	     	elseif (msg.wParam = w.VK_SHIFT) then
-	     		or (key_shift, modkey);
-	     	elseif (msg.wParam = w.VK_MENU) then
-	     		or (key_alt, modkey);
-			else
-				ProcessKeys (msg.wParam);
+			elseif (msg.message = w.WM_SYSKEYUP) then
+				if (msg.wParam = w.VK_MENU) then
+	     			dbg.put ("menu up");
+	     			and (!key_alt, modkey);
+					xor (eax, eax);
+	       			continue;
 	
-	    	endif;
-
-		elseif (msg.message = w.WM_KEYUP) then
-			if (msg.wParam = w.VK_CONTROL) then
-     			and (!key_ctrl, modkey);
-			elseif (msg.wParam = w.VK_SHIFT) then
-				and (!key_shift, modkey);
-			elseif (msg.wParam = w.VK_MENU) then
-				and (!key_alt, modkey);
-
-			endif;
-
-		endif;
+	        	elseif (msg.wParam = w.VK_SHIFT) then
+	        		dbg.put("shift up");
+	        		and (!key_shift, modkey);
+	        		xor (eax, eax);
+	       			continue;
+	       		else
+	       			dbg.put ("other syskey up :", msg.wParam);
+	        	endif;
+	        		
+	        elseif (msg.message = w.WM_SYSCHAR) then
+	        	dbg.put ("syschar :", msg.wParam);
+	        	mov (msg.lParam, eax);
+	        	and ($00FF0000, eax);
+	        	shr (16, eax);
+	        	w.MapVirtualKey (eax, w.MAPVK_VSC_TO_VK);
+	        	ProcessKeys (eax);        	
+		       	// sys key up message is never sent if we are here
+	        	// so we should reset the menu_down status?
+		       	and (!key_alt, modkey);
+	 			continue;
+	        	
+			elseif (msg.message = w.WM_KEYDOWN) then
+	     		if (msg.wParam = w.VK_CONTROL) then
+		     		dbg.put ("ctrl down");
+		     		or (key_ctrl, modkey);
+		     	elseif (msg.wParam = w.VK_SHIFT) then
+		     		dbg.put ("shift down");
+		     		or (key_shift, modkey);
+		     	elseif (msg.wParam = w.VK_MENU) then
+		     		dbg.put ("menu down");
+		     		or (key_alt, modkey);
+				else
+					dbg.put ("other keydown :", msg.wParam);
+					ProcessKeys (msg.wParam);	
+		    	endif;
 	
-			
+			elseif (msg.message = w.WM_KEYUP) then
+				if (msg.wParam = w.VK_CONTROL) then
+	     			dbg.put ("ctrl up");
+	     			and (!key_ctrl, modkey);
+	      			continue;
+	
+				elseif (msg.wParam = w.VK_SHIFT) then
+					dbg.put ("shift up");
+					and (!key_shift, modkey);
+	       			continue;
+	
+				elseif (msg.wParam = w.VK_MENU) then
+					dbg.put ("menhu up");
+					and (!key_alt, modkey);
+	       			continue;
+				else
+					dbg.put ("other key up :", msg.wParam);
+				endif;
+			endif;	
 			w.TranslateMessage(msg);
 			w.DispatchMessage(msg);
-		jmp _msgloop;
-	
+		endfor;
+			
 	xWinMain:
 		mov(msg.wParam,eax);
 		_end:

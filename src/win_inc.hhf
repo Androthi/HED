@@ -555,6 +555,7 @@ const
 	THREAD_BASE_PRIORITY_MAX       := 2;
 	THREAD_PRIORITY_HIGHEST        :=  THREAD_BASE_PRIORITY_MAX;
 	INFINITE                       := $0FFFF;
+	MAPVK_VSC_TO_VK					:= $1;
 	WC_TABCONTROL   :string     := "SysTabControl32";
 	TOOLTIPS_CLASS  :string     := "tooltips_class32";
 	LOCALE_IMEASURE                := $0D;
@@ -1562,6 +1563,15 @@ CombineRgn: procedure
 		@stdcall;
 		@returns( "eax" );
 		@external( "__imp__CombineRgn@16" );
+
+	MapVirtualKey: procedure
+	( 
+		uCode			:dword; 
+		uMapType		:dword
+	);
+		@stdcall;
+		@returns( "eax" );
+		@external( "__imp__MapVirtualKeyA@8" );
 
 CreateCompatibleBitmap: procedure
 	( 
